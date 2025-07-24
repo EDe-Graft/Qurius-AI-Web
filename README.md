@@ -261,6 +261,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ using modern web technologies**
+**Built using modern web technologies (Vite + React, Typescript & Supabase)**
 
 *For questions or support, please open an issue or contact the development team.*
