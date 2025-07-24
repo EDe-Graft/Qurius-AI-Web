@@ -1,0 +1,37 @@
+[
+  {
+    "company": "Acme University",
+    "question": "How do I apply for admission?",
+    "answer": "You can apply for admission by filling out the online application form on our Admissions page. Required documents and deadlines are listed there."
+  },
+  {
+    "company": "Acme University",
+    "question": "What is the tuition fee for the academic year?",
+    "answer": "The tuition fee for the current academic year is available on our Tuition & Fees page. Financial aid and scholarships are also available."
+  },
+  {
+    "company": "Acme University",
+    "question": "How can I contact the school office?",
+    "answer": "You can contact the school office by phone at (555) 123-4567 or by email at info@school.edu. Our office hours are 8am to 4pm, Monday to Friday."
+  },
+  {
+    "company": "Acme University",
+    "question": "What are the school hours?",
+    "answer": "School hours are from 8:30am to 3:00pm, Monday through Friday. After-school care is available until 5:30pm."
+  },
+  {
+    "company": "Acme University",
+    "question": "What extracurricular activities are offered?",
+    "answer": "We offer a variety of extracurricular activities including sports, music, art, robotics, and student clubs. See our Activities page for more details."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What is Qurius-AI?",
+    "answer": "Qurius-AI is an AI-powered FAQ assistant."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How do I use it?",
+    "answer": "Just ask your question in the chat interface."
+  }
+] 
