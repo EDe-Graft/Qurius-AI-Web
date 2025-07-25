@@ -8,9 +8,10 @@ interface MessageBubbleProps {
   isUser: boolean
   timestamp?: string
   onStreamingChange?: (isStreaming: boolean) => void
+  skipStreaming?: boolean // Add this prop
 }
 
-export function MessageBubble({ message, isUser, timestamp, onStreamingChange }: MessageBubbleProps) {
+export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming }: MessageBubbleProps) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   
@@ -36,15 +37,15 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange }:
   }
   
   useEffect(() => {
-    // Only simulate streaming for AI responses
-    if (!isUser) {
+    // Only simulate streaming for AI responses and when not skipping
+    if (!isUser && !skipStreaming) {
       simulateStream(message)
     } else {
       setIsStreaming(false)
       onStreamingChange?.(false)
       setStreamText("")
     }
-  }, [message, isUser])
+  }, [message, isUser, skipStreaming])
 
 
   return (
@@ -99,7 +100,7 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange }:
                 ),
               }}
             >
-              {!isUser && isStreaming ? streamText : message}
+              {!isUser && isStreaming && !skipStreaming ? streamText : message}
             </ReactMarkdown>
           </div>
         </div>

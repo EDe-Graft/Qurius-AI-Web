@@ -35,7 +35,6 @@ export class FAQService {
       .limit(1)
     if (error) throw new Error(`Failed to fetch company: ${error.message}`)
     if (companies && companies.length > 0) {
-      console.log('Company found:', companies[0])
       return companies[0].id
     }
     // If not found, create it
@@ -46,7 +45,6 @@ export class FAQService {
       .select('id')
       .single()
     if (createError) throw new Error(`Failed to create company: ${createError.message}`)
-    console.log('Company created:', newCompany)
     return newCompany.id
   }
 
@@ -126,10 +124,10 @@ export class FAQService {
   /**
    * Get answer for user question - tries FAQ first, falls back to AI
    */
-  static async getAnswer(userQuestion: string, confidenceThreshold: number = 0.3): Promise<FAQSearchResult> {
+  static async getAnswer(userQuestion: string, companyName: string, confidenceThreshold: number = 0.3): Promise<FAQSearchResult> {
     try {
       // Step 1: Search FAQs
-      const faqs = await this.searchFAQs(userQuestion, "Acme University");
+      const faqs = await this.searchFAQs(userQuestion, companyName);
       
       if (faqs.length > 0) {
         // Use the similarity score from the SQL function directly

@@ -41,6 +41,7 @@ export function ChatInterface({
   const [userScrolled, setUserScrolled] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
+  const [wasMinimized, setWasMinimized] = useState(false) // Add this state
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -108,6 +109,13 @@ export function ChatInterface({
   //   // const apiMessages = buildMessagesForAPI(updatedMessages) //build message history for api. exclude first message
   // }
 
+  // Track minimization changes
+  useEffect(() => {
+    if (isMinimized) {
+      setWasMinimized(true)
+    }
+  }, [isMinimized])
+
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
       content,
@@ -119,14 +127,15 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
 
     try {
-      // Use FAQService to get answer (FAQ or AI fallback)
-      const result = await FAQService.getAnswer(content)
+      let companyName = "Acme University"
+      const result = await FAQService.getAnswer(content, companyName)
       const aiMessage: Message = {
         content: result.answer,
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }
       setMessages((prev) => [...prev, aiMessage])
+      setWasMinimized(false) // Reset when new message is added
     } catch (error) {
       console.error('Error getting response:', error)
       setMessages((prev) => [
@@ -206,6 +215,7 @@ export function ChatInterface({
               isUser={message.isUser}
               timestamp={message.timestamp}
               onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
+              skipStreaming={wasMinimized && !message.isUser} // Pass this prop
             />
           ))}
           {isTyping && <TypingIndicator />}
