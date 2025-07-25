@@ -114,7 +114,7 @@ Qurius-AI is a sophisticated multi-company FAQ management system that leverages 
     <h3 style="margin: 0 0 10px 0; color: #333;">Light Mode Interface</h3>
     <p style="margin: 0; color: #666; font-size: 14px;">Clean, modern design with light theme</p>
     <div style="margin-top: 15px;">
-      <img src="src/assets/light-mode.png" alt="Qurius-AI Light Mode Interface" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      <img src="client/src/assets/light-mode.png" alt="Qurius-AI Light Mode Interface" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
     </div>
   </div>
   
@@ -122,7 +122,7 @@ Qurius-AI is a sophisticated multi-company FAQ management system that leverages 
     <h3 style="margin: 0 0 10px 0; color: #333;">Dark Mode Interface</h3>
     <p style="margin: 0; color: #666; font-size: 14px;">Sleek dark theme for better user experience</p>
     <div style="margin-top: 15px;">
-      <img src="src/assets/dark-mode.png" alt="Qurius-AI Dark Mode Interface" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      <img src="client/src/assets/dark-mode.png" alt="Qurius-AI Dark Mode Interface" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
     </div>
   </div>
 </div>
