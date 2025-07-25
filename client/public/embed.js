@@ -1,12 +1,18 @@
 // Qurius-AI Chat Widget Embed Script
 (function() {
   'use strict';
-  
+
+  // Get backend URL from environment variable
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
+
+
+  // Get API URL from environment variable
   // Configuration
   const CONFIG = {
-    scriptUrl: 'https://your-domain.com/chat-widget.js',
-    cssUrl: 'https://your-domain.com/chat-widget.css',
-    apiUrl: 'https://your-domain.com/api',
+    scriptUrl: `${FRONTEND_URL}/chat-widget.js`,
+    cssUrl: `${FRONTEND_URL}/chat-widget.css`,
+    apiUrl: BACKEND_URL,
     defaultTheme: 'light'
   };
   

@@ -7,7 +7,14 @@ function getEnv(key: string, fallback: string = ''): string {
   const nodeEnv: EnvValue = typeof process !== 'undefined' ? process.env?.[key] : undefined;
   const viteEnv: EnvValue = typeof import.meta !== 'undefined' ? (import.meta.env?.[key] as string | undefined) : undefined;
 
-  return viteEnv ?? nodeEnv ?? fallback;
+  const value = viteEnv ?? nodeEnv ?? fallback;
+  
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log(`Environment variable ${key}:`, value);
+  }
+  
+  return value;
 }
 
 export const SUPABASE_CONFIG = {
@@ -26,3 +33,13 @@ export const JINA_CONFIG = {
   apiUrl: getEnv('VITE_JINA_API_URL', 'https://api.jina.ai/v1/embeddings'),
   apiKey: getEnv('VITE_JINA_API_KEY'),
 };
+
+// Validate required environment variables
+if (typeof window !== 'undefined') {
+  if (!SUPABASE_CONFIG.projectUrl) {
+    console.error('Missing VITE_SUPABASE_PROJECT_URL');
+  }
+  if (!SUPABASE_CONFIG.anonKey) {
+    console.error('Missing VITE_SUPABASE_ANON_KEY');
+  }
+}
