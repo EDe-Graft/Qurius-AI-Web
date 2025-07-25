@@ -43,7 +43,7 @@ const defaultTheme: Theme = {
 // 3. Define context type
 interface ThemeContextType {
   colors: ThemeColors;
-  theme: 'light' | 'dark';
+  defaultTheme: 'light' | 'dark';
   isDark: boolean;
   setColorScheme: (scheme: 'light' | 'dark') => void;
   toggleTheme: () => void;
@@ -52,7 +52,7 @@ interface ThemeContextType {
 // 4. Create the context with proper typing
 export const ThemeContext = createContext<ThemeContextType>({
   colors: defaultTheme.light,
-  theme: 'light',
+  defaultTheme: 'light',
   isDark: false,
   setColorScheme: () => {},
   toggleTheme: () => {},
@@ -126,7 +126,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   return (
     <ThemeContext.Provider value={{
       colors,
-      theme: isDark ? 'dark' : 'light',
+      defaultTheme: isDark ? 'dark' : 'light',
       isDark,
       setColorScheme, 
       toggleTheme 

@@ -25,13 +25,113 @@
     "answer": "We offer a variety of extracurricular activities including sports, music, art, robotics, and student clubs. See our Activities page for more details."
   },
   {
+    "company": "Acme University",
+    "question": "What are the admission requirements?",
+    "answer": "Admission requirements include a completed application, transcripts, letters of recommendation, and standardized test scores. International students may need additional documentation."
+  },
+  {
+    "company": "Acme University",
+    "question": "Do you offer online courses?",
+    "answer": "Yes, we offer a variety of online courses and hybrid programs. Check our Distance Learning page for available options and requirements."
+  },
+  {
     "company": "Qurius AI",
     "question": "What is Qurius-AI?",
-    "answer": "Qurius-AI is an AI-powered FAQ assistant."
+    "answer": "Qurius-AI is an AI-powered FAQ assistant that provides instant answers to customer questions using advanced natural language processing and semantic search."
   },
   {
     "company": "Qurius AI",
     "question": "How do I use it?",
-    "answer": "Just ask your question in the chat interface."
+    "answer": "Just ask your question in the chat interface. Our AI will search through your FAQ database and provide relevant answers instantly."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How accurate are the answers?",
+    "answer": "Our AI uses semantic search to find the most relevant answers from your FAQ database. The accuracy depends on the quality and comprehensiveness of your FAQ content."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I customize the chat interface?",
+    "answer": "Yes, you can customize the chat interface with your company's branding, colors, and styling to match your website's design."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How do I add new FAQs?",
+    "answer": "You can add new FAQs through our admin dashboard or by importing them via JSON files. Our system automatically generates embeddings for semantic search."
+  },
+  {
+    "company": "TechCorp Solutions",
+    "question": "What services does TechCorp offer?",
+    "answer": "TechCorp offers enterprise software solutions, IT consulting, cloud migration, custom development, and digital transformation services for businesses of all sizes."
+  },
+  {
+    "company": "TechCorp Solutions",
+    "question": "How do I get a quote for a project?",
+    "answer": "Contact our sales team at sales@techcorp.com or fill out the quote request form on our website. We'll schedule a consultation to discuss your needs."
+  },
+  {
+    "company": "TechCorp Solutions",
+    "question": "What technologies do you specialize in?",
+    "answer": "We specialize in cloud platforms (AWS, Azure, GCP), enterprise software, mobile development, AI/ML solutions, and legacy system modernization."
+  },
+  {
+    "company": "TechCorp Solutions",
+    "question": "Do you provide ongoing support?",
+    "answer": "Yes, we offer comprehensive support packages including 24/7 monitoring, maintenance, updates, and technical support for all our solutions."
+  },
+  {
+    "company": "TechCorp Solutions",
+    "question": "What is your typical project timeline?",
+    "answer": "Project timelines vary based on complexity and scope. Small projects typically take 4-8 weeks, while large enterprise solutions can take 6-12 months."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What medical services do you offer?",
+    "answer": "HealthPlus offers comprehensive healthcare services including primary care, specialist consultations, telemedicine, preventive care, and emergency services."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I schedule an appointment?",
+    "answer": "You can schedule appointments through our patient portal, by calling (555) 987-6543, or by using our mobile app. Telemedicine appointments are also available."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you accept insurance?",
+    "answer": "Yes, we accept most major insurance plans. Please contact our billing department at billing@healthplus.com to verify your specific coverage."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What are your office hours?",
+    "answer": "Our main clinic is open Monday-Friday 8am-6pm, Saturday 9am-3pm. Urgent care is available 24/7, and telemedicine appointments are available outside regular hours."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I access my medical records?",
+    "answer": "You can access your medical records through our secure patient portal. If you need assistance, contact our medical records department at records@healthplus.com."
+  },
+  {
+    "company": "PurpleSoft Inc",
+    "question": "What design services do you offer?",
+    "answer": "PurpleSoft offers UI/UX design, web design, mobile app design, branding, graphic design, and user research services for digital products and websites."
+  },
+  {
+    "company": "PurpleSoft Inc",
+    "question": "How do you approach a new design project?",
+    "answer": "We start with discovery and research, then move through wireframing, prototyping, user testing, and final design. We collaborate closely with clients throughout the process."
+  },
+  {
+    "company": "PurpleSoft Inc",
+    "question": "What design tools do you use?",
+    "answer": "We use industry-standard tools including Figma, Adobe Creative Suite, Sketch, and various prototyping tools to create high-quality, user-centered designs."
+  },
+  {
+    "company": "PurpleSoft Inc",
+    "question": "Do you provide design systems?",
+    "answer": "Yes, we create comprehensive design systems including component libraries, style guides, and documentation to ensure consistency across your digital products."
+  },
+  {
+    "company": "PurpleSoft Inc",
+    "question": "What is your typical design timeline?",
+    "answer": "Design projects typically take 2-8 weeks depending on scope. We provide detailed timelines and milestones at the start of each project."
   }
 ] 

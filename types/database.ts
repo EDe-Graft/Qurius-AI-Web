@@ -206,15 +206,18 @@ export interface Database {
           name: string
           domain: string | null
           description: string | null
+          theme: string
           embedding: number[] | null
           created_at: string
           updated_at: string
+          
         }
         Insert: {
           id?: string
           name: string
           domain?: string | null
           description?: string | null
+          theme?: string
           embedding?: number[] | null
           created_at?: string
           updated_at?: string
@@ -224,6 +227,7 @@ export interface Database {
           name?: string
           domain?: string | null
           description?: string | null
+          theme?: string
           embedding?: number[] | null
           created_at?: string
           updated_at?: string

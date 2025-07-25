@@ -2,16 +2,10 @@ import { User, Bot } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
+import type { MessageBubbleProps } from "types/interfaces"
 
-interface MessageBubbleProps {
-  message: string
-  isUser: boolean
-  timestamp?: string
-  onStreamingChange?: (isStreaming: boolean) => void
-  skipStreaming?: boolean // Add this prop
-}
 
-export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming }: MessageBubbleProps) {
+export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme }: MessageBubbleProps) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   
@@ -54,8 +48,9 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
       <div
         className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-          isUser ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
+          isUser ? "text-white" :  "text-gray-600 dark:text-gray-400",
         )}
+        style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
       >
         {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
       </div>
@@ -66,9 +61,10 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
           className={cn(
             "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
             isUser
-              ? "bg-blue-600 text-white rounded-br-md"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md",
+              ? "text-white rounded-br-md"
+              : "text-gray-900 dark:text-gray-100 rounded-bl-md",
           )}
+          style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
         >
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
@@ -105,7 +101,9 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
           </div>
         </div>
         {timestamp && (
-          <div className={cn("text-xs text-gray-500 dark:text-gray-400 px-2", isUser ? "text-right" : "text-left")}>
+          <div 
+            className={cn("text-xs text-gray-500 dark:text-gray-400 px-2", isUser ? "text-right" : "text-left")}
+          >
             {timestamp}
           </div>
         )}

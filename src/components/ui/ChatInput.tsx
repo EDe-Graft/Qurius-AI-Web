@@ -3,17 +3,13 @@ import { useState } from "react"
 import { Send, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { cn, darkenColor } from "@/lib/utils"
+import type { ChatInputProps } from "types/interfaces"
 
-interface ChatInputProps {
-  onSendMessage: (message: string) => void
-  isLoading?: boolean
-  placeholder?: string
-}
-
-export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Type your message..." }: ChatInputProps) {
+// Chat Input
+export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Type your message...", companyTheme }: ChatInputProps) {
   const [message, setMessage] = useState("")
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (message.trim() && !isLoading) {
@@ -28,6 +24,9 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
       handleSubmit(e)
     }
   }
+
+  // Generate hover color from primary color
+  const hoverColor = companyTheme?.primaryColor ? darkenColor(companyTheme.primaryColor, 20) : undefined;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -55,12 +54,38 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
             size="sm"
             disabled={!message.trim() || isLoading}
             className={cn(
-              "absolute right-2 bottom-2 h-8 w-8 p-0",
-              "bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600",
-              "transition-colors duration-200",
+              "absolute right-1 bottom-2 h-8 w-8 p-0",
+              "disabled:bg-gray-300 dark:disabled:bg-gray-600",
+              "transition-all duration-200 ease-in-out",
+              "hover:scale-105 focus:scale-105",
+              "focus:outline-none focus:ring-2 focus:ring-offset-2",
             )}
+            style={{ 
+              backgroundColor: companyTheme?.primaryColor,
+              '--hover-bg-color': hoverColor,
+            } as React.CSSProperties & { '--hover-bg-color': string }}
+            onMouseEnter={(e) => {
+              if (hoverColor) {
+                e.currentTarget.style.backgroundColor = hoverColor;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (companyTheme?.primaryColor) {
+                e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+              }
+            }}
+            onFocus={(e) => {
+              if (hoverColor) {
+                e.currentTarget.style.backgroundColor = hoverColor;
+              }
+            }}
+            onBlur={(e) => {
+              if (companyTheme?.primaryColor) {
+                e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+              }
+            }}
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 text-white" />}
             <span className="sr-only">Send message</span>
           </Button>
         </form>

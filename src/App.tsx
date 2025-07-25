@@ -4,13 +4,13 @@ import { ChatInterface } from "../src/components/custom/ChatInterface"
 
 
 export default function Home() {
-  const { theme, toggleTheme } = useTheme()
+  const { defaultTheme, toggleTheme } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
-  let companyName = 'Qurius';
+  let companyName = 'HealthPlus Medical';
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-200 ${theme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}
+      className={`min-h-screen transition-colors duration-200 ${defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}
     >
       {/* Demo content */}
       <div className="container mx-auto px-4 py-8">
@@ -45,7 +45,7 @@ export default function Home() {
 
       {/* Chat Interface */}
       <ChatInterface
-        theme={theme}
+        defaultTheme={defaultTheme}
         toggleTheme={toggleTheme}
         isMinimized={isChatMinimized}
         onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}

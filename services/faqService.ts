@@ -4,7 +4,7 @@ import type { Database } from '../types/database'
 
 type FAQ = Database['public']['Tables']['faqs']['Row']
 type FAQInsert = Database['public']['Tables']['faqs']['Insert']
-declare type FAQWithCompany = FAQInsert & { company: string }
+declare type FAQWithCompany = FAQInsert & { company: string; theme?: string }
 
 export interface FAQSearchResult {
   source: 'faq' | 'ai'
@@ -25,8 +25,10 @@ export interface RelevantFAQ {
 export class FAQService {
   /**
    * Get or create a company by name. Returns the company_id.
+   * @param companyName The name of the company
+   * @param theme Optional theme color for the company (only used when creating new company)
    */
-  static async getOrCreateCompanyId(companyName: string): Promise<string> {
+  static async getOrCreateCompanyId(companyName: string, theme?: string): Promise<string> {
     // Try to find the company by name
     const { data: companies, error } = await supabase
       .from('companies')
@@ -37,11 +39,16 @@ export class FAQService {
     if (companies && companies.length > 0) {
       return companies[0].id
     }
-    // If not found, create it
+    // If not found, create it with theme if provided
     console.log('Company not found, creating...')
+    const insertData: any = { name: companyName }
+    if (theme) {
+      insertData.theme = theme
+    }
+    
     const { data: newCompany, error: createError } = await supabase
       .from('companies')
-      .insert({ name: companyName })
+      .insert(insertData)
       .select('id')
       .single()
     if (createError) throw new Error(`Failed to create company: ${createError.message}`)
@@ -68,8 +75,8 @@ export class FAQService {
     if (!faq.question || !faq.answer || !faq.company) {
       throw new Error('FAQ must have question, answer, and company');
     }
-    // Get or create company_id
-    const company_id = await this.getOrCreateCompanyId(faq.company)
+    // Get or create company_id, passing theme if provided
+    const company_id = await this.getOrCreateCompanyId(faq.company, faq.theme)
     // Generate embeddings for question and answer
     const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
     // Insert FAQ
@@ -100,7 +107,7 @@ export class FAQService {
    */
   static async searchFAQs(userQuestion: string, companyName: string): Promise<RelevantFAQ[]> {
     try {
-      // Get company ID by name
+      // Get company ID by name (no theme needed for existing companies)
       const companyId = await this.getOrCreateCompanyId(companyName);
       // Get embedding for the user question
       const { questionEmbedding } = await getEmbedding(userQuestion, "");

@@ -5,26 +5,15 @@ import TypingIndicator from "./TypingIndicator"
 import { ThemeToggle } from "./ThemeToggle"
 import { MessageCircle, Minimize2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, darkenColor } from "@/lib/utils"
 import { FAQService } from "../../../services/faqService"
-import console from "console"
+import { ThemeService } from "../../../services/themeService"
+import type { ChatInterfaceProps, Message, CompanyTheme } from "types/interfaces"
 
-interface Message {
-  content: string
-  isUser: boolean
-  timestamp: string
-}
 
-interface ChatInterfaceProps {
-  theme: "light" | "dark"
-  toggleTheme: () => void
-  isMinimized?: boolean
-  onToggleMinimize?: () => void
-  companyName?: string
-}
-
+// Chat Interface
 export function ChatInterface({
-  theme,
+  defaultTheme,
   toggleTheme,
   isMinimized = false,
   onToggleMinimize,
@@ -42,9 +31,21 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [wasMinimized, setWasMinimized] = useState(false) // Add this state
-
+ 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  // Company Theme
+  const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
+  const isDark = defaultTheme === 'dark'
+
+  // Get company theme
+  useEffect(() => {
+    if (companyName) {
+      ThemeService.getCompanyTheme(companyName, isDark)
+        .then(setCompanyTheme);
+    }
+  }, [companyName, isDark])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -127,7 +128,6 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
 
     try {
-      let companyName = "Acme University"
       const result = await FAQService.getAnswer(content, companyName)
       const aiMessage: Message = {
         content: result.answer,
@@ -151,12 +151,16 @@ export function ChatInterface({
     }
   }
 
+  // Generate hover color from primary color
+  const hoverColor = companyTheme?.primaryColor ? darkenColor(companyTheme.primaryColor, 20) : undefined;
+
   if (isMinimized) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <Button
           onClick={onToggleMinimize}
-          className="h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          className="h-14 w-14 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          style={{ backgroundColor: companyTheme?.primaryColor }}
         >
           <MessageCircle className="h-6 w-6" />
           <span className="sr-only">Open chat</span>
@@ -177,7 +181,7 @@ export function ChatInterface({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center`} style={{ backgroundColor: companyTheme?.primaryColor }}>
             <MessageCircle className="w-4 h-4 text-white" />
           </div>
           <div>
@@ -186,7 +190,7 @@ export function ChatInterface({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+          <ThemeToggle theme={defaultTheme} toggleTheme={toggleTheme} />
           {onToggleMinimize && (
             <Button
               variant="ghost"
@@ -215,7 +219,8 @@ export function ChatInterface({
               isUser={message.isUser}
               timestamp={message.timestamp}
               onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
-              skipStreaming={wasMinimized && !message.isUser} // Pass this prop
+              skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
+              companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
             />
           ))}
           {isTyping && <TypingIndicator />}
@@ -225,11 +230,35 @@ export function ChatInterface({
 
       {/* Floating Scroll to Bottom Button */}
       {!isAtBottom && !isStreaming && (
-        <div className="absolute bottom-20 right-4 z-10">
+        <div className="absolute bottom-27 right-4 z-10">
           <Button
             onClick={scrollToBottom}
             size="sm"
-            className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 p-0"
+            className="h-10 w-10 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 p-0 hover:scale-105 focus:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            style={{ 
+              backgroundColor: companyTheme?.primaryColor,
+              '--hover-bg-color': hoverColor,
+            } as React.CSSProperties & { '--hover-bg-color': string }}
+            onMouseEnter={(e) => {
+              if (hoverColor) {
+                e.currentTarget.style.backgroundColor = hoverColor;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (companyTheme?.primaryColor) {
+                e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+              }
+            }}
+            onFocus={(e) => {
+              if (hoverColor) {
+                e.currentTarget.style.backgroundColor = hoverColor;
+              }
+            }}
+            onBlur={(e) => {
+              if (companyTheme?.primaryColor) {
+                e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+              }
+            }}
           >
             <ChevronDown className="h-4 w-4" />
             <span className="sr-only">Scroll to bottom</span>
@@ -242,6 +271,8 @@ export function ChatInterface({
         onSendMessage={handleSendMessage}
         isLoading={isTyping}
         placeholder={`Ask ${companyName} anything...`}
+        defaultTheme={defaultTheme}
+        companyTheme={companyTheme || undefined}
       />
     </div>
   )

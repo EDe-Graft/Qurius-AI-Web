@@ -1,9 +1,17 @@
--- Updated companies table
+-- Updated companies table with additional fields
 CREATE TABLE public.companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     domain TEXT UNIQUE,
+    location TEXT,
     description TEXT,
+    theme VARCHAR(10) NOT NULL DEFAULT '#58c4dc',
+    industry TEXT,
+    website TEXT,
+    contact_email TEXT,
+    logo_url TEXT,
+    enrollment_date DATE,
+    status TEXT DEFAULT 'active',
     embedding extensions.vector(768), -- Use fully qualified vector type
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -39,6 +47,9 @@ CREATE TABLE public.chat_interactions (
 CREATE INDEX idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX idx_chat_interactions_company_id ON public.chat_interactions(company_id);
 CREATE INDEX idx_chat_interactions_session_id ON public.chat_interactions(session_id);
+CREATE INDEX idx_companies_name ON public.companies(name);
+CREATE INDEX idx_companies_domain ON public.companies(domain);
+CREATE INDEX idx_companies_status ON public.companies(status);
 
 -- Updated find_relevant_faqs function
 CREATE OR REPLACE FUNCTION find_relevant_faqs(
@@ -96,3 +107,12 @@ FOR SELECT USING (true);
 -- Only allow authenticated users to insert/update/delete
 CREATE POLICY "Allow authenticated users to manage FAQs" ON faqs
 FOR ALL USING (auth.role() = 'authenticated');
+
+-- If you need to add these columns to an existing table, use these ALTER statements:
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS location TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS industry TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS website TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS logo_url TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS enrollment_date DATE;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';

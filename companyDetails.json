@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Acme University",
+    "domain": "acme.edu",
+    "location": "San Francisco, CA",
+    "theme": "#3B82F6",
+    "description": "Leading research university with innovative programs",
+    "industry": "Education",
+    "website": "https://www.acme.edu",
+    "contact_email": "support@acme.edu",
+    "logo_url": "https://acme.edu/logo.png",
+    "enrollment_date": "2024-01-15",
+    "status": "active"
+  },
+  {
+    "name": "Qurius AI",
+    "domain": "qurius.ai",
+    "location": "Austin, TX",
+    "theme": "#10B981",
+    "description": "AI-powered customer support solutions",
+    "industry": "Technology",
+    "website": "https://www.qurius.ai",
+    "contact_email": "hello@qurius.ai",
+    "logo_url": "https://qurius.ai/logo.png",
+    "enrollment_date": "2024-01-10",
+    "status": "active"
+  },
+  {
+    "name": "TechCorp Solutions",
+    "domain": "techcorp.com",
+    "location": "Seattle, WA",
+    "theme": "#F59E0B",
+    "description": "Enterprise software solutions and consulting",
+    "industry": "Technology",
+    "website": "https://www.techcorp.com",
+    "contact_email": "info@techcorp.com",
+    "logo_url": "https://techcorp.com/logo.png",
+    "enrollment_date": "2024-02-01",
+    "status": "active"
+  },
+  {
+    "name": "HealthPlus Medical",
+    "domain": "healthplus.com",
+    "location": "Boston, MA",
+    "theme": "#EF4444",
+    "description": "Comprehensive healthcare services and telemedicine",
+    "industry": "Healthcare",
+    "website": "https://www.healthplus.com",
+    "contact_email": "care@healthplus.com",
+    "logo_url": "https://healthplus.com/logo.png",
+    "enrollment_date": "2024-02-15",
+    "status": "active"
+  },
+  {
+    "name": "PurpleSoft Inc",
+    "domain": "purplesoft.com",
+    "location": "Portland, OR",
+    "theme": "#8B5CF6",
+    "description": "Creative software development and design agency",
+    "industry": "Technology",
+    "website": "https://www.purplesoft.com",
+    "contact_email": "hello@purplesoft.com",
+    "logo_url": "https://purplesoft.com/logo.png",
+    "enrollment_date": "2024-03-01",
+    "status": "active"
+  }
+] 
