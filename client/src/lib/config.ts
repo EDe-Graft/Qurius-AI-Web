@@ -9,11 +9,6 @@ function getEnv(key: string, fallback: string = ''): string {
 
   const value = viteEnv ?? nodeEnv ?? fallback;
   
-  // Debug logging
-  if (typeof window !== 'undefined') {
-    console.log(`Environment variable ${key}:`, value);
-  }
-  
   return value;
 }
 
