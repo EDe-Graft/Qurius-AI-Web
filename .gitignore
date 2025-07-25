@@ -1,6 +1,6 @@
 #Custom
 *.zip
-scripts/test-deployment.js
+scripts
 .vscode
 
 # Logs
