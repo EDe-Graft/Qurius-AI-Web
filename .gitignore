@@ -1,8 +1,6 @@
 #Custom
+professional-chat-interface.zip
 scripts/test-deployment.js
-scripts/testFaqs.ts
-scripts/testEmbeddings.ts
-scripts/testThemesService.ts
 .vscode
 
 # Logs
