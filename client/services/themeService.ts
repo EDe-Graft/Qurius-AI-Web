@@ -1,20 +1,12 @@
 // services/themeService.ts
 import { supabase } from "../src/lib/supabase";
-
-export interface CompanyTheme {
-  primaryColor: string; // Only this from company
-  // System colors for consistency
-  backgroundColor: string;
-  textColor: string;
-  borderColor: string;
-  accentColor: string;
-}
-
+import type { CompanyTheme } from "types/interfaces";
 
 export class ThemeService {
-  static generateThemeFromPrimary(primaryColor: string, isDark: boolean): CompanyTheme {
+  static generateThemeFromPrimary(primaryColor: string, isDark: boolean, logoUrl?: string): CompanyTheme {
     return {
       primaryColor,
+      logoUrl,
       backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
       textColor: isDark ? '#F9FAFB' : '#1F2937',
       borderColor: isDark ? '#374151' : '#E5E7EB',
@@ -25,11 +17,12 @@ export class ThemeService {
   static async getCompanyTheme(companyName: string, isDark: boolean): Promise<CompanyTheme> {
     const { data: company } = await supabase
       .from('companies')
-      .select('theme')
+      .select('theme, logo_url')
       .eq('name', companyName)
       .single();
     
     const primaryColor = company?.theme || '#3B82F6';
-    return this.generateThemeFromPrimary(primaryColor, isDark);
+    const logoUrl = company?.logo_url || '';
+    return this.generateThemeFromPrimary(primaryColor, isDark, logoUrl);
   }
 }

@@ -166,7 +166,7 @@ export class FAQService {
         }
       ]
 
-      const aiResponse = await getAIResponse(messages)
+      const aiResponse = await getAIResponse(messages, companyName)
       
       return {
         source: 'ai',

@@ -3,7 +3,7 @@ import { MessageBubble } from "./MessageBubble"
 import { ChatInput } from "../ui/ChatInput"
 import TypingIndicator from "./TypingIndicator"
 import { ThemeToggle } from "./ThemeToggle"
-import { MessageCircle, Minimize2, ChevronDown } from "lucide-react"
+import { MessageCircle, Minimize2, ChevronDown, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn, darkenColor } from "@/lib/utils"
 import { FAQService } from "../../../services/faqService"
@@ -18,6 +18,7 @@ export function ChatInterface({
   isMinimized = false,
   onToggleMinimize,
   companyName = "Assistant",
+  isThemeChanging = false,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -114,6 +115,8 @@ export function ChatInterface({
   useEffect(() => {
     if (isMinimized) {
       setWasMinimized(true)
+    } else {
+      scrollToBottom()
     }
   }, [isMinimized])
 
@@ -156,11 +159,42 @@ export function ChatInterface({
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div 
+        className="fixed bottom-4 right-4 z-50"
+        style={{
+          position: 'fixed',
+          bottom: '1rem',
+          right: '1rem',
+          zIndex: 50,
+        }}
+      >
         <Button
           onClick={onToggleMinimize}
-          className="h-14 w-14 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          style={{ backgroundColor: companyTheme?.primaryColor }}
+          className="h-14 w-14 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 focus:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{ 
+            backgroundColor: companyTheme?.primaryColor,
+            '--hover-bg-color': hoverColor,
+          } as React.CSSProperties & { '--hover-bg-color': string }}
+          onMouseEnter={(e) => {
+            if (hoverColor) {
+              e.currentTarget.style.backgroundColor = hoverColor;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (companyTheme?.primaryColor) {
+              e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+            }
+          }}
+          onFocus={(e) => {
+            if (hoverColor) {
+              e.currentTarget.style.backgroundColor = hoverColor;
+            }
+          }}
+          onBlur={(e) => {
+            if (companyTheme?.primaryColor) {
+              e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
+            }
+          }}
         >
           <MessageCircle className="h-6 w-6" />
           <span className="sr-only">Open chat</span>
@@ -173,24 +207,59 @@ export function ChatInterface({
     <div
       className={cn(
         "fixed bottom-4 right-4 z-50 w-96 h-[600px] max-h-[80vh]",
-        "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
+        "border border-gray-200 dark:border-gray-700",
         "rounded-lg shadow-2xl flex flex-col overflow-hidden",
         "transition-all duration-300 ease-in-out",
+        "relative", // Add relative positioning for spinner overlay
       )}
+      style={{
+        position: 'fixed',
+        bottom: '1rem',
+        right: '1rem',
+        zIndex: 50,
+      }}
     >
+      {/* Theme Change Spinner Overlay */}
+      {isThemeChanging && (
+        <div 
+          className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg"
+          style={{ backgroundColor: companyTheme?.backgroundColor + 'CC' }} // Add transparency
+        >
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 
+              className="w-12 h-12 animate-spin"
+              style={{ color: companyTheme?.primaryColor }}
+            />
+            <p 
+              className="text-sm font-medium"
+              style={{ color: companyTheme?.textColor }}
+            >
+              Updating theme...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center`} style={{ backgroundColor: companyTheme?.primaryColor }}>
-            <MessageCircle className="w-4 h-4 text-white" />
-          </div>
+            {companyTheme?.logoUrl ? (
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center`}>
+                <img src={companyTheme?.logoUrl} alt="Company Logo" className="w-7 h-7" />
+              </div>
+            ) : (
+              // Default logo
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: companyTheme?.primaryColor }}>
+                <MessageCircle className="w-4 h-4 text-white" />
+              </div>
+            )}
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{companyName} Assistant</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Online now</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <ThemeToggle theme={defaultTheme} toggleTheme={toggleTheme} />
+          <ThemeToggle theme={defaultTheme} toggleTheme={toggleTheme} isThemeChanging={isThemeChanging} />
           {onToggleMinimize && (
             <Button
               variant="ghost"

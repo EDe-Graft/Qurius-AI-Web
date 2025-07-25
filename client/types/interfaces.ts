@@ -2,17 +2,21 @@
 export interface ThemeToggleProps {
     theme: "light" | "dark"
     toggleTheme: () => void
+    isThemeChanging?: boolean
 }
 
 
 // Company Theme
 export interface CompanyTheme {
-    primaryColor: string;
+    primaryColor: string; // Only this from company
+    logoUrl?: string; // Company logo URL
+    // System colors for consistency
     backgroundColor: string;
     textColor: string;
     borderColor: string;
     accentColor: string;
-}
+  }
+  
 
 // Company
 export interface Company {
@@ -42,6 +46,7 @@ export interface ChatInterfaceProps {
     isMinimized?: boolean
     onToggleMinimize?: () => void
     companyName?: string
+    isThemeChanging?: boolean
 }
 
 // Chat Input

@@ -1,6 +1,10 @@
 // src/context/ThemeContext.tsx
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+
+// Timing constants for theme changes
+const THEME_CHANGE_DELAY = 400; // ms before theme change starts
+const LOADER_DURATION = 1300; // ms the loader shows (adjust this value)
 
 // 1. Define your theme color types
 type ThemeColors = {
@@ -47,6 +51,7 @@ interface ThemeContextType {
   isDark: boolean;
   setColorScheme: (scheme: 'light' | 'dark') => void;
   toggleTheme: () => void;
+  isThemeChanging: boolean;
 }
 
 // 4. Create the context with proper typing
@@ -56,6 +61,7 @@ export const ThemeContext = createContext<ThemeContextType>({
   isDark: false,
   setColorScheme: () => {},
   toggleTheme: () => {},
+  isThemeChanging: false,
 });
 
 // 5. Define props for ThemeProvider
@@ -82,6 +88,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   };
 
   const [isDark, setIsDark] = useState(getInitialTheme() === 'dark');
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
   
   const setColorScheme = (scheme: 'light' | 'dark') => {
     setIsDark(scheme === 'dark');
@@ -92,7 +99,19 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
-    setColorScheme(newTheme);
+    
+    // Set theme changing state to true
+    setIsThemeChanging(true);
+    
+    // Delay the actual theme change to allow components to prepare
+    setTimeout(() => {
+      setColorScheme(newTheme);
+      
+      // Reset theme changing state after the specified duration
+      setTimeout(() => {
+        setIsThemeChanging(false);
+      }, LOADER_DURATION); // Use the constant for loader duration
+    }, THEME_CHANGE_DELAY); // Use the constant for initial delay
   };
 
   useEffect(() => {
@@ -129,7 +148,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       defaultTheme: isDark ? 'dark' : 'light',
       isDark,
       setColorScheme, 
-      toggleTheme 
+      toggleTheme,
+      isThemeChanging
       }}>
       {children}
     </ThemeContext.Provider>

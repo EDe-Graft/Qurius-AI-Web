@@ -4,7 +4,7 @@ import { ChatInterface } from "../src/components/custom/ChatInterface"
 
 
 export default function Home() {
-  const { defaultTheme, toggleTheme } = useTheme()
+  const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
   let companyName = 'HealthPlus Medical';
 
@@ -50,6 +50,7 @@ export default function Home() {
         isMinimized={isChatMinimized}
         onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
         companyName={companyName}
+        isThemeChanging={isThemeChanging}
       />
     </div>
   )

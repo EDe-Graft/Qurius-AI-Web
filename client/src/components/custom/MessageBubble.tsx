@@ -1,13 +1,14 @@
 import { User, Bot } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
-import ReactMarkdown from "react-markdown"
 import type { MessageBubbleProps } from "types/interfaces"
+import { MarkdownRenderer } from "./MarkdownRenderer"
 
 
 export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme }: MessageBubbleProps) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   
   const simulateStream = async (text: string) => {
     const words = text.split(" ")
@@ -31,15 +32,32 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
   }
   
   useEffect(() => {
-    // Only simulate streaming for AI responses and when not skipping
-    if (!isUser && !skipStreaming) {
-      simulateStream(message)
+    // Mark as initialized after a brief moment to allow styling to settle
+    const initTimer = setTimeout(() => {
+      setIsInitialized(true)
+    }, 500)
+
+    return () => clearTimeout(initTimer)
+  }, [])
+
+  useEffect(() => {
+    // Only simulate streaming for AI responses, when not skipping, and after initialization
+    if (!isUser && !skipStreaming && isInitialized) {
+      // Give time for components to initialize before streaming starts
+      setTimeout(() => {
+        simulateStream(message)
+      }, 1000)
+    } else if (!isUser && !skipStreaming && !isInitialized) {
+      // Set streaming state but don't start yet
+      setIsStreaming(true)
+      onStreamingChange?.(true)
+      setStreamText("")
     } else {
       setIsStreaming(false)
       onStreamingChange?.(false)
       setStreamText("")
     }
-  }, [message, isUser, skipStreaming])
+  }, [message, isUser, skipStreaming, isInitialized])
 
 
   return (
@@ -66,39 +84,9 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
           )}
           style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
         >
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown
-              components={{
-                // Custom styling for markdown elements
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                li: ({ children }) => <li className="text-sm">{children}</li>,
-                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                em: ({ children }) => <em className="italic">{children}</em>,
-                code: ({ children }) => (
-                  <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono">
-                    {children}
-                  </code>
-                ),
-                pre: ({ children }) => (
-                  <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs overflow-x-auto">
-                    {children}
-                  </pre>
-                ),
-                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                a: ({ children, href }) => (
-                  <a href={href} className="text-blue-500 hover:text-blue-600 underline" target="_blank" rel="noopener noreferrer">
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {!isUser && isStreaming && !skipStreaming ? streamText : message}
-            </ReactMarkdown>
-          </div>
+          <MarkdownRenderer 
+            content={!isUser && isStreaming && !skipStreaming ? streamText : message}
+          />
         </div>
         {timestamp && (
           <div 
