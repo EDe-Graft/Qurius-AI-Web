@@ -4,7 +4,7 @@
 
   // Configuration for deployed version
   const CONFIG = {
-    scriptUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.js',
+    scriptUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.umd.cjs',
     cssUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.css',
     apiUrl: 'https://qurius-ai.onrender.com',
     defaultTheme: 'light'
@@ -13,6 +13,57 @@
   // Widget state
   let widgetLoaded = false;
   let widgetContainer = null;
+  let chatButton = null;
+  
+  // Create chat button
+  function createChatButton() {
+    if (chatButton) return chatButton;
+    
+    chatButton = document.createElement('div');
+    chatButton.id = 'qurius-chat-button';
+    chatButton.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      width: 60px;
+      height: 60px;
+      background: #667eea;
+      border-radius: 50%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    `;
+    chatButton.innerHTML = '💬';
+    chatButton.title = 'Chat with us';
+    
+    // Add hover effects
+    chatButton.addEventListener('mouseenter', () => {
+      chatButton.style.transform = 'scale(1.1)';
+      chatButton.style.boxShadow = '0 6px 25px rgba(0,0,0,0.3)';
+    });
+    
+    chatButton.addEventListener('mouseleave', () => {
+      chatButton.style.transform = 'scale(1)';
+      chatButton.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+    });
+    
+    // Click to open widget
+    chatButton.addEventListener('click', () => {
+      if (widgetContainer && widgetContainer.style.display === 'none') {
+        showWidget();
+        chatButton.style.display = 'none';
+      }
+    });
+    
+    document.body.appendChild(chatButton);
+    return chatButton;
+  }
   
   // Create widget container
   function createWidgetContainer() {
@@ -61,7 +112,10 @@
         widgetLoaded = true;
         resolve();
       };
-      script.onerror = reject;
+      script.onerror = (error) => {
+        console.error('Failed to load widget script:', error);
+        reject(error);
+      };
       document.head.appendChild(script);
     });
   }
@@ -69,6 +123,7 @@
   // Initialize widget
   function initWidget(companyName, options = {}) {
     const container = createWidgetContainer();
+    const button = createChatButton();
     loadCSS();
     
     return loadWidgetScript().then(() => {
@@ -80,7 +135,11 @@
           apiUrl: CONFIG.apiUrl,
           ...options
         });
+      } else {
+        console.error('QuriusChatWidget not found after loading script');
       }
+    }).catch(error => {
+      console.error('Failed to initialize widget:', error);
     });
   }
   
@@ -94,6 +153,9 @@
   function hideWidget() {
     if (widgetContainer) {
       widgetContainer.style.display = 'none';
+      if (chatButton) {
+        chatButton.style.display = 'flex';
+      }
     }
   }
   
