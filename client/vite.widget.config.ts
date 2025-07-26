@@ -31,6 +31,13 @@ export default defineConfig({
     emptyOutDir: true
   },
   define: {
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': '"production"',
+    // Exclude all VITE_ environment variables from the build
+    'import.meta.env.VITE_BACKEND_URL': 'undefined',
+    'import.meta.env.VITE_SUPABASE_PROJECT_URL': 'undefined',
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': 'undefined',
+    'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': 'undefined',
+    'import.meta.env.VITE_OPEN_ROUTER_API_KEY': 'undefined',
+    'import.meta.env.VITE_JINA_API_KEY': 'undefined'
   }
 }) 

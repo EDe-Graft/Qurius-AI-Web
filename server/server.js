@@ -47,6 +47,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Get widget configuration (secure)
+app.get('/api/widget-config', (req, res) => {
+  try {
+    // Only return public configuration, no API keys
+    res.json({
+      supabaseUrl: process.env.SUPABASE_PROJECT_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      backendUrl: process.env.BACKEND_URL || `https://${req.get('host')}`
+    });
+  } catch (error) {
+    console.error('Widget config error:', error);
+    res.status(500).json({ error: 'Failed to get widget configuration' });
+  }
+});
+
 // Get embeddings from Jina
 app.post('/api/embeddings', async (req, res) => {
   try {
@@ -108,7 +123,7 @@ app.post('/api/chat', async (req, res) => {
         headers: {
           'Authorization': `Bearer ${process.env.OPEN_ROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.SOURCE_URL || 'https://your-domain.com'
+          'HTTP-Referer': process.env.SOURCE_URL || 'https://qurius-ai.vercel.app'
         }
       }
     );

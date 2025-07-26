@@ -2,17 +2,11 @@
 (function() {
   'use strict';
 
-  // Get backend URL from environment variable
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-  const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173';
-
-
-  // Get API URL from environment variable
-  // Configuration
+  // Configuration for deployed version
   const CONFIG = {
-    scriptUrl: `${FRONTEND_URL}/chat-widget.js`,
-    cssUrl: `${FRONTEND_URL}/chat-widget.css`,
-    apiUrl: BACKEND_URL,
+    scriptUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.js',
+    cssUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.css',
+    apiUrl: 'https://qurius-ai.onrender.com',
     defaultTheme: 'light'
   };
   

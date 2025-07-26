@@ -10,6 +10,9 @@ interface WidgetConfig {
   theme?: 'light' | 'dark'
   apiUrl?: string
   position?: 'bottom-right' | 'bottom-left'
+  // Add configuration for external services
+  supabaseUrl?: string
+  supabaseAnonKey?: string
 }
 
 // Global widget instance
