@@ -62,6 +62,54 @@ app.get('/api/widget-config', (req, res) => {
   }
 });
 
+// Get company theme
+app.get('/api/companies/:name/theme', async (req, res) => {
+  try {
+    const { name } = req.params;
+    console.log('Getting theme for company:', name);
+    
+    // Make API call to Supabase to get company theme
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=theme,logo_url&name=eq.${encodeURIComponent(name)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.length > 0) {
+      const company = response.data[0];
+      res.json({
+        theme: company.theme || '#3B82F6',
+        logo_url: company.logo_url || ''
+      });
+    } else {
+      // Return default theme if company not found
+      res.json({
+        theme: '#3B82F6',
+        logo_url: ''
+      });
+    }
+  } catch (error) {
+    console.error('Company theme error:', error.response?.data || error.message);
+    // Return default theme on error
+    res.json({
+      theme: '#3B82F6',
+      logo_url: ''
+    });
+  }
+});
+
 // Get embeddings from Jina
 app.post('/api/embeddings', async (req, res) => {
   try {
