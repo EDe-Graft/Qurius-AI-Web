@@ -13,6 +13,9 @@
       ],
       "@/context/*": [
         "./context/*"
+      ],
+      "@/context/AuthContext": [
+        "./context/AuthContext"
       ]
     },
 
