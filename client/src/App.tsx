@@ -6,7 +6,7 @@ import Admin from "./pages/Admin"
 import Login from "./pages/Login"
 import { Navigation } from "./components/admin/Navigation"
 import { ProtectedRoute } from "./components/auth/ProtectedRoute"
-import { AuthProvider } from "../context/AuthContext"
+import { AuthProvider } from "@/context/AuthContext"
 import { Settings } from "lucide-react"
 
 

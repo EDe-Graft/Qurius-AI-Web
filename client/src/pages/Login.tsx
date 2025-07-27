@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "../../context/useThemeContext"
 
 export default function Login() {
