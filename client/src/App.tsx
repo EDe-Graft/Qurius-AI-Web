@@ -1,12 +1,16 @@
 import { useState } from "react"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { useTheme} from "../context/useThemeContext"
 import { ChatInterface } from "../src/components/custom/ChatInterface"
+import Admin from "./pages/Admin"
+import { Navigation } from "./components/admin/Navigation"
+import { Settings } from "lucide-react"
 
 
-export default function Home() {
+function Home() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
-  let companyName = 'HealthPlus Medical';
+  let companyName = 'TechCorp Solutions';
 
   return (
     <div
@@ -35,10 +39,19 @@ export default function Home() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Try the Chat Interface</h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Click the chat button in the bottom-right corner to start a conversation. You can toggle between light and
               dark themes, minimize the chat, and experience the smooth, professional interface.
             </p>
+            <div className="flex space-x-4">
+              <a 
+                href="/admin" 
+                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                View Admin Dashboard
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -53,6 +66,18 @@ export default function Home() {
         isThemeChanging={isThemeChanging}
       />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Navigation />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<Admin />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

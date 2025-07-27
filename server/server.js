@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { getTimeAgo } from './utils.js';
 
 dotenv.config();
 
@@ -149,12 +150,9 @@ app.get('/api/companies/:name/id', async (req, res) => {
   }
 });
 
-// Create company
-app.post('/api/companies', async (req, res) => {
+// Get all companies with chat interactions
+app.get('/api/companies', async (req, res) => {
   try {
-    const { name, theme } = req.body;
-    console.log('Creating company:', name);
-    
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
     
@@ -162,9 +160,9 @@ app.post('/api/companies', async (req, res) => {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
-    const response = await axios.post(
-      `${supabaseUrl}/rest/v1/companies`,
-      { name, theme: theme || '#3B82F6' },
+    // Get all companies
+    const companiesResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=*&order=created_at.desc`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -174,10 +172,286 @@ app.post('/api/companies', async (req, res) => {
       }
     );
 
-    res.json({ id: response.data.id });
+    const companies = companiesResponse.data || [];
+
+    // Get chat interactions for all companies
+    const chatInteractionsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/chat_interactions?select=*`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const chatInteractions = chatInteractionsResponse.data || [];
+
+    // Merge company data with chat interactions
+    const companiesWithStats = companies.map(company => {
+      const interaction = chatInteractions.find(ci => ci.company_id === company.id);
+      
+      return {
+        ...company,
+        conversations: interaction?.conversations || 0,
+        queries: interaction?.queries || 0,
+        lastActive: interaction?.last_interaction_timestamp 
+          ? getTimeAgo(interaction.last_interaction_timestamp)
+          : 'Never'
+      };
+    });
+
+    res.json(companiesWithStats);
+  } catch (error) {
+    console.error('Get companies error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
+
+// Get company by ID
+app.get('/api/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get company
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Get chat interactions
+    const chatInteractionResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/chat_interactions?company_id=eq.${id}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (companyResponse.data && companyResponse.data.length > 0) {
+      res.json({
+        company: companyResponse.data[0],
+        stats: chatInteractionResponse.data[0]
+      });
+    } else {
+      res.status(404).json({ error: 'Company not found' });
+    }
+  } catch (error) {
+    console.error('Get company error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch company' });
+  }
+});
+
+// Create company
+app.post('/api/companies', async (req, res) => {
+  try {
+    const { 
+      name, 
+      domain, 
+      location, 
+      description, 
+      theme, 
+      industry, 
+      website, 
+      contact_email, 
+      logo_url, 
+      enrollment_date, 
+      status 
+    } = req.body;
+    
+    console.log('Creating company:', name);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Prepare company data
+    const companyData = {
+      name,
+      domain,
+      location,
+      description,
+      theme: theme || '#3B82F6',
+      industry,
+      website,
+      contact_email,
+      logo_url: logo_url || '',
+      enrollment_date: enrollment_date || new Date().toISOString().split('T')[0],
+      status: status || 'active'
+    };
+
+    // Create company
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/companies`,
+      companyData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Add company to chat interactions
+    const chatInteractionData = {
+      company_id: response.data.id,
+      conversations: 0,
+      queries: 0,
+    };
+
+    // Add company to chat interactions
+    const chatInteractionResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/chat_interactions`,
+      chatInteractionData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      id: response.data.id,
+      company: { ...companyData, id: response.data.id },
+      stats: {
+        conversations: 0,
+        queries: 0,
+        last_interaction_timestamp: new Date().toISOString()
+      }
+    });
   } catch (error) {
     console.error('Create company error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to create company' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create company' 
+    });
+  }
+});
+
+// Update company
+app.put('/api/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      name, 
+      domain, 
+      location, 
+      description, 
+      theme, 
+      industry, 
+      website, 
+      contact_email, 
+      logo_url, 
+      enrollment_date, 
+      status 
+    } = req.body;
+    
+    console.log('Updating company:', id);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Prepare company data
+    const companyData = {
+      name,
+      domain,
+      location,
+      description,
+      theme: theme || '#3B82F6',
+      industry,
+      website,
+      contact_email,
+      logo_url: logo_url || '',
+      enrollment_date: enrollment_date || new Date().toISOString().split('T')[0],
+      status: status || 'active'
+    };
+
+    const response = await axios.patch(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      companyData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      company: { ...companyData, id }
+    });
+  } catch (error) {
+    console.error('Update company error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update company' 
+    });
+  }
+});
+
+// Delete company
+app.delete('/api/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Deleting company:', id);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const response = await axios.delete(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error('Delete company error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete company' 
+    });
   }
 });
 

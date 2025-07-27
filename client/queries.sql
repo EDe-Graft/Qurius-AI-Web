@@ -10,9 +10,10 @@ CREATE TABLE public.companies (
     website TEXT,
     contact_email TEXT,
     logo_url TEXT,
-    enrollment_date DATE,
+    enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status TEXT DEFAULT 'active',
     embedding extensions.vector(768), -- Use fully qualified vector type
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -35,18 +36,14 @@ CREATE TABLE public.faqs (
 CREATE TABLE public.chat_interactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID NOT NULL REFERENCES public.companies(id),
-    session_id UUID, -- Unique identifier for each chat session
-    user_query TEXT NOT NULL,
-    matched_faq_ids UUID[], -- Array of matched FAQ IDs
-    interaction_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    user_satisfaction SMALLINT, -- Optional rating (1-5)
-    source_url TEXT -- URL of the website where chat was embedded
+    conversations INTEGER DEFAULT 0,
+    queries INTEGER DEFAULT 0,
+    last_interaction_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 );
 
 -- Indexes for performance
 CREATE INDEX idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX idx_chat_interactions_company_id ON public.chat_interactions(company_id);
-CREATE INDEX idx_chat_interactions_session_id ON public.chat_interactions(session_id);
 CREATE INDEX idx_companies_name ON public.companies(name);
 CREATE INDEX idx_companies_domain ON public.companies(domain);
 CREATE INDEX idx_companies_status ON public.companies(status);
