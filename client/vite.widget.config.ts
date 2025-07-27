@@ -19,11 +19,17 @@ export default defineConfig({
       formats: ['umd', 'es']
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
+      // Bundle React and ReactDOM inside the widget
+      external: [],
       output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM'
+        globals: {},
+        // Ensure UMD properly assigns to window
+        extend: true,
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'style.css') {
+            return 'chat-widget.css'
+          }
+          return assetInfo.name || 'asset'
         }
       }
     },
@@ -32,12 +38,12 @@ export default defineConfig({
   },
   define: {
     'process.env.NODE_ENV': '"production"',
-    // Exclude all VITE_ environment variables from the build
-    'import.meta.env.VITE_BACKEND_URL': 'undefined',
-    'import.meta.env.VITE_SUPABASE_PROJECT_URL': 'undefined',
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': 'undefined',
-    'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': 'undefined',
-    'import.meta.env.VITE_OPEN_ROUTER_API_KEY': 'undefined',
-    'import.meta.env.VITE_JINA_API_KEY': 'undefined'
+    // Set environment variables to default values to prevent errors
+    'import.meta.env.VITE_BACKEND_URL': '"https://qurius-ai.onrender.com"',
+    'import.meta.env.VITE_SUPABASE_PROJECT_URL': '"https://demo.supabase.co"',
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': '"demo-key"',
+    'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': '"demo-service-key"',
+    'import.meta.env.VITE_OPEN_ROUTER_API_KEY': '"demo-openrouter-key"',
+    'import.meta.env.VITE_JINA_API_KEY': '"demo-jina-key"'
   }
 }) 

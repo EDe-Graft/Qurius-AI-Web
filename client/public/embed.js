@@ -2,10 +2,10 @@
 (function() {
   'use strict';
 
-  // Configuration for deployed version
+  // Configuration
   const CONFIG = {
-    scriptUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.umd.cjs',
-    cssUrl: 'https://qurius-ai.vercel.app/widget/chat-widget.css',
+    scriptUrl: 'dist/widget/chat-widget.umd.cjs', // Points to React widget
+    cssUrl: 'dist/widget/chat-widget.css', // CSS file for styling
     apiUrl: 'https://qurius-ai.onrender.com',
     defaultTheme: 'light'
   };
@@ -13,57 +13,35 @@
   // Widget state
   let widgetLoaded = false;
   let widgetContainer = null;
-  let chatButton = null;
   
-  // Create chat button
-  function createChatButton() {
-    if (chatButton) return chatButton;
-    
-    chatButton = document.createElement('div');
-    chatButton.id = 'qurius-chat-button';
-    chatButton.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      width: 60px;
-      height: 60px;
-      background: #667eea;
-      border-radius: 50%;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-      transition: transform 0.3s, box-shadow 0.3s;
-    `;
-    chatButton.innerHTML = '💬';
-    chatButton.title = 'Chat with us';
-    
-    // Add hover effects
-    chatButton.addEventListener('mouseenter', () => {
-      chatButton.style.transform = 'scale(1.1)';
-      chatButton.style.boxShadow = '0 6px 25px rgba(0,0,0,0.3)';
-    });
-    
-    chatButton.addEventListener('mouseleave', () => {
-      chatButton.style.transform = 'scale(1)';
-      chatButton.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
-    });
-    
-    // Click to open widget
-    chatButton.addEventListener('click', () => {
-      if (widgetContainer && widgetContainer.style.display === 'none') {
-        showWidget();
-        chatButton.style.display = 'none';
+  // Load CSS file
+  function loadCSS() {
+    return new Promise((resolve, reject) => {
+      // Check if CSS is already loaded
+      if (document.querySelector(`link[href*="chat-widget.css"]`)) {
+        resolve();
+        return;
       }
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = CONFIG.cssUrl;
+      
+      link.onload = () => {
+        console.log('✅ CSS loaded successfully');
+        resolve();
+      };
+      
+      link.onerror = (error) => {
+        console.error('Failed to load CSS:', error);
+        reject(new Error('Failed to load CSS'));
+      };
+      
+      document.head.appendChild(link);
     });
-    
-    document.body.appendChild(chatButton);
-    return chatButton;
   }
+  
+
   
   // Create widget container
   function createWidgetContainer() {
@@ -79,83 +57,110 @@
       width: 400px;
       height: 600px;
       max-height: 80vh;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      border: 1px solid #e5e7eb;
-      display: none;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: block;
+      overflow: visible;
     `;
     
     document.body.appendChild(widgetContainer);
     return widgetContainer;
   }
   
-  // Load CSS
-  function loadCSS() {
-    if (document.querySelector('link[href*="chat-widget.css"]')) return;
-    
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = CONFIG.cssUrl;
-    document.head.appendChild(link);
-  }
-  
   // Load widget script
   function loadWidgetScript() {
-    if (widgetLoaded) return Promise.resolve();
-    
     return new Promise((resolve, reject) => {
+      if (window.QuriusChatWidget) {
+        console.log('Widget already loaded');
+        resolve();
+        return;
+      }
+      
+      console.log('Loading React widget script from:', CONFIG.scriptUrl);
+      
       const script = document.createElement('script');
       script.src = CONFIG.scriptUrl;
+      
       script.onload = () => {
-        widgetLoaded = true;
-        resolve();
+        console.log('Script loaded, waiting for widget...');
+        // Wait for widget to be available
+        let attempts = 0;
+        const checkWidget = () => {
+          console.log('Checking for widget...', attempts);
+          console.log('window.QuriusChatWidget:', window.QuriusChatWidget);
+          console.log('typeof window.QuriusChatWidget:', typeof window.QuriusChatWidget);
+          if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
+            console.log('✅ React widget loaded successfully:', window.QuriusChatWidget);
+            resolve();
+          } else if (attempts < 50) {
+            attempts++;
+            setTimeout(checkWidget, 100);
+          } else {
+            console.error('Widget not found after', attempts, 'attempts');
+            console.error('Available globals:', Object.keys(window).filter(k => k.includes('Qurius')));
+            reject(new Error('Widget failed to load'));
+          }
+        };
+        checkWidget();
       };
+      
       script.onerror = (error) => {
         console.error('Failed to load widget script:', error);
-        reject(error);
+        console.error('Script URL was:', CONFIG.scriptUrl);
+        reject(new Error('Failed to load widget script'));
       };
+      
       document.head.appendChild(script);
     });
   }
   
   // Initialize widget
-  function initWidget(companyName, options = {}) {
-    const container = createWidgetContainer();
-    const button = createChatButton();
-    loadCSS();
-    
-    return loadWidgetScript().then(() => {
-      // Initialize the React widget
-      if (window.QuriusChatWidget) {
-        window.QuriusChatWidget.init(container, {
-          companyName,
+  async function initWidget(companyName, options = {}) {
+    try {
+      console.log('Initializing React widget...');
+      
+      // Create elements
+      createWidgetContainer();
+      
+      // Load CSS first
+      await loadCSS();
+      
+      // Load widget script
+      await loadWidgetScript();
+      
+      // Initialize widget
+      console.log('About to create React widget...');
+      console.log('window.QuriusChatWidget:', window.QuriusChatWidget);
+      console.log('typeof window.QuriusChatWidget:', typeof window.QuriusChatWidget);
+      
+      if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
+        console.log('Creating React widget...');
+        window.QuriusChatWidget.init(widgetContainer, {
+          companyName: companyName,
           theme: options.theme || CONFIG.defaultTheme,
-          apiUrl: CONFIG.apiUrl,
-          ...options
+          apiUrl: options.apiUrl || CONFIG.apiUrl
         });
+        widgetLoaded = true;
+        console.log('✅ React widget initialized successfully');
       } else {
-        console.error('QuriusChatWidget not found after loading script');
+        console.error('QuriusChatWidget class not found on window');
+        console.error('Available window properties:', Object.keys(window));
+        throw new Error('QuriusChatWidget class not found');
       }
-    }).catch(error => {
+    } catch (error) {
       console.error('Failed to initialize widget:', error);
-    });
+    }
   }
   
-  // Show/hide widget
+  // Show widget
   function showWidget() {
     if (widgetContainer) {
       widgetContainer.style.display = 'block';
     }
   }
   
+  // Hide widget
   function hideWidget() {
     if (widgetContainer) {
       widgetContainer.style.display = 'none';
-      if (chatButton) {
-        chatButton.style.display = 'flex';
-      }
     }
   }
   
@@ -173,7 +178,6 @@
     if (script) {
       const companyName = script.getAttribute('data-company');
       const theme = script.getAttribute('data-theme') || CONFIG.defaultTheme;
-      
       if (companyName) {
         initWidget(companyName, { theme });
       }

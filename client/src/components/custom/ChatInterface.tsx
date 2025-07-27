@@ -206,18 +206,13 @@ export function ChatInterface({
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 z-50 w-96 h-[600px] max-h-[80vh]",
+        "w-full h-full",
         "border border-gray-200 dark:border-gray-700",
         "rounded-lg shadow-2xl flex flex-col overflow-hidden",
         "transition-all duration-300 ease-in-out",
         "relative", // Add relative positioning for spinner overlay
+        "bg-white dark:bg-gray-900",
       )}
-      style={{
-        position: 'fixed',
-        bottom: '1rem',
-        right: '1rem',
-        zIndex: 50,
-      }}
     >
       {/* Theme Change Spinner Overlay */}
       {isThemeChanging && (
@@ -281,17 +276,23 @@ export function ChatInterface({
         onScroll={handleScroll}
       >
         <div className="py-4">
-          {messages.map((message, index) => (
-            <MessageBubble
-              key={index}
-              message={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-              onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
-              skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
-              companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
-            />
-          ))}
+          {messages.map((message, index) => {
+            // Check if this is the last AI message (for streaming)
+            const isLastAiMessage = !message.isUser && index === messages.length - 1;
+            
+            return (
+              <MessageBubble
+                key={index}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+                onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
+                skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
+                isLastAiMessage={isLastAiMessage} // Only stream the last AI message
+                companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
+              />
+            );
+          })}
           {isTyping && <TypingIndicator />}
         </div>
         <div ref={messagesEndRef} />

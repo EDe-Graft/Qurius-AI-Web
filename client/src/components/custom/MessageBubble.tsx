@@ -5,7 +5,7 @@ import type { MessageBubbleProps } from "types/interfaces"
 import { MarkdownRenderer } from "./MarkdownRenderer"
 
 
-export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme }: MessageBubbleProps) {
+export function MessageBubble({ message, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage }: MessageBubbleProps) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -41,13 +41,13 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
   }, [])
 
   useEffect(() => {
-    // Only simulate streaming for AI responses, when not skipping, and after initialization
-    if (!isUser && !skipStreaming && isInitialized) {
+    // Only simulate streaming for the last AI response, when not skipping, and after initialization
+    if (!isUser && !skipStreaming && isInitialized && isLastAiMessage) {
       // Give time for components to initialize before streaming starts
       setTimeout(() => {
         simulateStream(message)
       }, 1000)
-    } else if (!isUser && !skipStreaming && !isInitialized) {
+    } else if (!isUser && !skipStreaming && !isInitialized && isLastAiMessage) {
       // Set streaming state but don't start yet
       setIsStreaming(true)
       onStreamingChange?.(true)
@@ -57,7 +57,7 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
       onStreamingChange?.(false)
       setStreamText("")
     }
-  }, [message, isUser, skipStreaming, isInitialized])
+  }, [message, isUser, skipStreaming, isInitialized, isLastAiMessage])
 
 
   return (
@@ -85,7 +85,7 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
           style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
         >
           <MarkdownRenderer 
-            content={!isUser && isStreaming && !skipStreaming ? streamText : message}
+            content={!isUser && isStreaming && !skipStreaming && isLastAiMessage ? streamText : message}
           />
         </div>
         {timestamp && (

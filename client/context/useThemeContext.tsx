@@ -8,7 +8,8 @@ const LOADER_DURATION = 1300; // ms the loader shows (adjust this value)
 
 // 1. Define your theme color types
 type ThemeColors = {
-  background: string;
+  containerBackground: string;
+  messageBackground: string;
   text: string;
   primary: string;
   secondary: string;
@@ -25,7 +26,8 @@ type Theme = {
 
 const defaultTheme: Theme = {
   light: {
-    background: '#ffffff',
+    containerBackground: '#ffffff',
+    messageBackground: '#f5f5f5',
     text: '#000000',
     primary: '#8B5CF6',
     secondary: '#8B5CF6',
@@ -34,7 +36,8 @@ const defaultTheme: Theme = {
     gray: '#888888',
   },
   dark: {
-    background: '#000000',
+    containerBackground: '#000000',
+    messageBackground: '#111827',
     text: '#ffffff',
     primary: '#8B5CF6',
     secondary: '#8B5CF6',
@@ -128,12 +131,19 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Apply theme to document body
+  // Apply theme to document body and HTML element
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Apply dark class to HTML element for Tailwind CSS
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
       document.body.style.backgroundColor = isDark 
-        ? defaultTheme.dark.background 
-        : defaultTheme.light.background;
+        ? defaultTheme.dark.containerBackground 
+        : defaultTheme.light.containerBackground;
       document.body.style.color = isDark 
         ? defaultTheme.dark.text 
         : defaultTheme.light.text;

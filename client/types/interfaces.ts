@@ -65,6 +65,7 @@ export interface MessageBubbleProps {
     timestamp?: string
     onStreamingChange?: (isStreaming: boolean) => void
     skipStreaming?: boolean // Add this prop
+    isLastAiMessage?: boolean // Only stream the last AI message
     defaultTheme?: "light" | "dark"
     companyTheme?: CompanyTheme
   }

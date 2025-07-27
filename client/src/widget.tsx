@@ -41,25 +41,43 @@ function initWidget(container: HTMLElement, config: WidgetConfig) {
 // Widget app component
 function WidgetApp({ config }: { config: WidgetConfig }) {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
-  const [isChatMinimized, setIsChatMinimized] = React.useState(false)
+  const [isChatMinimized, setIsChatMinimized] = React.useState(true) // Start minimized
+  
+  const handleToggleMinimize = () => {
+    const newMinimizedState = !isChatMinimized
+    setIsChatMinimized(newMinimizedState)
+    
+    // When minimized, show the chat button again
+    if (newMinimizedState) {
+      // Widget is minimized, chat button should be visible
+      console.log('Widget minimized, chat button should be visible')
+    } else {
+      // Widget is expanded, chat button should be hidden
+      console.log('Widget expanded, chat button should be hidden')
+    }
+  }
   
   return (
     <ChatInterface
       defaultTheme={defaultTheme}
       toggleTheme={toggleTheme}
       isMinimized={isChatMinimized}
-      onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+      onToggleMinimize={handleToggleMinimize}
       companyName={config.companyName}
       isThemeChanging={isThemeChanging}
     />
   )
 }
 
-// Expose to global scope
-if (typeof window !== 'undefined') {
-  (window as any).QuriusChatWidget = {
-    init: initWidget
-  }
+// Create the widget object
+const QuriusChatWidget = {
+  init: initWidget
 }
 
-export { initWidget } 
+// Expose to global scope - FIXED: Use the same pattern as vanilla widget
+if (typeof window !== 'undefined') {
+  (window as any).QuriusChatWidget = QuriusChatWidget
+}
+
+// Export for UMD - FIXED: Export the object directly
+export default QuriusChatWidget 

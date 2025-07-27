@@ -101,8 +101,9 @@
         .feature {
             background: white;
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
         
         .feature h3 {
@@ -116,114 +117,65 @@
         }
         
         .footer {
-            background: rgba(0, 0, 0, 0.1);
-            color: white;
-            text-align: center;
-            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem 0;
             margin-top: 4rem;
+            text-align: center;
         }
         
-        .widget-info {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 2rem;
-            margin: 2rem 0;
-            color: white;
-        }
-        
-        .widget-info h3 {
-            margin-bottom: 1rem;
-        }
-        
-        .code-block {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 1rem;
-            border-radius: 5px;
-            font-family: monospace;
-            margin: 1rem 0;
-            overflow-x: auto;
+        .footer p {
+            color: #666;
+            margin: 0;
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Header -->
     <header class="header">
         <nav class="nav">
             <div class="logo">HealthPlus Medical</div>
             <div class="nav-links">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
                 <a href="#services">Services</a>
+                <a href="#about">About</a>
                 <a href="#contact">Contact</a>
             </div>
         </nav>
     </header>
 
     <!-- Hero Section -->
-    <section class="hero" id="home">
-        <h1>Welcome to HealthPlus Medical</h1>
-        <p>Innovative solutions for modern businesses</p>
-        <button class="cta-button">Get Started</button>
+    <section class="hero">
+        <h1>Your Health, Our Priority</h1>
+        <p>Comprehensive healthcare solutions for you and your family</p>
+        <button class="cta-button">Book Appointment</button>
     </section>
 
-    <!-- Widget Demo Section -->
-    <section class="content">
-        <div class="widget-info">
-            <h3>🤖 Chat Widget Demo</h3>
-            <p>This is how your chat widget will appear on a company's website. The widget is loaded with just one line of code:</p>
-            <div class="code-block">
-&lt;script src="https://qurius-ai.vercel.app/embed.js" 
-        data-company="HealthPlus Medical" 
-        data-theme="light"&gt;
-&lt;/script&gt;
-            </div>
-            <p><strong>Try it out:</strong> Look for the chat button in the bottom-right corner of this page!</p>
-        </div>
-
-        <!-- Features Section -->
+    <!-- Content -->
+    <div class="content">
         <div class="features">
             <div class="feature">
-                <h3>🚀 Fast Integration</h3>
-                <p>Add a professional chat widget to your website with just one line of code. No technical knowledge required.</p>
+                <h3>Primary Care</h3>
+                <p>Comprehensive health checkups and preventive care for all ages.</p>
             </div>
             <div class="feature">
-                <h3>🤖 AI-Powered Support</h3>
-                <p>Our intelligent chatbot answers customer questions 24/7, reducing support tickets and improving customer satisfaction.</p>
+                <h3>Specialized Treatment</h3>
+                <p>Expert care in cardiology, orthopedics, and more.</p>
             </div>
             <div class="feature">
-                <h3>🎨 Custom Branding</h3>
-                <p>Match your company's colors and branding. The widget looks native to your website and enhances your brand experience.</p>
-            </div>
-            <div class="feature">
-                <h3>📊 Analytics & Insights</h3>
-                <p>Track customer interactions, popular questions, and support metrics to improve your customer service.</p>
-            </div>
-            <div class="feature">
-                <h3>🔒 Secure & Reliable</h3>
-                <p>Enterprise-grade security with 99.9% uptime. Your customer data is protected and your widget is always available.</p>
-            </div>
-            <div class="feature">
-                <h3>💰 Cost Effective</h3>
-                <p>Start with our affordable plans and scale as you grow. No setup fees, no hidden costs.</p>
+                <h3>Emergency Care</h3>
+                <p>24/7 emergency services when you need them most.</p>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2025 HealthPlus Medical. All rights reserved.</p>
-        <p>This is a demo website showing how the Qurius-AI chat widget integrates seamlessly.</p>
+        <p>&copy; 2024 HealthPlus Medical. All rights reserved.</p>
     </footer>
 
     <!-- Your Widget Embed Script -->
-    <script src="https://qurius-ai.vercel.app/embed.js" 
-            data-company="HealthPlus Medical" 
-            data-theme="light">
-    </script>
+    <script src="public/embed.js" data-company="HealthPlus Medical" data-theme="light"></script>
 
-    <!-- Demo Instructions -->
     <script>
-        // Add some demo content to show widget functionality
         console.log('🎉 Demo Website Loaded!');
         console.log('Look for the chat widget in the bottom-right corner');
         console.log('Try asking questions like:');
