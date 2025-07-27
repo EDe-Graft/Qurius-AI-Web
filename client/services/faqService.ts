@@ -1,10 +1,5 @@
 import axios from 'axios'
-import { getAIResponse, getEmbedding } from './aiService'
-import type { Database } from '../types/database'
-
-type FAQ = Database['public']['Tables']['faqs']['Row']
-type FAQInsert = Database['public']['Tables']['faqs']['Insert']
-declare type FAQWithCompany = FAQInsert & { company: string; theme?: string }
+import { getAIResponse} from './aiService'
 
 export interface FAQSearchResult {
   source: 'faq' | 'ai'
