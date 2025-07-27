@@ -1,10 +1,13 @@
 import { Bot } from "lucide-react"
 
 // Typing Indicator
-export default function TypingIndicator() {
+export default function TypingIndicator({ companyTheme }: { companyTheme?: any }) {
   return (
     <div className="flex gap-3 max-w-4xl mx-auto px-4 py-6">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      <div 
+        className="flex-shrink-0 w-8 h-8 rounded-full text-gray-200 dark:text-gray-400 flex items-center justify-center"
+        style={{ backgroundColor: companyTheme?.backgroundColor || '#f3f4f6' }}
+      >
         <Bot className="w-4 h-4" />
       </div>
       <div className="flex-1">

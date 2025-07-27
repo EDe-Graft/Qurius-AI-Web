@@ -66,7 +66,7 @@ export function MessageBubble({ message, isUser, timestamp, onStreamingChange, s
       <div
         className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-          isUser ? "text-white" :  "text-gray-600 dark:text-gray-400",
+          isUser ? "text-white" :  "text-gray-200 dark:text-gray-400",
         )}
         style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
       >

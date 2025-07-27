@@ -305,7 +305,7 @@ export function ChatInterface({
               />
             );
           })}
-          {isTyping && <TypingIndicator />}
+          {isTyping && <TypingIndicator companyTheme={companyTheme} />}
         </div>
         <div ref={messagesEndRef} />
       </div>
