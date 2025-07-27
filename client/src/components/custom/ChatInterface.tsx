@@ -160,9 +160,9 @@ export function ChatInterface({
   if (isMinimized) {
     return (
       <div 
-        className="fixed bottom-4 right-4 z-50"
+        className="absolute bottom-4 right-4 z-50"
         style={{
-          position: 'fixed',
+          position: 'absolute',
           bottom: '1rem',
           right: '1rem',
           zIndex: 50,
@@ -206,13 +206,20 @@ export function ChatInterface({
   return (
     <div
       className={cn(
-        "w-full h-full",
+        "w-full h-full max-w-full max-h-full",
         "border border-gray-200 dark:border-gray-700",
         "rounded-lg shadow-2xl flex flex-col overflow-hidden",
         "transition-all duration-300 ease-in-out",
         "relative", // Add relative positioning for spinner overlay
         "bg-white dark:bg-gray-900",
       )}
+      style={{
+        width: '100%',
+        height: '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        boxSizing: 'border-box'
+      }}
     >
       {/* Theme Change Spinner Overlay */}
       {isThemeChanging && (
