@@ -6,16 +6,21 @@ import { cn } from "@/lib/utils"
 interface Company {
   id?: string
   name: string
-  domain: string
-  location: string
+  domain?: string
+  location?: string
   description: string
-  theme: string
+  theme: {
+    primaryColor: string
+    backgroundColor: string
+    textColor: string
+  }
   industry: string
   website: string
-  contact_email: string
+  contact_email?: string
+  email: string
   logo_url: string
-  enrollment_date: string
-  status: 'active' | 'inactive' | 'suspended'
+  enrollment_date?: string
+  status?: 'active' | 'inactive' | 'suspended'
   conversations?: number
   lastActive?: string
 }
@@ -25,7 +30,7 @@ interface CompanyModalProps {
   onClose: () => void
   company?: Company | null
   mode: 'view' | 'add' | 'edit'
-  onSave: (company: Company) => void
+  onSave: (company: Company) => void | Promise<void>
   onDelete?: (companyId: string) => void
 }
 
@@ -34,10 +39,15 @@ const defaultCompany: Company = {
   domain: '',
   location: '',
   description: '',
-  theme: '#3B82F6',
+  theme: {
+    primaryColor: '#3B82F6',
+    backgroundColor: '#F3F4F6',
+    textColor: '#1F2937'
+  },
   industry: '',
   website: '',
   contact_email: '',
+  email: '',
   logo_url: '',
   enrollment_date: new Date().toISOString().split('T')[0],
   status: 'active'
@@ -88,18 +98,12 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
       newErrors.name = 'Company name is required'
     }
     
-    if (!formData.domain.trim()) {
-      newErrors.domain = 'Domain is required'
-    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(formData.domain)) {
+    if (formData.domain && !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(formData.domain)) {
       newErrors.domain = 'Please enter a valid domain'
     }
     
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required'
-    }
-    
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
+    if (formData.location && formData.location.trim() === '') {
+      newErrors.location = 'Location cannot be empty if provided'
     }
     
     if (!formData.industry.trim()) {
@@ -108,16 +112,14 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
     
     if (!formData.website.trim()) {
       newErrors.website = 'Website is required'
-    } else if (!/^https?:\/\/.+/.test(formData.website)) {
-      newErrors.website = 'Please enter a valid URL starting with http:// or https://'
     }
     
-    if (!formData.contact_email.trim()) {
+    if (!formData.contact_email?.trim()) {
       newErrors.contact_email = 'Contact email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
+    } else if (formData.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
       newErrors.contact_email = 'Please enter a valid email address'
     }
-
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -179,7 +181,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
               <div className="flex items-center space-x-4">
                 <div 
                   className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold"
-                  style={{ backgroundColor: formData.theme }}
+                  style={{ backgroundColor: formData.theme.primaryColor }}
                 >
                   {formData.name.charAt(0).toUpperCase()}
                 </div>
@@ -244,12 +246,12 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
                     <div className="mt-1">
                       <span className={cn(
-                        "inline-flex px-3 py-1 text-sm font-medium rounded-full",
+                        "inline-flex px-2 py-1 text-xs font-medium rounded-full",
                         formData.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
                         formData.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
                         formData.status === 'suspended' && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
                       )}>
-                        {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                        {(formData.status || 'inactive').charAt(0).toUpperCase() + (formData.status || 'inactive').slice(1)}
                       </span>
                     </div>
                   </div>
@@ -259,9 +261,9 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                     <div className="flex items-center mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div 
                         className="w-6 h-6 rounded-full mr-3"
-                        style={{ backgroundColor: formData.theme }}
+                        style={{ backgroundColor: formData.theme.primaryColor }}
                       />
-                      <span className="text-gray-900 dark:text-gray-100">{formData.theme}</span>
+                      <span className="text-gray-900 dark:text-gray-100">{formData.theme.primaryColor}</span>
                     </div>
                   </div>
 
@@ -269,7 +271,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Enrollment Date</label>
                     <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <span className="text-gray-900 dark:text-gray-100">
-                        {new Date(formData.enrollment_date).toLocaleDateString()}
+                        {new Date(formData.enrollment_date || '').toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -490,10 +492,10 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                       <button
                         key={color.value}
                         type="button"
-                        onClick={() => updateField('theme', color.value)}
+                        onClick={() => updateField('theme', JSON.stringify({ primaryColor: color.value, backgroundColor: '#F3F4F6', textColor: '#1F2937' }))}
                         className={cn(
                           "w-12 h-12 rounded-lg border-2 transition-all",
-                          formData.theme === color.value 
+                          JSON.stringify(formData.theme) === JSON.stringify({ primaryColor: color.value, backgroundColor: '#F3F4F6', textColor: '#1F2937' })
                             ? "border-gray-900 dark:border-gray-100 scale-110" 
                             : "border-gray-300 dark:border-gray-600 hover:scale-105"
                         )}
@@ -503,7 +505,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                     ))}
                   </div>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Selected: {formData.theme}
+                    Selected: {formData.theme.primaryColor}
                   </p>
                 </div>
 

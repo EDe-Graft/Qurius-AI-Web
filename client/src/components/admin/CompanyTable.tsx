@@ -6,16 +6,21 @@ import { cn } from "@/lib/utils"
 interface Company {
   id?: string
   name: string
-  domain: string
-  location: string
+  domain?: string
+  location?: string
   description: string
-  theme: string
+  theme: {
+    primaryColor: string
+    backgroundColor: string
+    textColor: string
+  }
   industry: string
   website: string
-  contact_email: string
+  contact_email?: string
+  email: string // Required to match service interface
   logo_url: string
-  enrollment_date: string
-  status: 'active' | 'inactive' | 'suspended'
+  enrollment_date?: string
+  status?: 'active' | 'inactive' | 'suspended'
   conversations?: number
   queries?: number
   lastActive?: string
@@ -102,7 +107,7 @@ export function CompanyTable({ companies, onEdit, onDelete, onView }: CompanyTab
                   <div className="flex items-center">
                     <div 
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                      style={{ backgroundColor: company.theme }}
+                      style={{ backgroundColor: company.theme.primaryColor }}
                     >
                       {company.name.charAt(0).toUpperCase()}
                     </div>
@@ -115,15 +120,15 @@ export function CompanyTable({ companies, onEdit, onDelete, onView }: CompanyTab
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900 dark:text-gray-100">
-                    {company.domain}
+                    {company.domain || 'N/A'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={cn(
                     "inline-flex px-2 py-1 text-xs font-medium rounded-full",
-                    getStatusColor(company.status)
+                    getStatusColor(company.status || 'inactive')
                   )}>
-                    {getStatusText(company.status)}
+                    {getStatusText(company.status || 'inactive')}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

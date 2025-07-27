@@ -17,6 +17,7 @@ import { StatCard } from "@/components/admin/StatCard"
 import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
+import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
@@ -136,7 +137,7 @@ export default function Admin() {
         setCompanies(prev => [...prev, { ...newCompany, conversations: 0, lastActive: 'Never' }])
       } else if (modalState.mode === 'edit' && modalState.company?.id) {
         // Update existing company via API
-        const updatedCompany = await CompanyService.updateCompany({ ...company, id: modalState.company.id })
+        const updatedCompany = await CompanyService.updateCompany(modalState.company.id, { ...company })
         setCompanies(prev => prev.map(c => 
           c.id === modalState.company?.id ? { ...updatedCompany, conversations: c.conversations, lastActive: c.lastActive } : c
         ))
@@ -255,6 +256,14 @@ export default function Admin() {
             value={stats.totalConversations.toLocaleString()}
             icon={MessageCircle}
           />
+        </div>
+
+        {/* Analytics Dashboard */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            Analytics Dashboard
+          </h2>
+          <AnalyticsDashboard />
         </div>
 
         {/* Quick Actions */}

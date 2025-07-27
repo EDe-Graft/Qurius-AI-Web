@@ -3,16 +3,22 @@ import axios from 'axios'
 export interface Company {
   id?: string
   name: string
-  domain: string
-  location: string
+  domain?: string
+  location?: string
   description: string
-  theme: string
+  theme: {
+    primaryColor: string
+    backgroundColor: string
+    textColor: string
+  }
   industry: string
   website: string
-  contact_email: string
+  email: string
+  contact_email?: string // For backward compatibility
   logo_url: string
-  enrollment_date: string
-  status: 'active' | 'inactive' | 'suspended'
+  created_at?: string
+  enrollment_date?: string
+  status?: 'active' | 'inactive' | 'suspended'
   conversations?: number
   queries?: number
   lastActive?: string
@@ -23,7 +29,20 @@ export class CompanyService {
 
   static async createCompany(company: Omit<Company, 'id'>): Promise<Company> {
     try {
-      const response = await axios.post(`${this.BACKEND_URL}/api/companies`, company, {
+      // Transform the data to match backend expectations
+      const companyData = {
+        name: company.name,
+        industry: company.industry,
+        website: company.website,
+        contact_email: company.email,
+        description: company.description,
+        theme: JSON.stringify(company.theme),
+        logo_url: company.logo_url,
+        created_at: company.created_at || new Date().toISOString(),
+        status: 'active'
+      }
+
+      const response = await axios.post(`${this.BACKEND_URL}/api/companies`, companyData, {
         headers: { 'Content-Type': 'application/json' },
       })
       
@@ -38,9 +57,19 @@ export class CompanyService {
     }
   }
 
-  static async updateCompany(company: Company): Promise<Company> {
+  static async updateCompany(companyId: string, updates: Partial<Company>): Promise<Company> {
     try {
-      const response = await axios.put(`${this.BACKEND_URL}/api/companies/${company.id}`, company, {
+      // Transform theme object to string if present and map email to contact_email
+      const updateData: any = { ...updates }
+      if (updates.theme) {
+        updateData.theme = JSON.stringify(updates.theme)
+      }
+      if (updates.email) {
+        updateData.contact_email = updates.email
+        delete updateData.email
+      }
+
+      const response = await axios.put(`${this.BACKEND_URL}/api/companies/${companyId}`, updateData, {
         headers: { 'Content-Type': 'application/json' },
       })
       

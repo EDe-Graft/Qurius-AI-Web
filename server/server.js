@@ -92,25 +92,26 @@ app.get('/api/companies/:name/theme', async (req, res) => {
       }
     );
 
+
+    console.log(response.data[0])
     if (response.data && response.data.length > 0) {
       const company = response.data[0];
       res.json({
-        theme: company.theme || '#3B82F6',
-        logo_url: company.logo_url || ''
+        company: company,
       });
     } else {
       // Return default theme if company not found
       res.json({
-        theme: '#3B82F6',
-        logo_url: ''
+        company: company,
+        theme: company.theme,
+        logo_url: company.logo_url || ''
       });
     }
   } catch (error) {
     console.error('Company theme error:', error.response?.data || error.message);
     // Return default theme on error
     res.json({
-      theme: '#3B82F6',
-      logo_url: ''
+      company: company,
     });
   }
 });
@@ -291,7 +292,7 @@ app.post('/api/companies', async (req, res) => {
       domain,
       location,
       description,
-      theme: theme || '#3B82F6',
+      theme: JSON.stringify(theme),
       industry,
       website,
       contact_email,
@@ -312,12 +313,33 @@ app.post('/api/companies', async (req, res) => {
         }
       }
     );
+    console.log("response", response)
+
+    // Since the POST response doesn't return the ID, we need to get it by querying
+    // Get the company ID by querying for the newly created company
+    const companyQueryResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyQueryResponse.data || !companyQueryResponse.data[0] || !companyQueryResponse.data[0].id) {
+      throw new Error('Failed to create company - could not retrieve company ID');
+    }
+
+    const companyId = companyQueryResponse.data[0].id;
 
     // Add company to chat interactions
     const chatInteractionData = {
-      company_id: response.data.id,
+      company_id: companyId,
       conversations: 0,
       queries: 0,
+      last_interaction_timestamp: new Date().toISOString()
     };
 
     // Add company to chat interactions
@@ -335,8 +357,8 @@ app.post('/api/companies', async (req, res) => {
 
     res.json({
       success: true,
-      id: response.data.id,
-      company: { ...companyData, id: response.data.id },
+      id: companyId,
+      company: { ...companyData, id: companyId },
       stats: {
         conversations: 0,
         queries: 0,
@@ -385,7 +407,7 @@ app.put('/api/companies/:id', async (req, res) => {
       domain,
       location,
       description,
-      theme: theme || '#3B82F6',
+      theme: JSON.stringify(theme),
       industry,
       website,
       contact_email,

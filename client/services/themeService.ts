@@ -11,7 +11,7 @@ export class ThemeService {
     return {
       primaryColor,
       logoUrl,
-      backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
+      backgroundColor: isDark ? '#1e2939' : '#F3F4F6',
       textColor: isDark ? '#F9FAFB' : '#1F2937',
       borderColor: isDark ? '#374151' : '#E5E7EB',
       accentColor: isDark ? '#10B981' : '#10B981', // Keep accent consistent
@@ -27,8 +27,9 @@ export class ThemeService {
         },
       });
 
-      const company = response.data;
-      const primaryColor = company?.theme || '#3B82F6';
+      const company = response.data.company;
+      const theme = company?.theme;
+      const primaryColor = theme?.primaryColor || '#3B82F6';
       const logoUrl = company?.logo_url || '';
       return this.generateThemeFromPrimary(primaryColor, isDark, logoUrl);
     } catch (error) {

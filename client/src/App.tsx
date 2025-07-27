@@ -4,6 +4,8 @@ import { useTheme} from "@/context/useThemeContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
 import Admin from "@/pages/Admin"
 import Login from "@/pages/Login"
+import { Onboarding } from "@/pages/Onboarding"
+import { Landing } from "@/pages/Landing"
 import { Navigation } from "@/components/admin/Navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
@@ -13,7 +15,7 @@ import { Settings } from "lucide-react"
 function Home() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
-  let companyName = 'TechCorp Solutions';
+  let companyName = 'PurpleSoft Inc';
 
   return (
     <div
@@ -48,6 +50,18 @@ function Home() {
             </p>
             <div className="flex space-x-4">
               <a 
+                href="/landing" 
+                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Learn More
+              </a>
+              <a 
+                href="/onboarding" 
+                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Get Started
+              </a>
+              <a 
                 href="/admin" 
                 className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
               >
@@ -79,7 +93,9 @@ export default function App() {
         <Navigation />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route 
             path="/admin" 
             element={

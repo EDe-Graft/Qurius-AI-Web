@@ -5,7 +5,7 @@ CREATE TABLE public.companies (
     domain TEXT UNIQUE,
     location TEXT,
     description TEXT,
-    theme VARCHAR(10) NOT NULL DEFAULT '#58c4dc',
+    theme JSONB NOT NULL DEFAULT '{"primaryColor": "#58c4dc", "backgroundColor": "#F3F4F6", "textColor": "#000000"}',
     industry TEXT,
     website TEXT,
     contact_email TEXT,
@@ -113,3 +113,6 @@ FOR ALL USING (auth.role() = 'authenticated');
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS logo_url TEXT;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS enrollment_date DATE;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
+-- Alter theme column to JSON type to store theme objects
+-- ALTER TABLE public.companies ALTER COLUMN theme TYPE JSON USING theme::JSON;
