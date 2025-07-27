@@ -3,7 +3,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { useTheme} from "../context/useThemeContext"
 import { ChatInterface } from "../src/components/custom/ChatInterface"
 import Admin from "./pages/Admin"
+import Login from "./pages/Login"
 import { Navigation } from "./components/admin/Navigation"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
+import { AuthProvider } from "./context/AuthContext"
 import { Settings } from "lucide-react"
 
 
@@ -71,13 +74,23 @@ function Home() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Navigation />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<Admin />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Navigation />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 

@@ -562,6 +562,52 @@ app.post('/api/embeddings', async (req, res) => {
   }
 });
 
+// Create admin user (for development only)
+app.post('/api/create-admin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const response = await axios.post(
+      `${supabaseUrl}/auth/v1/admin/users`,
+      {
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { role: 'admin' }
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      user: response.data
+    });
+  } catch (error) {
+    console.error('Create admin error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create admin user' 
+    });
+  }
+});
+
 // Get AI response
 app.post('/api/chat', async (req, res) => {
   try {

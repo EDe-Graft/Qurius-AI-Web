@@ -7,7 +7,10 @@ import {
   Plus,
   Settings,
   BarChart3,
-  Activity
+  Activity,
+  Sun,
+  Moon,
+  LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/admin/StatCard"
@@ -15,10 +18,12 @@ import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 import { useTheme } from "../../context/useThemeContext"
+import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 
 export default function Admin() {
   const { defaultTheme, toggleTheme } = useTheme()
+  const { signOut } = useAuth()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -191,21 +196,33 @@ export default function Admin() {
             
             <div className="flex items-center space-x-4">
               <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleTheme}
-                className="hidden sm:flex"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-              
-              <Button
                 className="bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={handleAddCompany}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Company
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="flex items-center justify-center"
+              >
+                {defaultTheme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+              >
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
