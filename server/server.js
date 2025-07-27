@@ -11,12 +11,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173').split(',').map(origin => origin.trim());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500').split(',').map(origin => origin.trim());
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (e.g. mobile apps or curl requests)
     if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow all localhost origins for development
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
       return callback(null, true);
     }
     console.log('CORS blocked origin:', origin);
@@ -107,6 +111,146 @@ app.get('/api/companies/:name/theme', async (req, res) => {
       theme: '#3B82F6',
       logo_url: ''
     });
+  }
+});
+
+// Get company ID
+app.get('/api/companies/:name/id', async (req, res) => {
+  try {
+    const { name } = req.params;
+    console.log('Getting company ID for:', name);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(name)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.length > 0) {
+      res.json({ id: response.data[0].id });
+    } else {
+      res.status(404).json({ error: 'Company not found' });
+    }
+  } catch (error) {
+    console.error('Company ID error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to get company ID' });
+  }
+});
+
+// Create company
+app.post('/api/companies', async (req, res) => {
+  try {
+    const { name, theme } = req.body;
+    console.log('Creating company:', name);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/companies`,
+      { name, theme: theme || '#3B82F6' },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ id: response.data.id });
+  } catch (error) {
+    console.error('Create company error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to create company' });
+  }
+});
+
+// Search FAQs
+app.post('/api/faqs/search', async (req, res) => {
+  try {
+    const { question, companyName } = req.body;
+    console.log('Searching FAQs for company:', companyName);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // First get company ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.json([]);
+    }
+
+    const companyId = companyResponse.data[0].id;
+
+    // Get embedding for the question
+    const embeddingResponse = await axios.post(
+      'https://api.jina.ai/v1/embeddings',
+      {
+        input: [question],
+        model: 'jina-embeddings-v2-base-en'
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.JINA_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const questionEmbedding = embeddingResponse.data.data[0].embedding;
+
+    // Search FAQs using vector similarity
+    const faqResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/find_relevant_faqs`,
+      {
+        p_company_id: companyId,
+        p_query: question,
+        p_query_embedding: questionEmbedding,
+        p_top_k: 5
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json(faqResponse.data || []);
+  } catch (error) {
+    console.error('FAQ search error:', error.response?.data || error.message);
+    res.json([]);
   }
 });
 
