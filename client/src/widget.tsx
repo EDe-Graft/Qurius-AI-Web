@@ -1,7 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { ChatInterface } from './components/custom/ChatInterface'
-import { ThemeProvider, useTheme } from '../context/useThemeContext'
+import { ChatInterface } from '@/components/custom/ChatInterface'
+import { ThemeProvider, useTheme } from '@/context/useThemeContext'
 import './global.css'
 
 // Widget interface

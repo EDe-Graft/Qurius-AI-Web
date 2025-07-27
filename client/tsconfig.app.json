@@ -10,12 +10,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@/context/*": [
-        "./context/*"
-      ],
-      "@/context/AuthContext": [
-        "./context/AuthContext"
       ]
     },
 
@@ -35,5 +29,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "context", "src/lib/supabase.ts", "services/faqService.ts"]
+  "include": ["src", "src/lib/supabase.ts", "services/faqService.ts"]
 }

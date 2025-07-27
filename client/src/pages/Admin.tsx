@@ -17,7 +17,7 @@ import { StatCard } from "@/components/admin/StatCard"
 import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
-import { useTheme } from "../../context/useThemeContext"
+import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 
