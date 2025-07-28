@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import { ChatInput } from "../ui/ChatInput"
 import TypingIndicator from "./TypingIndicator"
+import { Minimize2 } from "lucide-react"
+import { AnalyticsService } from "@/services/analyticsService"
 import { ThemeToggle } from "./ThemeToggle"
-import { MessageCircle, Minimize2, ChevronDown, Loader2 } from "lucide-react"
+import { MessageCircle, Loader2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn, darkenColor } from "@/lib/utils"
-import { FAQService } from "../../../services/faqService"
-import { ThemeService } from "../../../services/themeService"
+import { FAQService } from "@/services/faqService"
+import { ThemeService } from "@/services/themeService"
 import type { ChatInterfaceProps, Message, CompanyTheme } from "types/interfaces"
 
 
@@ -47,6 +49,24 @@ export function ChatInterface({
         .then(setCompanyTheme);
     }
   }, [companyName, isDark])
+
+  // Track widget view when component mounts
+  useEffect(() => {
+    if (companyName) {
+      AnalyticsService.trackWidgetView(companyName)
+    }
+  }, [companyName])
+
+  // Track widget open/close
+  useEffect(() => {
+    if (companyName) {
+      if (isMinimized) {
+        AnalyticsService.trackWidgetClose(companyName)
+      } else {
+        AnalyticsService.trackWidgetOpen(companyName)
+      }
+    }
+  }, [isMinimized, companyName])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -130,6 +150,11 @@ export function ChatInterface({
     setIsTyping(true)
     setMessages((prev) => [...prev, userMessage])
 
+    // Track message sent
+    if (companyName) {
+      AnalyticsService.trackMessageSent(companyName, content)
+    }
+
     try {
       const result = await FAQService.getAnswer(content, companyName)
       const aiMessage: Message = {
@@ -139,6 +164,11 @@ export function ChatInterface({
       }
       setMessages((prev) => [...prev, aiMessage])
       setWasMinimized(false) // Reset when new message is added
+      
+      // Track message received
+      if (companyName) {
+        AnalyticsService.trackMessageReceived(companyName, result.answer)
+      }
     } catch (error) {
       console.error('Error getting response:', error)
       setMessages((prev) => [

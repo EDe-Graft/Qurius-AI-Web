@@ -41,12 +41,49 @@ CREATE TABLE public.chat_interactions (
     last_interaction_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 );
 
+-- Widget Analytics Table
+CREATE TABLE IF NOT EXISTS widget_analytics (
+  id SERIAL PRIMARY KEY,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  event_type VARCHAR(50) NOT NULL, -- 'widget_view', 'message_sent', 'message_received', 'widget_opened', 'widget_closed'
+  page_url TEXT,
+  user_agent TEXT,
+  message TEXT,
+  response TEXT,
+  session_id VARCHAR(255),
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX idx_chat_interactions_company_id ON public.chat_interactions(company_id);
 CREATE INDEX idx_companies_name ON public.companies(name);
 CREATE INDEX idx_companies_domain ON public.companies(domain);
 CREATE INDEX idx_companies_status ON public.companies(status);
+
+-- Indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON widget_analytics(company_id);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON widget_analytics(event_type);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_timestamp ON widget_analytics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_session_id ON widget_analytics(session_id);
+
+-- Enable RLS
+ALTER TABLE widget_analytics ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Companies can view their own analytics" ON widget_analytics
+  FOR SELECT USING (
+    company_id IN (
+      SELECT id FROM companies WHERE name = current_setting('request.jwt.claims', true)::json->>'company_name'
+    )
+  );
+
+CREATE POLICY "Service role can insert analytics" ON widget_analytics
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can update analytics" ON widget_analytics
+  FOR UPDATE USING (true);
 
 -- Updated find_relevant_faqs function
 CREATE OR REPLACE FUNCTION find_relevant_faqs(

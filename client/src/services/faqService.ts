@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getAIResponse} from './aiService'
+import { getAIResponse} from '@/services/aiService'
 
 export interface FAQSearchResult {
   source: 'faq' | 'ai'

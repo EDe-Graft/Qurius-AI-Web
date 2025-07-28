@@ -28,6 +28,7 @@ export default function Admin() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
 
   // Load companies on component mount
   useEffect(() => {
@@ -39,7 +40,6 @@ export default function Admin() {
         
         // Companies already come with real analytics data from backend
         setCompanies(fetchedCompanies)
-        console.log(fetchedCompanies)
       } catch (err: any) {
         console.error('Error loading companies:', err)
         setError(err.message || 'Failed to load companies')
@@ -261,10 +261,26 @@ export default function Admin() {
 
         {/* Analytics Dashboard */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Analytics Dashboard
-          </h2>
-          <AnalyticsDashboard />
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Analytics Dashboard
+            </h2>
+            {companies.length > 0 && (
+              <select
+                value={selectedCompanyId || ''}
+                onChange={(e) => setSelectedCompanyId(e.target.value || null)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">All Companies</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <AnalyticsDashboard companyId={selectedCompanyId} />
         </div>
 
         {/* Quick Actions */}

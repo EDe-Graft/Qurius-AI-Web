@@ -73,7 +73,6 @@ app.get('/api/widget-config', (req, res) => {
 app.get('/api/companies/:name/theme', async (req, res) => {
   try {
     const { name } = req.params;
-    console.log('Getting theme for company:', name);
     
     // Make API call to Supabase to get company theme
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -693,6 +692,195 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'Failed to get AI response' });
   }
 });
+
+// Analytics endpoints
+app.post('/api/analytics/widget-view', async (req, res) => {
+  try {
+    const { companyName, pageUrl, userAgent, timestamp } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get company ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const companyId = companyResponse.data[0].id;
+
+    // Record widget view
+    const viewData = {
+      company_id: companyId,
+      event_type: 'widget_view',
+      page_url: pageUrl,
+      user_agent: userAgent,
+      timestamp: timestamp || new Date().toISOString(),
+      session_id: req.body.sessionId || null
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      viewData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Widget view tracking error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to track widget view' });
+  }
+});
+
+app.post('/api/analytics/widget-interaction', async (req, res) => {
+  try {
+    const { companyName, eventType, message, response, timestamp, sessionId } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get company ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const companyId = companyResponse.data[0].id;
+
+    // Record widget interaction
+    const interactionData = {
+      company_id: companyId,
+      event_type: eventType, // 'message_sent', 'message_received', 'widget_opened', 'widget_closed'
+      message: message || null,
+      response: response || null,
+      timestamp: timestamp || new Date().toISOString(),
+      session_id: sessionId || null
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      interactionData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Widget interaction tracking error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to track widget interaction' });
+  }
+});
+
+app.get('/api/analytics/company/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { period = '7d' } = req.query; // 7d, 30d, 90d
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Calculate date range
+    const now = new Date();
+    const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000)).toISOString();
+
+    // Get analytics data
+    const analyticsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&timestamp=gte.${startDate}&order=timestamp.desc`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const analytics = analyticsResponse.data || [];
+
+    // Process analytics data
+    const stats = {
+      totalViews: analytics.filter(a => a.event_type === 'widget_view').length,
+      totalInteractions: analytics.filter(a => a.event_type !== 'widget_view').length,
+      totalMessages: analytics.filter(a => a.event_type === 'message_sent').length,
+      totalResponses: analytics.filter(a => a.event_type === 'message_received').length,
+      uniqueSessions: [...new Set(analytics.filter(a => a.session_id).map(a => a.session_id))].length,
+      dailyStats: getDailyStats(analytics, periodDays)
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Analytics fetch error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// Helper function to get daily stats
+function getDailyStats(analytics, days) {
+  const dailyStats = [];
+  const now = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const dayAnalytics = analytics.filter(a => 
+      a.timestamp && a.timestamp.startsWith(dateStr)
+    );
+    
+    dailyStats.push({
+      date: dateStr,
+      views: dayAnalytics.filter(a => a.event_type === 'widget_view').length,
+      interactions: dayAnalytics.filter(a => a.event_type !== 'widget_view').length,
+      messages: dayAnalytics.filter(a => a.event_type === 'message_sent').length
+    });
+  }
+  
+  return dailyStats;
+}
 
 // Start server
 app.listen(PORT, () => {
