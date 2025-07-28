@@ -1,3 +1,20 @@
+// Utility function to parse theme JSON
+export function parseTheme(theme) {
+  if (typeof theme === 'string') {
+    try {
+      return JSON.parse(theme);
+    } catch (error) {
+      console.error('Error parsing theme JSON:', error);
+      return {
+        primaryColor: "#3B82F6",
+        backgroundColor: "#FFFFFF",
+        textColor: "#1F2937"
+      };
+    }
+  }
+  return theme;
+}
+
 // Helper function to calculate time ago
 export function getTimeAgo(timestamp) {
     const now = new Date();

@@ -39,6 +39,7 @@ export default function Admin() {
         
         // Companies already come with real analytics data from backend
         setCompanies(fetchedCompanies)
+        console.log(fetchedCompanies)
       } catch (err: any) {
         console.error('Error loading companies:', err)
         setError(err.message || 'Failed to load companies')

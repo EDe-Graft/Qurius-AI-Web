@@ -1,6 +1,6 @@
 -- Updated companies table with additional fields
 CREATE TABLE public.companies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
     name TEXT NOT NULL UNIQUE,
     domain TEXT UNIQUE,
     location TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE public.companies (
 
 -- Updated FAQs table
 CREATE TABLE public.faqs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE public.faqs (
 
 -- Create chat interaction log for analytics
 CREATE TABLE public.chat_interactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id),
     conversations INTEGER DEFAULT 0,
     queries INTEGER DEFAULT 0,

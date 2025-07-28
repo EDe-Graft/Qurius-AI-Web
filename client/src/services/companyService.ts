@@ -36,6 +36,7 @@ export class CompanyService {
         website: company.website,
         contact_email: company.email,
         description: company.description,
+        location: company.location,
         theme: JSON.stringify(company.theme),
         logo_url: company.logo_url,
         created_at: company.created_at || new Date().toISOString(),

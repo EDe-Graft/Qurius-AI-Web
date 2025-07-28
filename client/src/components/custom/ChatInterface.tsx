@@ -160,9 +160,8 @@ export function ChatInterface({
   if (isMinimized) {
     return (
       <div 
-        className="absolute bottom-4 right-4 z-50"
         style={{
-          position: 'absolute',
+          position: 'fixed',
           bottom: '1rem',
           right: '1rem',
           zIndex: 50,
@@ -221,8 +220,8 @@ export function ChatInterface({
         maxHeight: '600px',
         boxSizing: 'border-box',
         position: 'fixed',
-        bottom: '1rem',
-        right: '1rem',
+        bottom: `${window.innerWidth > 768 ? '1rem' : '0'}`,
+        right: `${window.innerWidth > 768 ? '1rem' : '0'}`,
         zIndex: 50,
       }}
     >

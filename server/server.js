@@ -4,7 +4,9 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { getTimeAgo } from './utils.js';
+import { getTimeAgo, parseTheme } from './utils.js';
+
+
 
 dotenv.config();
 
@@ -96,15 +98,20 @@ app.get('/api/companies/:name/theme', async (req, res) => {
     console.log(response.data[0])
     if (response.data && response.data.length > 0) {
       const company = response.data[0];
+      
       res.json({
-        company: company,
+        company: { ...company, theme: parseTheme(company.theme) },
       });
     } else {
       // Return default theme if company not found
       res.json({
-        company: company,
-        theme: company.theme,
-        logo_url: company.logo_url || ''
+        company: null,
+        theme: {
+          primaryColor: "#3B82F6",
+          backgroundColor: "#FFFFFF",
+          textColor: "#1F2937"
+        },
+        logo_url: ''
       });
     }
   } catch (error) {
@@ -195,6 +202,7 @@ app.get('/api/companies', async (req, res) => {
       
       return {
         ...company,
+        theme: parseTheme(company.theme),
         conversations: interaction?.conversations || 0,
         queries: interaction?.queries || 0,
         lastActive: interaction?.last_interaction_timestamp 
@@ -247,8 +255,10 @@ app.get('/api/companies/:id', async (req, res) => {
     );
 
     if (companyResponse.data && companyResponse.data.length > 0) {
+      const company = companyResponse.data[0];
+      
       res.json({
-        company: companyResponse.data[0],
+        company: { ...company, theme: parseTheme(company.theme) },
         stats: chatInteractionResponse.data[0]
       });
     } else {
@@ -286,13 +296,26 @@ app.post('/api/companies', async (req, res) => {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
+    // Extract domain from website URL if not provided
+    let extractedDomain = domain;
+    if (!domain && website) {
+      try {
+        const url = new URL(website.startsWith('http') ? website : `https://${website}`);
+        extractedDomain = url.hostname;
+        console.log('Extracted domain from website:', extractedDomain);
+      } catch (error) {
+        console.log('Could not extract domain from website:', website);
+        extractedDomain = '';
+      }
+    }
+
     // Prepare company data
     const companyData = {
       name,
-      domain,
+      domain: extractedDomain,
       location,
       description,
-      theme: JSON.stringify(theme),
+      theme: theme, // Store theme object directly as JSON
       industry,
       website,
       contact_email,
@@ -313,7 +336,7 @@ app.post('/api/companies', async (req, res) => {
         }
       }
     );
-    console.log("response", response)
+    console.log(companyData)
 
     // Since the POST response doesn't return the ID, we need to get it by querying
     // Get the company ID by querying for the newly created company
@@ -407,7 +430,7 @@ app.put('/api/companies/:id', async (req, res) => {
       domain,
       location,
       description,
-      theme: JSON.stringify(theme),
+      theme: theme, // Store theme object directly as JSON
       industry,
       website,
       contact_email,

@@ -23,8 +23,8 @@ function Home() {
     >
       {/* Demo content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">Professional Chat Interface Demo</h1>
+        <div className={`max-w-4xl mx-auto mt-10 ${window.innerWidth > 500 ? "flex-col items-center justify-center" : ""}`}>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6 mt-10">Professional Chat Interface Demo</h1>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Company Website Content</h2>
             <p className="text-gray-600 dark:text-gray-300 mb-4">

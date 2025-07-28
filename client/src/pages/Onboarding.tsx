@@ -23,8 +23,14 @@ export function Onboarding() {
     location: "",
     id: ""
   })
+  const [themeData, setThemeData] = useState({
+    primaryColor: "#3B82F6",
+    backgroundColor: "#FFFFFF",
+    textColor: "#1F2937"
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [copySuccess, setCopySuccess] = useState(false)
 
   const steps: OnboardingStep[] = [
     {
@@ -57,25 +63,30 @@ export function Onboarding() {
     }
   ]
 
-  const handleCompanyInfoSubmit = async (e: React.FormEvent) => {
+  const handleCompanyInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setCurrentStep(1)
+  }
+
+  const handleCustomizationSubmit = (theme: any) => {
+    setThemeData(theme)
+    setCurrentStep(2)
+  }
+
+  const handleCompleteSetup = async () => {
     setLoading(true)
     setError("")
 
     try {
       const newCompany = await CompanyService.createCompany({
         ...companyData,
-        theme: {
-          primaryColor: "#3B82F6",
-          backgroundColor: "#FFFFFF",
-          textColor: "#1F2937"
-        },
+        theme: themeData,
         logo_url: "",
         created_at: new Date().toISOString()
       })
 
       setCompanyData(prev => ({ ...prev, id: newCompany.id || "" }))
-      setCurrentStep(1)
+      setCurrentStep(3)
     } catch (err: any) {
       setError(err.message || "Failed to create company")
     } finally {
@@ -83,30 +94,33 @@ export function Onboarding() {
     }
   }
 
-  const handleCustomizationSubmit = async (theme: any) => {
-    setLoading(true)
-    try {
-      await CompanyService.updateCompany(companyData.id!, {
-        theme
-      })
-      setCurrentStep(2)
-    } catch (err: any) {
-      setError(err.message || "Failed to update theme")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const copyIntegrationCode = () => {
-    const code = `<script src="https://qurius-ai.vercel.app/embed.js"></script>
-<script>
-  window.QuriusChatWidget.init({
-    companyName: "${companyData.name}",
-    position: "bottom-right"
-  });
-</script>`
+  const copyIntegrationCode = async () => {
+    const code = `
+    <script src="https://qurius-ai.vercel.app/embed.js" data-company="${companyData.name}" data-theme="light"></script>`
     
-    navigator.clipboard.writeText(code)
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopySuccess(true)
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => {
+        setCopySuccess(false)
+      }, 3000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = code
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      setCopySuccess(true)
+      setTimeout(() => {
+        setCopySuccess(false)
+      }, 3000)
+    }
   }
 
   const renderStepContent = () => {
@@ -114,15 +128,27 @@ export function Onboarding() {
       case 0:
         return <CompanyInfoStep companyData={companyData} setCompanyData={setCompanyData} onSubmit={handleCompanyInfoSubmit} loading={loading} error={error} />
       case 1:
-        return <CustomizationStep onSubmit={handleCustomizationSubmit} loading={loading} />
+        return <CustomizationStep onSubmit={handleCustomizationSubmit} loading={loading} initialTheme={themeData} />
       case 2:
-        return <IntegrationStep companyName={companyData.name} onCopy={copyIntegrationCode} />
+        return <IntegrationStep companyName={companyData.name} onCopy={copyIntegrationCode} onComplete={handleCompleteSetup} loading={loading} error={error} copySuccess={copySuccess} />
       case 3:
         return <CompleteStep companyName={companyData.name} />
       default:
         return null
     }
   }
+
+  const goToPreviousStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  // const goToNextStep = () => {
+  //   if (currentStep < steps.length - 1) {
+  //     setCurrentStep(currentStep + 1)
+  //   }
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -183,6 +209,23 @@ export function Onboarding() {
         {/* Step Content */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           {renderStepContent()}
+          
+          {/* Navigation Buttons */}
+          {currentStep < 3 && (
+            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={goToPreviousStep}
+                disabled={currentStep === 0}
+                className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Step {currentStep + 1} of {steps.length}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -310,8 +353,8 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
   )
 }
 
-function CustomizationStep({ onSubmit, loading }: any) {
-  const [theme, setTheme] = useState({
+function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
+  const [theme, setTheme] = useState(initialTheme || {
     primaryColor: "#3B82F6",
     backgroundColor: "#FFFFFF",
     textColor: "#1F2937"
@@ -447,20 +490,20 @@ function CustomizationStep({ onSubmit, loading }: any) {
   )
 }
 
-function IntegrationStep({ companyName, onCopy }: any) {
-  const integrationCode = `<script src="https://qurius-ai.vercel.app/embed.js"></script>
-<script>
-  window.QuriusChatWidget.init({
-    data-company: "${companyName}",
-    data-theme: "light", //'light' or 'dark'
-  });
-</script>`
+function IntegrationStep({ companyName, onCopy, onComplete, loading, error, copySuccess }: any) {
+  const integrationCode = `<script src="https://qurius-ai.vercel.app/embed.js" data-company="${companyName}" data-theme="light"></script>`
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
         Add Widget to Your Website
       </h2>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div>
@@ -482,6 +525,18 @@ function IntegrationStep({ companyName, onCopy }: any) {
               <Copy className="h-4 w-4" />
             </button>
           </div>
+          
+          {/* Copy Success Notification */}
+          {copySuccess && (
+            <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
+                <span className="text-sm text-green-800 dark:text-green-200">
+                  Code copied to clipboard successfully!
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -499,10 +554,11 @@ function IntegrationStep({ companyName, onCopy }: any) {
 
         <div className="flex justify-end">
           <button
-            onClick={() => window.location.href = "/admin"}
-            className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            onClick={onComplete}
+            disabled={loading}
+            className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Complete Setup
+            {loading ? "Creating Company..." : "Complete Setup"}
             <CheckCircle className="ml-2 h-4 w-4" />
           </button>
         </div>
@@ -534,7 +590,7 @@ function CompleteStep({ companyName }: any) {
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 space-x-4">
         <button
           onClick={() => window.location.href = "/admin"}
           className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -544,7 +600,7 @@ function CompleteStep({ companyName }: any) {
         
         <button
           onClick={() => window.open("https://qurius-ai.vercel.app/test-widget.html", "_blank")}
-          className="w-full md:w-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Test Widget
         </button>
