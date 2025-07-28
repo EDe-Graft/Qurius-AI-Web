@@ -29,12 +29,19 @@ export const JINA_CONFIG = {
   apiKey: getEnv('VITE_JINA_API_KEY'),
 };
 
-// Validate required environment variables
-if (typeof window !== 'undefined') {
-  if (!SUPABASE_CONFIG.projectUrl) {
-    console.error('Missing VITE_SUPABASE_PROJECT_URL');
-  }
-  if (!SUPABASE_CONFIG.anonKey) {
-    console.error('Missing VITE_SUPABASE_ANON_KEY');
-  }
-}
+export const config = {
+  backendUrl: getEnv('VITE_BACKEND_URL', 'http://localhost:3001'),
+  ...SUPABASE_CONFIG,
+  ...OPEN_ROUTER_CONFIG,
+  ...JINA_CONFIG,
+};
+
+// // Validate required environment variables
+// if (typeof window !== 'undefined') {
+//   if (!SUPABASE_CONFIG.projectUrl) {
+//     console.error('Missing VITE_SUPABASE_PROJECT_URL');
+//   }
+//   if (!SUPABASE_CONFIG.anonKey) {
+//     console.error('Missing VITE_SUPABASE_ANON_KEY');
+//   }
+// }

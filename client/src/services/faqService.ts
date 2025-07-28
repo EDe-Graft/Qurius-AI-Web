@@ -1,134 +1,105 @@
-import axios from 'axios'
-import { getAIResponse} from '@/services/aiService'
+import axios from 'axios';
+import { config } from '@/lib/config';
 
-export interface FAQSearchResult {
-  source: 'faq' | 'ai'
-  answer: string
-  question?: string
-  confidence?: number
-  faqId?: string
+export interface FAQ {
+  id?: string;
+  company_id: string;
+  question: string;
+  answer: string;
+  created_at?: string;
 }
 
-// Add type for relevant FAQ function result
-export interface RelevantFAQ {
-  faq_id: string
-  question: string
-  answer: string
-  similarity: number
+export interface FAQImport {
+  question: string;
+  answer: string;
 }
 
-export class FAQService {
-  /**
-   * Get or create a company by name. Returns the company_id.
-   * @param companyName The name of the company
-   * @param theme Optional theme color for the company (only used when creating new company)
-   */
-  static async getOrCreateCompanyId(companyName: string, theme?: string): Promise<string> {
+class FAQService {
+  private BACKEND_URL = config.backendUrl;
+
+  // Get FAQ answer using semantic search
+  async getFAQAnswer(companyName: string, userQuestion: string): Promise<string | null> {
     try {
-      // Make API call to backend to get or create company
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/companies/${encodeURIComponent(companyName)}/id`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await axios.post(`${this.BACKEND_URL}/api/faqs/search`, {
+        companyName,
+        question: userQuestion
       });
-
-      if (response.data && response.data.id) {
-        return response.data.id;
+      
+      console.log('FAQ search results:', response.data);
+      
+      // Handle array of FAQ results
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        // Return the answer from the first (most relevant) FAQ
+        return response.data[0].answer || null;
       }
       
-      // If company not found, create it via API
-      const createResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/companies`, {
-        name: companyName,
-        theme: theme
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return createResponse.data.id;
+      // Handle single FAQ object
+      if (response.data && response.data.answer) {
+        return response.data.answer;
+      }
+      
+      return null;
     } catch (error) {
-      console.error('Error getting or creating company:', error);
-      throw new Error(`Failed to fetch company: ${error}`);
+      console.error('Error searching FAQs:', error);
+      return null;
     }
   }
 
-  // Note: Other methods like addFAQ, getAllFAQs, updateFAQ, deleteFAQ, bulkImportFAQs
-  // are not used by the widget and would need similar backend API endpoints if needed
-
-  /**
-   * Search for FAQs using semantic similarity (embedding-based)
-   */
-  static async searchFAQs(userQuestion: string, companyName: string): Promise<RelevantFAQ[]> {
+  async getFAQs(companyId: string): Promise<FAQ[]> {
     try {
-      // Make API call to backend to search FAQs
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/faqs/search`, {
-        question: userQuestion,
-        companyName: companyName
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await axios.get(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
+      throw error;
+    }
+  }
+
+  async importFAQs(companyId: string, faqs: FAQImport[]): Promise<{ success: boolean; message: string; count: number }> {
+    try {
+      const response = await axios.post(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`, { faqs });
+      return response.data;
+    } catch (error) {
+      console.error('Error importing FAQs:', error);
+      throw error;
+    }
+  }
+
+  async addFAQ(companyId: string, question: string, answer: string): Promise<FAQ> {
+    try {
+      const response = await axios.post(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`, {
+        faqs: [{ question, answer }]
       });
-
-      return response.data || [];
+      return response.data;
     } catch (error) {
-      console.error('Error searching FAQs (semantic):', error);
-      return [];
+      console.error('Error adding FAQ:', error);
+      throw error;
     }
   }
 
-  /**
-   * Get answer for user question - tries FAQ first, falls back to AI
-   */
-  static async getAnswer(userQuestion: string, companyName: string, confidenceThreshold: number = 0.3): Promise<FAQSearchResult> {
+  async updateFAQ(faqId: string, question: string, answer: string): Promise<FAQ> {
     try {
-      // Step 1: Search FAQs
-      const faqs = await this.searchFAQs(userQuestion, companyName);
-      
-      if (faqs.length > 0) {
-        // Use the similarity score from the SQL function directly
-        const bestMatch = faqs[0];
-        
-        // If similarity is above threshold, return FAQ answer
-        if (bestMatch.similarity >= confidenceThreshold) {
-          return {
-            source: 'faq',
-            answer: bestMatch.answer,
-            question: bestMatch.question,
-            confidence: bestMatch.similarity, // Use the vector similarity score
-            faqId: bestMatch.faq_id
-          }
-        }
-      }
-
-      // Step 2: Fallback to AI
-      console.log('No relevant FAQ found, falling back to AI...')
-      
-      const messages = [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant. Provide accurate and helpful answers to user questions. If you don\'t know something, say so clearly.'
-        },
-        {
-          role: 'user',
-          content: userQuestion
-        }
-      ]
-
-      const aiResponse = await getAIResponse(messages, companyName)
-      
-      return {
-        source: 'ai',
-        answer: aiResponse,
-        confidence: 0
-      }
+      const response = await axios.put(`${this.BACKEND_URL}/api/faqs/${faqId}`, {
+        question,
+        answer
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error in getAnswer:', error)
-      throw new Error('Failed to get answer for your question. Please try again.')
+      console.error('Error updating FAQ:', error);
+      throw error;
     }
   }
 
-  // Note: Other methods like getAllFAQs, updateFAQ, deleteFAQ, bulkImportFAQs
-  // are not used by the widget and would need similar backend API endpoints if needed
+  async deleteFAQ(faqId: string): Promise<void> {
+    try {
+      await axios.delete(`${this.BACKEND_URL}/api/faqs/${faqId}`);
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+      throw error;
+    }
+  }
+
 }
+
+export const faqService = new FAQService();
+export default faqService;

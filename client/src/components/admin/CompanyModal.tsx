@@ -167,7 +167,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="h-8 w-8 p-0 hover:bg-red-500 dark:hover:bg-red-500"
           >
             <X className="h-4 w-4" />
           </Button>

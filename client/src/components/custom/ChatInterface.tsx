@@ -8,7 +8,7 @@ import { ThemeToggle } from "./ThemeToggle"
 import { MessageCircle, Loader2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn, darkenColor } from "@/lib/utils"
-import { FAQService } from "@/services/faqService"
+  import { faqService } from "@/services/faqService"
 import { ThemeService } from "@/services/themeService"
 import type { ChatInterfaceProps, Message, CompanyTheme } from "types/interfaces"
 
@@ -156,18 +156,31 @@ export function ChatInterface({
     }
 
     try {
-      const result = await FAQService.getAnswer(content, companyName)
-      const aiMessage: Message = {
-        content: result.answer,
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }
-      setMessages((prev) => [...prev, aiMessage])
-      setWasMinimized(false) // Reset when new message is added
+      const result = await faqService.getFAQAnswer(companyName, content)
       
-      // Track message received
-      if (companyName) {
-        AnalyticsService.trackMessageReceived(companyName, result.answer)
+      if (result) {
+        const aiMessage: Message = {
+          content: result,
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        }
+        setMessages((prev) => [...prev, aiMessage])
+        setWasMinimized(false) // Reset when new message is added
+        
+        // Track message received
+        if (companyName) {
+          AnalyticsService.trackMessageReceived(companyName, result)
+        }
+      } else {
+        // No FAQ answer found, fallback to AI response
+        setMessages((prev) => [
+          ...prev,
+          {
+            content: 'I apologize, but I don\'t have specific information about that. Please contact our support team for assistance.',
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }
+        ])
       }
     } catch (error) {
       console.error('Error getting response:', error)

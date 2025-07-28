@@ -10,7 +10,8 @@ import {
   Activity,
   Sun,
   Moon,
-  LogOut
+  LogOut,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/admin/StatCard"
@@ -18,9 +19,11 @@ import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
+import FAQImport from "@/components/admin/FAQImport"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
+import { faqService } from "@/services/faqService"
 
 export default function Admin() {
   const { defaultTheme, toggleTheme } = useTheme()
@@ -97,6 +100,17 @@ export default function Admin() {
   }>({
     isOpen: false,
     companyId: null
+  })
+
+  // FAQ management state
+  const [faqModal, setFaqModal] = useState<{
+    isOpen: boolean
+    companyId: string | null
+    companyName: string
+  }>({
+    isOpen: false,
+    companyId: null,
+    companyName: ''
   })
 
   const handleAddCompany = () => {
@@ -177,12 +191,38 @@ export default function Admin() {
     })
   }
 
+  // FAQ management handlers
+  const handleManageFAQs = (company: Company) => {
+    setFaqModal({
+      isOpen: true,
+      companyId: company.id || null,
+      companyName: company.name
+    })
+  }
+
+  const handleFAQImport = async (faqs: Array<{ question: string; answer: string }>) => {
+    if (!faqModal.companyId) return
+
+    try {
+      const result = await faqService.importFAQs(faqModal.companyId, faqs)
+      alert(`Successfully imported ${result.count} FAQs for ${faqModal.companyName}`)
+      setFaqModal({ isOpen: false, companyId: null, companyName: '' })
+    } catch (error) {
+      console.error('Error importing FAQs:', error)
+      alert(`Failed to import FAQs: ${error}`)
+    }
+  }
+
+  const closeFAQModal = () => {
+    setFaqModal({ isOpen: false, companyId: null, companyName: '' })
+  }
+
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"
     }`}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
@@ -282,6 +322,45 @@ export default function Admin() {
           </div>
           <AnalyticsDashboard companyId={selectedCompanyId} />
         </div>
+
+        {/* FAQ Management */}
+        {companies.length > 0 && (
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                FAQ Management
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Import and manage FAQs for your companies
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {companies.map((company) => (
+                  <div key={company.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                        {company.name}
+                      </h3>
+                      <FileText className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                      Manage FAQs for this company
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleManageFAQs(company)}
+                      className="w-full"
+                    >
+                      Manage FAQs
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -412,6 +491,35 @@ export default function Admin() {
         cancelText="Cancel"
         type="danger"
       />
+
+      {/* FAQ Import Modal */}
+      {faqModal.isOpen && faqModal.companyId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Manage FAQs - {faqModal.companyName}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeFAQModal}
+                  className="text-gray-400 hover:text-red-500"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <FAQImport
+                // companyId={faqModal.companyId}
+                onImport={handleFAQImport}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

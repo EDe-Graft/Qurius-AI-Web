@@ -32,6 +32,28 @@ CREATE TABLE public.faqs (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON faqs(company_id);
+CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON faqs(created_at);
+
+-- Enable Row Level Security
+ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Companies can view their own FAQs" ON faqs
+  FOR SELECT USING (company_id IN (
+    SELECT id FROM companies WHERE id = company_id
+  ));
+
+CREATE POLICY "Service role can insert FAQs" ON faqs
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can update FAQs" ON faqs
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Service role can delete FAQs" ON faqs
+  FOR DELETE USING (true);
+
 -- Create chat interaction log for analytics
 CREATE TABLE public.chat_interactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,

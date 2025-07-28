@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { getTimeAgo, parseTheme } from './utils.js';
+import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse } from './utils.js';
 
 
 
@@ -525,47 +525,64 @@ app.post('/api/faqs/search', async (req, res) => {
     );
 
     if (!companyResponse.data || companyResponse.data.length === 0) {
+      console.log('Company not found:', companyName);
       return res.json([]);
     }
 
     const companyId = companyResponse.data[0].id;
+    console.log('Found company ID:', companyId);
 
-    // Get embedding for the question
-    const embeddingResponse = await axios.post(
-      'https://api.jina.ai/v1/embeddings',
-      {
-        input: [question],
-        model: 'jina-embeddings-v2-base-en'
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.JINA_API_KEY}`,
-          'Content-Type': 'application/json'
+    try {
+      // Try semantic search with embeddings
+      const { questionEmbedding } = await getEmbedding(question, '');
+
+      // Search FAQs using vector similarity
+      const faqResponse = await axios.post(
+        `${supabaseUrl}/rest/v1/rpc/find_relevant_faqs`,
+        {
+          p_company_id: companyId,
+          p_query: question,
+          p_query_embedding: questionEmbedding,
+          p_top_k: 5
+        },
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
         }
-      }
-    );
+      );
 
-    const questionEmbedding = embeddingResponse.data.data[0].embedding;
-
-    // Search FAQs using vector similarity
-    const faqResponse = await axios.post(
-      `${supabaseUrl}/rest/v1/rpc/find_relevant_faqs`,
-      {
-        p_company_id: companyId,
-        p_query: question,
-        p_query_embedding: questionEmbedding,
-        p_top_k: 5
-      },
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
+      console.log('Semantic search results:', faqResponse.data?.length || 0);
+      
+      if (faqResponse.data && faqResponse.data.length > 0) {
+        // Check if the best match has high enough confidence
+        const bestMatch = faqResponse.data[0];
+        console.log('Best match:', bestMatch.similarity);
+        const confidenceThreshold = 0.75; // Adjust this threshold as needed
+        
+        if (bestMatch.similarity >= confidenceThreshold) {
+          console.log('Using FAQ with confidence:', bestMatch.similarity);
+          res.json(faqResponse.data);
+        } else {
+          console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
+          const aiResponse = await getAIResponse(question, companyName);
+          res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
         }
+      } else {
+        // No FAQ found, fallback to AI
+        console.log('No FAQ found, falling back to AI');
+        const aiResponse = await getAIResponse(question, companyName);
+        res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
       }
-    );
-
-    res.json(faqResponse.data || []);
+    } catch (embeddingError) {
+      console.log('Embedding search failed, falling back to AI:', embeddingError.message);
+      
+      // Fallback to AI when semantic search fails
+      const aiResponse = await getAIResponse(question, companyName);
+      res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
+    }
   } catch (error) {
     console.error('FAQ search error:', error.response?.data || error.message);
     res.json([]);
@@ -582,23 +599,12 @@ app.post('/api/embeddings', async (req, res) => {
       return res.status(400).json({ error: 'Question or answer is required' });
     }
 
-    const response = await axios.post(
-      'https://api.jina.ai/v1/embeddings',
-      {
-        input: [question, answer],
-        model: 'jina-embeddings-v2-base-en'
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.JINA_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    // Get embeddings from Jina
+    const { questionEmbedding, answerEmbedding } = await getEmbedding(question, answer);
 
     res.json({
-      questionEmbedding: response.data.data[0].embedding,
-      answerEmbedding: response.data.data[1].embedding
+      questionEmbedding: questionEmbedding,
+      answerEmbedding: answerEmbedding
     });
   } catch (error) {
     console.error('Embedding error:', error.response?.data || error.message);
@@ -698,6 +704,8 @@ app.post('/api/analytics/widget-view', async (req, res) => {
   try {
     const { companyName, pageUrl, userAgent, timestamp } = req.body;
     
+    console.log('📊 Widget view tracking:', { companyName, pageUrl, userAgent });
+    
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
@@ -717,11 +725,15 @@ app.post('/api/analytics/widget-view', async (req, res) => {
       }
     );
 
+    console.log('🔍 Company response:', companyResponse.data);
+
     if (!companyResponse.data || companyResponse.data.length === 0) {
+      console.log('❌ Company not found:', companyName);
       return res.status(404).json({ error: 'Company not found' });
     }
 
     const companyId = companyResponse.data[0].id;
+    console.log('✅ Found company ID:', companyId);
 
     // Record widget view
     const viewData = {
@@ -733,7 +745,9 @@ app.post('/api/analytics/widget-view', async (req, res) => {
       session_id: req.body.sessionId || null
     };
 
-    await axios.post(
+    console.log('📝 Inserting view data:', viewData);
+
+    const insertResponse = await axios.post(
       `${supabaseUrl}/rest/v1/widget_analytics`,
       viewData,
       {
@@ -745,9 +759,11 @@ app.post('/api/analytics/widget-view', async (req, res) => {
       }
     );
 
+    console.log('✅ View data inserted successfully:', insertResponse.data);
+
     res.json({ success: true });
   } catch (error) {
-    console.error('Widget view tracking error:', error.response?.data || error.message);
+    console.error('❌ Widget view tracking error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to track widget view' });
   }
 });
@@ -813,10 +829,13 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
 app.get('/api/analytics/company/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
+    console.log('🔍 Company ID:', companyId);
     const { period = '7d' } = req.query; // 7d, 30d, 90d
     
+    console.log('📊 Fetching analytics for company:', companyId, 'period:', period);
+    
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
@@ -825,11 +844,17 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     // Calculate date range
     const now = new Date();
     const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
-    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000)).toISOString();
+    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+    
+    // Format for PostgreSQL timestamp comparison
+    const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
+    const nowStr = now.toISOString().replace('T', ' ').replace('Z', '+00');
 
-    // Get analytics data
+    console.log('📅 Date range:', { startDate: startDateStr, now: nowStr });
+
+    // Get analytics data - use proper PostgreSQL timestamp format
     const analyticsResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&timestamp=gte.${startDate}&order=timestamp.desc`,
+      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&timestamp=gte.${encodeURIComponent(startDateStr)}&order=timestamp.desc`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -840,6 +865,8 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     );
 
     const analytics = analyticsResponse.data || [];
+    console.log('📈 Raw analytics data:', analytics);
+    console.log('📊 Analytics count:', analytics.length);
 
     // Process analytics data
     const stats = {
@@ -851,36 +878,188 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
       dailyStats: getDailyStats(analytics, periodDays)
     };
 
+    console.log('📊 Processed stats:', stats);
+
     res.json(stats);
   } catch (error) {
-    console.error('Analytics fetch error:', error.response?.data || error.message);
+    console.error('❌ Analytics fetch error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
 
-// Helper function to get daily stats
-function getDailyStats(analytics, days) {
-  const dailyStats = [];
-  const now = new Date();
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-    const dateStr = date.toISOString().split('T')[0];
+
+
+// Test endpoint to insert sample analytics data
+app.post('/api/analytics/test-data/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    console.log('🧪 Inserting test analytics data for company:', companyId);
     
-    const dayAnalytics = analytics.filter(a => 
-      a.timestamp && a.timestamp.startsWith(dateStr)
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Insert test data
+    const testData = [
+      {
+        company_id: companyId,
+        event_type: 'widget_view',
+        page_url: 'https://test.com/page1',
+        user_agent: 'Test Browser',
+        session_id: 'test_session_1',
+        timestamp: new Date().toISOString()
+      },
+      {
+        company_id: companyId,
+        event_type: 'widget_opened',
+        session_id: 'test_session_1',
+        timestamp: new Date().toISOString()
+      },
+      {
+        company_id: companyId,
+        event_type: 'message_sent',
+        message: 'Hello, how can you help me?',
+        session_id: 'test_session_1',
+        timestamp: new Date().toISOString()
+      },
+      {
+        company_id: companyId,
+        event_type: 'message_received',
+        response: 'I can help you with various questions!',
+        session_id: 'test_session_1',
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    for (const data of testData) {
+      await axios.post(
+        `${supabaseUrl}/rest/v1/widget_analytics`,
+        data,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('✅ Inserted test data:', data.event_type);
+    }
+
+    res.json({ success: true, message: 'Test data inserted successfully' });
+  } catch (error) {
+    console.error('❌ Test data insertion error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to insert test data' });
+  }
+});
+
+// FAQ import endpoint
+app.post('/api/companies/:companyId/faqs', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { faqs } = req.body;
+
+    console.log('📝 Importing FAQs for company:', companyId);
+    console.log('📝 FAQs to import:', faqs.length);
+
+    if (!faqs || !Array.isArray(faqs)) {
+      return res.status(400).json({ error: 'FAQs must be an array' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Prepare FAQ data for insertion
+    const faqData = await Promise.all(faqs.map(async (faq) => {
+      const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer);
+      console.log('📝 Question embedding:', questionEmbedding);
+      return {
+      company_id: companyId,
+      question: faq.question,
+      question_embedding: questionEmbedding,
+      answer_embedding: answerEmbedding,
+      answer: faq.answer,
+    };
+  }));
+
+    console.log('📝 Prepared FAQ data:', faqData.length, 'items');
+
+    // Insert FAQs into database
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/faqs`,
+      faqData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        }
+      }
     );
-    
-    dailyStats.push({
-      date: dateStr,
-      views: dayAnalytics.filter(a => a.event_type === 'widget_view').length,
-      interactions: dayAnalytics.filter(a => a.event_type !== 'widget_view').length,
-      messages: dayAnalytics.filter(a => a.event_type === 'message_sent').length
+
+    console.log('✅ FAQs imported successfully:', faqData.length, 'items');
+
+    res.json({ 
+      success: true, 
+      message: `Successfully imported ${faqData.length} FAQs`,
+      count: faqData.length 
+    });
+
+  } catch (error) {
+    console.error('❌ Error importing FAQs:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to import FAQs',
+      details: error.response?.data || error.message 
     });
   }
-  
-  return dailyStats;
-}
+});
+
+// Get FAQs for a company
+app.get('/api/companies/:companyId/faqs', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    console.log('📝 Fetching FAQs for company:', companyId);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get FAQs from database
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}&order=created_at.desc`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ FAQs fetched successfully:', response.data?.length || 0, 'items');
+
+    res.json(response.data || []);
+
+  } catch (error) {
+    console.error('❌ Error fetching FAQs:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch FAQs',
+      details: error.response?.data || error.message 
+    });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {
