@@ -1,5 +1,4 @@
 import { useState } from "react"
-// import { useNavigate } from "react-router-dom"
 import { CheckCircle, ArrowRight, Copy, Code, Settings, Palette, MessageCircle, CreditCard, AlertCircle } from "lucide-react"
 import { CompanyService } from "@/services/companyService"
 import { PaymentService } from "@/services/paymentService"
@@ -556,7 +555,7 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
     { 
       id: 'free', 
       name: 'Free', 
-      price: '$0', 
+      price: '$0 / month', 
       features: [
         '1,000 messages/month',
         'Basic customization',
@@ -595,7 +594,7 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+      <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-6">
         Choose Your Billing Plan
       </h2>
 

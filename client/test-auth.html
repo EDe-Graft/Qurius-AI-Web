@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qurius AI - Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Qurius AI Authentication Test</h1>
+    
+    <div class="test-section">
+        <h2>✅ Authentication Flow Test</h2>
+        <p>This page tests the authentication flow for the Qurius AI admin dashboard.</p>
+        
+        <h3>Test Steps:</h3>
+        <ol>
+            <li><strong>Public Access:</strong> Visit public pages without authentication</li>
+            <li><strong>Admin Access:</strong> Try to access admin without login (should redirect)</li>
+            <li><strong>Login:</strong> Use demo credentials to authenticate</li>
+            <li><strong>Admin Access:</strong> Access admin dashboard after login</li>
+            <li><strong>Logout:</strong> Test logout functionality</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Test Links</h2>
+        <p>Click these links to test the authentication flow:</p>
+        
+        <button class="test-button" onclick="window.open('http://localhost:5173/', '_blank')">
+            🏠 Test Landing Page (Public)
+        </button>
+        
+        <button class="test-button" onclick="window.open('http://localhost:5173/demo', '_blank')">
+            🎮 Test Demo Page (Public)
+        </button>
+        
+        <button class="test-button" onclick="window.open('http://localhost:5173/onboarding', '_blank')">
+            📝 Test Onboarding Page (Public)
+        </button>
+        
+        <button class="test-button" onclick="window.open('http://localhost:5173/admin', '_blank')">
+            🔒 Test Admin Page (Should Redirect to Login)
+        </button>
+        
+        <button class="test-button" onclick="window.open('http://localhost:5173/login', '_blank')">
+            🔑 Test Login Page
+        </button>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Demo Credentials</h2>
+        <p><strong>Email:</strong> <code>admin@qurius.ai</code></p>
+        <p><strong>Password:</strong> <code>admin123</code></p>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Expected Behavior</h2>
+        <ul>
+            <li class="success">✅ Public pages (/, /demo, /onboarding) should load without authentication</li>
+            <li class="success">✅ Admin page (/admin) should redirect to login if not authenticated</li>
+            <li class="success">✅ Login page should accept demo credentials</li>
+            <li class="success">✅ After login, admin page should be accessible</li>
+            <li class="success">✅ Logout should clear authentication and redirect to public pages</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🐛 Troubleshooting</h2>
+        <ul>
+            <li class="info">💡 Make sure the development server is running on port 5173</li>
+            <li class="info">💡 Check browser console for any authentication errors</li>
+            <li class="info">💡 Clear localStorage if you encounter stuck authentication state</li>
+            <li class="error">❌ If admin page doesn't redirect, check ProtectedRoute component</li>
+            <li class="error">❌ If login doesn't work, check AuthContext and auth.ts</li>
+        </ul>
+    </div>
+
+    <script>
+        // Add some helpful debugging
+        console.log('🔐 Auth Test Page Loaded');
+        console.log('💡 Use the buttons above to test authentication flow');
+        console.log('📋 Demo credentials: admin@qurius.ai / admin123');
+        
+        // Check if dev server is running
+        fetch('http://localhost:5173/')
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Development server is running');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Development server not found. Make sure to run: npm run dev');
+            });
+    </script>
+</body>
+</html> 

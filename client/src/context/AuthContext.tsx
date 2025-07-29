@@ -30,6 +30,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
       } catch (error) {
         console.error('Error getting initial session:', error)
+        // Fallback to localStorage for simple auth
+        const storedUser = localStorage.getItem('qurius_user')
+        const storedSession = localStorage.getItem('qurius_session')
+        
+        if (storedUser && storedSession) {
+          try {
+            setUser(JSON.parse(storedUser))
+            setSession(JSON.parse(storedSession))
+          } catch (e) {
+            console.error('Error parsing stored auth data:', e)
+          }
+        }
       } finally {
         setLoading(false)
       }

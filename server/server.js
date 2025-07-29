@@ -65,7 +65,7 @@ console.log('Starter Price ID:', process.env.STRIPE_STARTER_PRICE_ID);
 console.log('Pro Price ID:', process.env.STRIPE_PRO_PRICE_ID);
 
 // Middleware
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500').split(',').map(origin => origin.trim());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500,https://qurius-ai.vercel.app').split(',').map(origin => origin.trim());
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -75,6 +75,10 @@ app.use(cors({
     }
     // Allow all localhost origins for development
     if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      return callback(null, true);
+    }
+    // Allow Vercel domains
+    if (origin && (origin.includes('vercel.app') || origin.includes('qurius-ai.vercel.app'))) {
       return callback(null, true);
     }
     console.log('CORS blocked origin:', origin);

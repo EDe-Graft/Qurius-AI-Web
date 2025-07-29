@@ -6,7 +6,7 @@ import Admin from "@/pages/Admin"
 import Login from "@/pages/Login"
 import { Onboarding } from "@/pages/Onboarding"
 import { Landing } from "@/pages/Landing"
-import { Navigation } from "@/components/admin/Navigation"
+import { PublicNavigation, AdminNavigation } from "@/components/admin/Navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
 import { Settings } from "lucide-react"
@@ -87,25 +87,47 @@ function Demo() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Navigation />
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/demo" element={<Demo />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute>
+          {/* Public routes without authentication */}
+          <Route path="/" element={
+            <>
+              <PublicNavigation />
+              <Landing />
+            </>
+          } />
+          <Route path="/demo" element={
+            <>
+              <PublicNavigation />
+              <Demo />
+            </>
+          } />
+          <Route path="/onboarding" element={
+            <>
+              <PublicNavigation />
+              <Onboarding />
+            </>
+          } />
+          
+          {/* Admin routes with authentication */}
+          <Route path="/login" element={
+            <>
+              <AdminNavigation />
+              <Login />
+            </>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <>
+                <AdminNavigation />
                 <Admin />
-              </ProtectedRoute>
-            } 
-          />
+              </>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 

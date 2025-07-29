@@ -41,7 +41,8 @@ export class CompanyService {
         theme: JSON.stringify(company.theme),
         logo_url: company.logo_url,
         created_at: company.created_at || new Date().toISOString(),
-        status: 'active'
+        status: 'active',
+        plan: company.plan || 'free' // Add plan field
       }
 
       const response = await axios.post(`${this.BACKEND_URL}/api/companies`, companyData, {

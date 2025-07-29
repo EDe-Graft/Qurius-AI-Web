@@ -24,14 +24,19 @@ import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
+import { Navigate } from "react-router-dom"
 
 export default function Admin() {
   const { defaultTheme, toggleTheme } = useTheme()
-  const { signOut } = useAuth()
+  const { isAuthenticated, signOut } = useAuth()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />
+  }
 
   // Load companies on component mount
   useEffect(() => {
