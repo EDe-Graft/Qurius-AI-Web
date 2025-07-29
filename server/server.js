@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import Stripe from 'stripe';
 import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse } from './utils.js';
 
 
@@ -12,6 +13,56 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
+});
+
+// Define pricing plans
+const PRICING_PLANS = {
+  'free': {
+    name: 'Free Plan',
+    price: 0,
+    stripe_price_id: null,
+    features: [
+      '1,000 messages/month',
+      'Basic customization',
+      'Email support',
+      'Standard FAQ templates'
+    ]
+  },
+  'starter': {
+    name: 'Starter Plan',
+    price: 29,
+    stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
+    features: [
+      '10,000 messages/month',
+      'Advanced customization',
+      'Priority support',
+      'Analytics dashboard',
+      'Custom FAQ import'
+    ]
+  },
+  'pro': {
+    name: 'Pro Plan',
+    price: 99,
+    stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
+    features: [
+      'Unlimited messages',
+      'White-label options',
+      '24/7 phone support',
+      'Advanced analytics',
+      'API access',
+      'Custom integrations'
+    ]
+  }
+};
+
+// Debug: Log the price IDs being used
+console.log('🔧 Stripe Price IDs:');
+console.log('Starter Price ID:', process.env.STRIPE_STARTER_PRICE_ID);
+console.log('Pro Price ID:', process.env.STRIPE_PRO_PRICE_ID);
 
 // Middleware
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500').split(',').map(origin => origin.trim());
@@ -49,9 +100,23 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Health check
+// Production monitoring endpoints
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
 });
 
 // Get widget configuration (secure)
@@ -283,7 +348,8 @@ app.post('/api/companies', async (req, res) => {
       contact_email, 
       logo_url, 
       enrollment_date, 
-      status 
+      status,
+      plan 
     } = req.body;
     
     console.log('Creating company:', name);
@@ -320,7 +386,8 @@ app.post('/api/companies', async (req, res) => {
       contact_email,
       logo_url: logo_url || '',
       enrollment_date: enrollment_date || new Date().toISOString().split('T')[0],
-      status: status || 'active'
+      status: status || 'active',
+      plan: plan || 'free' // Default to free plan
     };
 
     // Create company
@@ -703,9 +770,7 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/analytics/widget-view', async (req, res) => {
   try {
     const { companyName, pageUrl, userAgent, timestamp } = req.body;
-    
-    console.log('📊 Widget view tracking:', { companyName, pageUrl, userAgent });
-    
+        
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
@@ -832,7 +897,6 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     console.log('🔍 Company ID:', companyId);
     const { period = '7d' } = req.query; // 7d, 30d, 90d
     
-    console.log('📊 Fetching analytics for company:', companyId, 'period:', period);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -850,7 +914,6 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
     const nowStr = now.toISOString().replace('T', ' ').replace('Z', '+00');
 
-    console.log('📅 Date range:', { startDate: startDateStr, now: nowStr });
 
     // Get analytics data - use proper PostgreSQL timestamp format
     const analyticsResponse = await axios.get(
@@ -865,8 +928,6 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     );
 
     const analytics = analyticsResponse.data || [];
-    console.log('📈 Raw analytics data:', analytics);
-    console.log('📊 Analytics count:', analytics.length);
 
     // Process analytics data
     const stats = {
@@ -878,7 +939,6 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
       dailyStats: getDailyStats(analytics, periodDays)
     };
 
-    console.log('📊 Processed stats:', stats);
 
     res.json(stats);
   } catch (error) {
@@ -979,7 +1039,6 @@ app.post('/api/companies/:companyId/faqs', async (req, res) => {
     // Prepare FAQ data for insertion
     const faqData = await Promise.all(faqs.map(async (faq) => {
       const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer);
-      console.log('📝 Question embedding:', questionEmbedding);
       return {
       company_id: companyId,
       question: faq.question,
@@ -989,7 +1048,6 @@ app.post('/api/companies/:companyId/faqs', async (req, res) => {
     };
   }));
 
-    console.log('📝 Prepared FAQ data:', faqData.length, 'items');
 
     // Insert FAQs into database
     const response = await axios.post(
@@ -1058,6 +1116,320 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
       error: 'Failed to fetch FAQs',
       details: error.response?.data || error.message 
     });
+  }
+});
+
+// Stripe Payment Endpoints
+
+// Create checkout session
+app.post('/api/payments/create-checkout-session', async (req, res) => {
+  try {
+    const { companyId, planId, customerEmail, companyName } = req.body;
+    
+    console.log('💳 Creating checkout session for:', { companyId, planId, customerEmail, companyName });
+    
+    if (!companyId || !planId || !customerEmail) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const plan = PRICING_PLANS[planId];
+    if (!plan) {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
+
+    if (planId === 'free') {
+      return res.status(400).json({ error: 'Free plan does not require payment' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Create or get Stripe customer
+    let customer;
+    const existingCustomers = await stripe.customers.list({
+      email: customerEmail,
+      limit: 1
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email: customerEmail,
+        name: companyName,
+        metadata: {
+          company_id: companyId
+        }
+      });
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: plan.stripe_price_id,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/onboarding?canceled=true`,
+      metadata: {
+        company_id: companyId,
+        plan_id: planId
+      }
+    });
+
+    // Update company with Stripe customer ID
+    await axios.patch(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+      {
+        stripe_customer_id: customer.id,
+        plan: planId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('❌ Checkout session error:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+// Create customer portal session
+app.post('/api/payments/create-portal-session', async (req, res) => {
+  try {
+    const { companyId } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get company's Stripe customer ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=stripe_customer_id`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || !companyResponse.data[0]?.stripe_customer_id) {
+      return res.status(404).json({ error: 'No subscription found' });
+    }
+
+    const customerId = companyResponse.data[0].stripe_customer_id;
+
+    // Create portal session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}`,
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('❌ Portal session error:', error);
+    res.status(500).json({ error: 'Failed to create portal session' });
+  }
+});
+
+// Get subscription status
+app.get('/api/payments/subscription-status/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get company subscription info
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=plan,stripe_subscription_id,subscription_status,subscription_end_date`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || !companyResponse.data[0]) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const company = companyResponse.data[0];
+    
+    // If there's a Stripe subscription, get its details
+    let subscription = null;
+    if (company.stripe_subscription_id) {
+      try {
+        subscription = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+      } catch (error) {
+        console.error('Error retrieving subscription:', error);
+      }
+    }
+
+    res.json({
+      plan: company.plan,
+      subscription_status: company.subscription_status,
+      subscription_end_date: company.subscription_end_date,
+      stripe_subscription: subscription
+    });
+  } catch (error) {
+    console.error('❌ Subscription status error:', error);
+    res.status(500).json({ error: 'Failed to get subscription status' });
+  }
+});
+
+// Stripe webhook handler
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('❌ Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  console.log('📦 Webhook event:', event.type);
+
+  const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        const companyId = session.metadata.company_id;
+        const planId = session.metadata.plan_id;
+        
+        console.log('✅ Checkout completed for company:', companyId, 'plan:', planId);
+        
+        // Update company with subscription info
+        await axios.patch(
+          `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+          {
+            stripe_subscription_id: session.subscription,
+            subscription_status: 'active',
+            plan: planId
+          },
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        break;
+
+      case 'customer.subscription.updated':
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        // Find company by customer ID
+        const companyResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${customerId}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (companyResponse.data && companyResponse.data[0]) {
+          const company = companyResponse.data[0];
+          
+          await axios.patch(
+            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
+            {
+              subscription_status: subscription.status,
+              subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString()
+            },
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
+        break;
+
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object;
+        const deletedCustomerId = deletedSubscription.customer;
+        
+        // Find company by customer ID
+        const deletedCompanyResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${deletedCustomerId}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (deletedCompanyResponse.data && deletedCompanyResponse.data[0]) {
+          const company = deletedCompanyResponse.data[0];
+          
+          await axios.patch(
+            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
+            {
+              subscription_status: 'canceled',
+              plan: 'free'
+            },
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('❌ Webhook processing error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 

@@ -1,149 +1,189 @@
-# 🚀 Deployment Guide for Qurius-AI
+# Production Deployment Guide
 
-## 📋 Pre-Deployment Checklist
-
-### ✅ Environment Setup
-- [ ] Set up production environment variables
-- [ ] Configure Supabase production project
-- [ ] Set up Jina API keys for production
-- [ ] Configure CORS settings
-
-### ✅ Security Configuration
-- [ ] Move API keys to backend
-- [ ] Implement rate limiting
-- [ ] Set up proper CORS headers
-- [ ] Configure RLS policies for production
-
-### ✅ Performance Optimization
-- [ ] Set up CDN for static assets
-- [ ] Configure caching headers
-- [ ] Optimize bundle size
-- [ ] Set up monitoring
-
-## 🏗️ Deployment Options
-
-### Option 1: Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
+## Frontend (Vercel)
+### Environment Variables to Set:
 ```
-
-### Option 2: Netlify
-```bash
-# Build the project
-npm run build:all
-
-# Deploy to Netlify
-netlify deploy --prod --dir=dist
-```
-
-### Option 3: AWS S3 + CloudFront
-```bash
-# Build
-npm run build:all
-
-# Upload to S3
-aws s3 sync dist/ s3://your-bucket-name
-
-# Configure CloudFront for CDN
-```
-
-## 🔧 Environment Variables
-
-### Production .env
-```env
-# Supabase
+VITE_BACKEND_URL=https://your-backend.onrender.com
 VITE_SUPABASE_PROJECT_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Jina AI
-VITE_JINA_API_URL=https://api.jina.ai/v1/embeddings
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+VITE_OPENAI_API_KEY=your-openai-api-key
 VITE_JINA_API_KEY=your-jina-api-key
-
-# OpenRouter (if using)
-VITE_OPEN_ROUTER_URL=https://openrouter.ai/api/v1
-VITE_OPEN_ROUTER_API_KEY=your-openrouter-key
 ```
 
-## 🌐 Embedding Instructions
+### Steps:
+1. Connect your GitHub repo to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
 
-### For Companies
-```html
-<!-- Add this to your website -->
-<script src="https://your-domain.com/embed.js" 
-        data-company="Your Company Name" 
-        data-theme="light">
-</script>
+## Backend (Render)
+### Environment Variables to Set:
+```
+SUPABASE_PROJECT_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+OPENAI_API_KEY=your-openai-api-key
+JINA_API_KEY=your-jina-api-key
+ALLOWED_ORIGINS=https://your-frontend.vercel.app
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_... # Your Stripe secret key
+STRIPE_WEBHOOK_SECRET=whsec_... # Webhook endpoint secret
+STRIPE_STARTER_PRICE_ID=price_... # Starter plan price ID
+STRIPE_PRO_PRICE_ID=price_... # Pro plan price ID
+FRONTEND_URL=https://your-frontend.vercel.app
 ```
 
-### Manual Initialization
-```javascript
-// Initialize widget manually
-QuriusAI.init('Your Company Name', {
-  theme: 'light',
-  position: 'bottom-right'
-});
+### Steps:
+1. Connect your GitHub repo to Render
+2. Set environment variables in Render dashboard
+3. Configure build command: `npm install && npm start`
+4. Set start command: `node server.js`
 
-// Show/hide widget
-QuriusAI.show();
-QuriusAI.hide();
+## Stripe Setup (Required for Payments)
+
+### 1. Create Stripe Account
+- Sign up at [stripe.com](https://stripe.com)
+- Get your API keys from the dashboard
+
+### 2. Create Products & Prices
+```bash
+# In Stripe Dashboard or via API:
+# Starter Plan: $29/month
+# Pro Plan: $99/month
 ```
 
-## 🔒 Security Considerations
+### 3. Set Up Webhooks
+- Go to Stripe Dashboard → Webhooks
+- Add endpoint: `https://your-backend.onrender.com/api/payments/webhook`
+- Select events:
+  - `checkout.session.completed`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+- Copy the webhook secret to your environment variables
 
-### API Key Security
-- Move sensitive API calls to backend
-- Use environment variables for all keys
-- Implement proper CORS policies
-- Set up rate limiting
+### 4. Update Database Schema
+Run these SQL commands in your Supabase SQL editor:
 
-### Database Security
-- Configure RLS policies properly
-- Use service role key only for admin operations
-- Implement proper user authentication
-- Set up database backups
+```sql
+-- Add subscription columns to companies table
+ALTER TABLE public.companies 
+ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free',
+ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
+ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT,
+ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active',
+ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMP WITH TIME ZONE;
 
-## 📊 Monitoring & Analytics
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_companies_plan ON companies(plan);
+CREATE INDEX IF NOT EXISTS idx_companies_stripe_customer_id ON companies(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_companies_subscription_status ON companies(subscription_status);
+```
 
-### Recommended Tools
-- **Vercel Analytics**: Built-in performance monitoring
-- **Sentry**: Error tracking and performance monitoring
-- **Google Analytics**: User behavior tracking
-- **Supabase Dashboard**: Database monitoring
+## Critical Production Checklist
 
-## 🚀 Next Steps
+### ✅ Security
+- [ ] All API keys are set as environment variables
+- [ ] CORS is configured for your frontend domain
+- [ ] Supabase RLS policies are enabled
+- [ ] No hardcoded secrets in code
+- [ ] Stripe webhook signature verification enabled
+- [ ] HTTPS enforced on all endpoints
 
-### Phase 1: Basic Deployment
-1. Set up production environment
-2. Deploy to Vercel/Netlify
-3. Test widget embedding
-4. Configure custom domain
+### ✅ Performance
+- [ ] Database indexes are created
+- [ ] Rate limiting is configured
+- [ ] CDN is set up for static assets
+- [ ] Monitoring is enabled
 
-### Phase 2: Production Features
-1. Implement backend API for security
-2. Add rate limiting and monitoring
-3. Set up CDN and caching
-4. Add analytics and tracking
+### ✅ Monitoring
+- [ ] Error tracking (Sentry, etc.)
+- [ ] Performance monitoring
+- [ ] Uptime monitoring
+- [ ] Stripe webhook monitoring
 
-### Phase 3: Scaling
-1. Implement multi-region deployment
-2. Add load balancing
-3. Set up auto-scaling
-4. Implement advanced monitoring
+### ✅ Domain & SSL
+- [ ] Custom domain configured
+- [ ] SSL certificates are valid
+- [ ] DNS records are correct
+- [ ] Redirects are working
 
-## 🆘 Troubleshooting
+### ✅ Payment Testing
+- [ ] Test Stripe checkout flow
+- [ ] Verify webhook processing
+- [ ] Test subscription management
+- [ ] Confirm payment success/failure handling
 
-### Common Issues
-- **CORS errors**: Configure proper CORS headers
-- **API key exposure**: Move to backend
-- **Widget not loading**: Check script URLs
-- **Database connection**: Verify Supabase configuration
+## Testing Your Production Setup
 
-### Support
-- Check Supabase documentation
-- Review Vercel/Netlify deployment guides
-- Contact support for platform-specific issues 
+### Test Widget Integration:
+1. Visit your deployed frontend
+2. Go to `/demo` route
+3. Test the chat widget functionality
+4. Verify theme customization works
+5. Check analytics tracking
+
+### Test Admin Dashboard:
+1. Login to admin panel
+2. Create a test company
+3. Import FAQs
+4. Check analytics dashboard
+5. Test company management features
+
+### Test Payment Flow:
+1. Select a paid plan on landing page
+2. Complete onboarding process
+3. Verify Stripe checkout redirects
+4. Test successful payment flow
+5. Check subscription status updates
+
+### Test API Endpoints:
+```bash
+# Health check
+curl https://your-backend.onrender.com/api/health
+
+# Widget config
+curl https://your-backend.onrender.com/api/widget-config
+
+# Test payment endpoint (with valid data)
+curl -X POST https://your-backend.onrender.com/api/payments/create-checkout-session \
+  -H "Content-Type: application/json" \
+  -d '{"companyId":"test","planId":"starter","customerEmail":"test@example.com","companyName":"Test Co"}'
+```
+
+## Troubleshooting
+
+### Common Issues:
+1. **CORS errors**: Check `ALLOWED_ORIGINS` environment variable
+2. **Database connection**: Verify Supabase credentials
+3. **Stripe errors**: Check API keys and webhook configuration
+4. **Build failures**: Ensure all dependencies are installed
+
+### Monitoring:
+- Check Render logs for backend errors
+- Monitor Stripe dashboard for payment issues
+- Use Supabase logs for database problems
+- Set up alerts for critical failures
+
+## Next Steps After Deployment
+
+1. **Set up monitoring** (Sentry, LogRocket, etc.)
+2. **Configure backups** for database
+3. **Set up CI/CD** for automated deployments
+4. **Create support documentation** for customers
+5. **Plan scaling strategy** as you grow
+
+## Support & Maintenance
+
+### Regular Tasks:
+- Monitor Stripe webhook failures
+- Check subscription status updates
+- Review analytics data
+- Update dependencies regularly
+- Backup database weekly
+
+### Emergency Contacts:
+- Stripe Support: [support.stripe.com](https://support.stripe.com)
+- Render Support: [render.com/support](https://render.com/support)
+- Vercel Support: [vercel.com/support](https://vercel.com/support)
+- Supabase Support: [supabase.com/support](https://supabase.com/support) 

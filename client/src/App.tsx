@@ -11,8 +11,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
 import { Settings } from "lucide-react"
 
-
-function Home() {
+function Demo() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
   let companyName = 'PurpleSoft Inc';
@@ -50,7 +49,7 @@ function Home() {
             </p>
             <div className="flex space-x-4">
               <a 
-                href="/landing" 
+                href="/" 
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 Learn More
@@ -92,8 +91,8 @@ export default function App() {
       <BrowserRouter>
         <Navigation />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/demo" element={<Demo />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route 

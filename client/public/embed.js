@@ -6,7 +6,7 @@
   const CONFIG = {
     scriptUrl: 'dist/widget/chat-widget.umd.cjs', // Points to React widget
     cssUrl: 'dist/widget/chat-widget.css', // CSS file for styling
-    apiUrl: 'https://qurius-ai.onrender.com',
+    apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com',
     defaultTheme: 'light'
   };
   

@@ -22,6 +22,7 @@ export interface Company {
   conversations?: number
   queries?: number
   lastActive?: string
+  plan?: string // Subscription plan (free, starter, pro)
 }
 
 export class CompanyService {
