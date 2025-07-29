@@ -5,13 +5,13 @@ import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse } from './utils.js';
+import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse, PRICING_PLANS } from './utils.js';
 
 
 
 dotenv.config();
 
-const app = express();
+const app = express();;
 const PORT = process.env.PORT || 3001;
 
 // Initialize Stripe
@@ -19,45 +19,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
-// Define pricing plans
-const PRICING_PLANS = {
-  'free': {
-    name: 'Free Plan',
-    price: 0,
-    stripe_price_id: null,
-    features: [
-      '1,000 messages/month',
-      'Basic customization',
-      'Email support',
-      'Standard FAQ templates'
-    ]
-  },
-  'starter': {
-    name: 'Starter Plan',
-    price: 29,
-    stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
-    features: [
-      '10,000 messages/month',
-      'Advanced customization',
-      'Priority support',
-      'Analytics dashboard',
-      'Custom FAQ import'
-    ]
-  },
-  'pro': {
-    name: 'Pro Plan',
-    price: 99,
-    stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
-    features: [
-      'Unlimited messages',
-      'White-label options',
-      '24/7 phone support',
-      'Advanced analytics',
-      'API access',
-      'Custom integrations'
-    ]
-  }
-};
 
 // Debug: Log the price IDs being used
 console.log('🔧 Stripe Price IDs:');
@@ -1128,7 +1089,9 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
 // Create checkout session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
+    console.log('💳 Prices:', prices);
     const { companyId, planId, customerEmail, companyName } = req.body;
+    console.log('💳 Plan ID:', planId, 'Company ID:', companyId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
     
     console.log('💳 Creating checkout session for:', { companyId, planId, customerEmail, companyName });
     
@@ -1172,6 +1135,17 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     }
 
     // Create checkout session
+    if (!plan.stripe_price_id) {
+      console.error('❌ Missing price ID for plan:', planId);
+      console.error('🔧 Available plans:', Object.keys(PRICING_PLANS));
+      console.error('🔧 Environment variables:');
+      console.error('  STRIPE_STARTER_PRICE_ID:', process.env.STRIPE_STARTER_PRICE_ID);
+      console.error('  STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID);
+      return res.status(500).json({ 
+        error: 'Price configuration missing. Please contact support.' 
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
@@ -1436,6 +1410,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
+
 
 // Start server
 app.listen(PORT, () => {

@@ -83,6 +83,47 @@ export function parseTheme(theme) {
   return theme;
 }
 
+// Define pricing plans
+export const PRICING_PLANS = {
+  'free': {
+    name: 'Free Plan',
+    price: 0,
+    stripe_price_id: null,
+    features: [
+      '1,000 messages/month',
+      'Basic customization',
+      'Email support',
+      'Standard FAQ templates'
+    ]
+  },
+  'starter': {
+    name: 'Starter Plan',
+    price: 29,
+    stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
+    features: [
+      '10,000 messages/month',
+      'Advanced customization',
+      'Priority support',
+      'Analytics dashboard',
+      'Custom FAQ import'
+    ]
+  },
+  'pro': {
+    name: 'Pro Plan',
+    price: 99,
+    stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
+    features: [
+      'Unlimited messages',
+      'White-label options',
+      '24/7 phone support',
+      'Advanced analytics',
+      'API access',
+      'Custom integrations'
+    ]
+  }
+};
+
+
 // Helper function to get daily stats
 export function getDailyStats(analytics, days) {
   const dailyStats = [];

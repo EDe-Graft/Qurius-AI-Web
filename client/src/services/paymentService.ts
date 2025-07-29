@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 export interface PaymentPlan {
   id: string
