@@ -36,14 +36,6 @@ export function Onboarding() {
   const [copySuccess, setCopySuccess] = useState(false)
   const { t } = useLanguage()
 
-  // Check for success/failure URL parameters
-  const [paymentStatus, setPaymentStatus] = useState<{
-    type: 'success' | 'canceled' | null;
-    sessionId?: string;
-  }>({ type: null });
-
-  console.log('paymentStatus', paymentStatus)
-
   // Get selected plan from sessionStorage on component mount
   React.useEffect(() => {
     const plan = sessionStorage.getItem('selectedPlan') || 'free'
@@ -53,14 +45,11 @@ export function Onboarding() {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     const canceled = urlParams.get('canceled');
-    const sessionId = urlParams.get('session_id');
 
     if (success === 'true') {
-      setPaymentStatus({ type: 'success', sessionId: sessionId || undefined });
       // Clear URL parameters after reading them
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (canceled === 'true') {
-      setPaymentStatus({ type: 'canceled' });
       // Clear URL parameters after reading them
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -701,10 +690,9 @@ function IntegrationStep({ companyName, onCopy, onComplete, loading, error, copy
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     const canceled = urlParams.get('canceled');
-    const sessionId = urlParams.get('session_id');
 
     if (success === 'true') {
-      setPaymentStatus({ type: 'success', sessionId: sessionId || undefined });
+      setPaymentStatus({ type: 'success', sessionId: undefined });
       // Clear URL parameters after reading them
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (canceled === 'true') {
