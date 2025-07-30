@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
 import { useTheme} from "@/context/useThemeContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
 import Admin from "@/pages/Admin"
@@ -9,11 +9,14 @@ import { Landing } from "@/pages/Landing"
 import { PublicNavigation, AdminNavigation } from "@/components/admin/Navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
+import { LanguageProvider } from "@/context/LanguageContext"
 import { Settings } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 function Demo() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const [isChatMinimized, setIsChatMinimized] = useState(false)
+  const navigate = useNavigate()
   let companyName = 'PurpleSoft Inc';
 
   return (
@@ -48,25 +51,25 @@ function Demo() {
               dark themes, minimize the chat, and experience the smooth, professional interface.
             </p>
             <div className="flex space-x-4">
-              <a 
-                href="/" 
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              <Button
+                onClick={() => navigate('/')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Learn More
-              </a>
-              <a 
-                href="/onboarding" 
-                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              </Button>
+              <Button
+                onClick={() => navigate('/onboarding')}
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 Get Started
-              </a>
-              <a 
-                href="/admin" 
-                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              </Button>
+              <Button
+                onClick={() => navigate('/admin')}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 View Admin Dashboard
-              </a>
+              </Button>
             </div>
           </div>
         </div>
@@ -87,47 +90,49 @@ function Demo() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public routes without authentication */}
-          <Route path="/" element={
-            <>
-              <PublicNavigation />
-              <Landing />
-            </>
-          } />
-          <Route path="/demo" element={
-            <>
-              <PublicNavigation />
-              <Demo />
-            </>
-          } />
-          <Route path="/onboarding" element={
-            <>
-              <PublicNavigation />
-              <Onboarding />
-            </>
-          } />
-          
-          {/* Admin routes with authentication */}
-          <Route path="/login" element={
-            <>
-              <AdminNavigation />
-              <Login />
-            </>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute>
+    <LanguageProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes without authentication */}
+            <Route path="/" element={
+              <>
+                <PublicNavigation />
+                <Landing />
+              </>
+            } />
+            <Route path="/demo" element={
+              <>
+                <PublicNavigation />
+                <Demo />
+              </>
+            } />
+            <Route path="/onboarding" element={
+              <>
+                <PublicNavigation />
+                <Onboarding />
+              </>
+            } />
+            
+            {/* Admin routes with authentication */}
+            <Route path="/login" element={
               <>
                 <AdminNavigation />
-                <Admin />
+                <Login />
               </>
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <>
+                  <AdminNavigation />
+                  <Admin />
+                </>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </LanguageProvider>
   )
 }
 

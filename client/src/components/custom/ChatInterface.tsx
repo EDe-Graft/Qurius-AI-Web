@@ -1,46 +1,88 @@
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
-import { ChatInput } from "../ui/ChatInput"
 import TypingIndicator from "./TypingIndicator"
-import { Minimize2 } from "lucide-react"
+import { ChatInput } from "../ui/ChatInput"
+import { useLanguage } from "@/context/LanguageContext"
+import { LanguageSelector } from "@/components/ui/LanguageSelector"
+import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
+import { MessageCircle } from "lucide-react"
 import { AnalyticsService } from "@/services/analyticsService"
-import { ThemeToggle } from "./ThemeToggle"
-import { MessageCircle, Loader2, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn, darkenColor } from "@/lib/utils"
-  import { faqService } from "@/services/faqService"
 import { ThemeService } from "@/services/themeService"
+import { TranslationService } from "@/services/translationService"
 import type { ChatInterfaceProps, Message, CompanyTheme } from "types/interfaces"
+import { faqService } from "@/services/faqService"
+import { cn, darkenColor } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { interpolate } from '@/lib/translations'
 
 
 // Chat Interface
 export function ChatInterface({
   defaultTheme,
   toggleTheme,
-  isMinimized = false,
+  isMinimized,
   onToggleMinimize,
-  companyName = "Assistant",
-  isThemeChanging = false,
+  companyName,
+  isThemeChanging
 }: ChatInterfaceProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const { t, currentLanguage } = useLanguage()
+
+  // Company Theme
+  const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
+  const isDark = defaultTheme === 'dark'
+
+  // Compute the translated welcome message
+  const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { companyName: companyName || 'AI' })
+
+  // Initialize messages with computed welcome message
   const [messages, setMessages] = useState<Message[]>([
     {
-      content: `Hello! I'm your ${companyName} assistant. How can I help you today?`,
+      content: getWelcomeMessage(),
       isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
+
+  // Update welcome message when language or company name changes
+  useEffect(() => {
+    if (messages.length === 1 && !messages[0].isUser) {
+      setMessages([
+        {
+          content: getWelcomeMessage(),
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ])
+    }
+  }, [t, companyName])
+
   const [isTyping, setIsTyping] = useState(false)
   const [userScrolled, setUserScrolled] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [wasMinimized, setWasMinimized] = useState(false) // Add this state
  
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-
-  // Company Theme
-  const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
-  const isDark = defaultTheme === 'dark'
+ 
+  // Test translation service on mount
+  useEffect(() => {
+    const testServices = async () => {
+      try {
+        console.log('🧪 Testing translation service...')
+        const testResult = await TranslationService.translateToEnglish('Hello world')
+        console.log('✅ Translation service test result:', testResult)
+        
+        console.log('🧪 Testing FAQ service...')
+        const faqResult = await faqService.getFAQAnswer('test-company', 'test question')
+        console.log('✅ FAQ service test result:', faqResult)
+      } catch (error) {
+        console.error('❌ Service test failed:', error)
+      }
+    }
+    
+    testServices()
+  }, [])
 
   // Get company theme
   useEffect(() => {
@@ -141,6 +183,8 @@ export function ChatInterface({
   }, [isMinimized])
 
   const handleSendMessage = async (content: string) => {
+    console.log('🚀 Starting message processing:', content)
+    
     const userMessage: Message = {
       content,
       isUser: true,
@@ -156,34 +200,74 @@ export function ChatInterface({
     }
 
     try {
-      const result = await faqService.getFAQAnswer(companyName, content)
+      console.log('🔄 Translating user input to English...')
+      // Translate user input to English for AI processing
+      let translatedInput = content
+      try {
+        translatedInput = await TranslationService.translateToEnglish(content)
+        console.log('✅ Translated input:', translatedInput)
+      } catch (translationError) {
+        console.warn('⚠️ Translation failed, using original input:', translationError)
+        translatedInput = content // Use original input if translation fails
+      }
+      
+      console.log('🤖 Getting FAQ answer...')
+      // Get AI response in English
+      const result = await faqService.getFAQAnswer(companyName || '', translatedInput)
+      console.log('✅ FAQ result:', result)
       
       if (result) {
+        console.log('🔄 Translating AI response to user language...')
+        // Translate AI response to user's language
+        let translatedResponse = result
+        try {
+          translatedResponse = await TranslationService.translateToUserLanguage(result, currentLanguage)
+          console.log('✅ Translated response:', translatedResponse)
+        } catch (translationError) {
+          console.warn('⚠️ Response translation failed, using original:', translationError)
+          translatedResponse = result // Use original response if translation fails
+        }
+        
         const aiMessage: Message = {
-          content: result,
+          content: translatedResponse,
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, aiMessage])
-        setWasMinimized(false) // Reset when new message is added
+        setWasMinimized(false)
         
         // Track message received
         if (companyName) {
-          AnalyticsService.trackMessageReceived(companyName, result)
+          AnalyticsService.trackMessageReceived(companyName, translatedResponse)
         }
       } else {
+        console.log('⚠️ No FAQ answer found, using fallback...')
         // No FAQ answer found, fallback to AI response
+        const fallbackMessage = 'I apologize, but I don\'t have specific information about that. Please contact our support team for assistance.'
+        let translatedFallback = fallbackMessage
+        try {
+          translatedFallback = await TranslationService.translateToUserLanguage(fallbackMessage, currentLanguage)
+        } catch (translationError) {
+          console.warn('⚠️ Fallback translation failed:', translationError)
+        }
+        
         setMessages((prev) => [
           ...prev,
           {
-            content: 'I apologize, but I don\'t have specific information about that. Please contact our support team for assistance.',
+            content: translatedFallback,
             isUser: false,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
         ])
       }
     } catch (error) {
-      console.error('Error getting response:', error)
+      console.error('❌ Error in handleSendMessage:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      })
+      
       setMessages((prev) => [
         ...prev,
         {
@@ -193,6 +277,7 @@ export function ChatInterface({
         }
       ])
     } finally {
+      console.log('🏁 Finishing message processing')
       setIsTyping(false)
     }
   }
@@ -212,37 +297,23 @@ export function ChatInterface({
           maxHeight: '600px',
         }}
       >
-        <Button
+        <button
           onClick={onToggleMinimize}
-          className="h-14 w-14 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 focus:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
-          style={{ 
-            backgroundColor: companyTheme?.primaryColor,
-            '--hover-bg-color': hoverColor,
-          } as React.CSSProperties & { '--hover-bg-color': string }}
-          onMouseEnter={(e) => {
+          className="text-white p-4 rounded-full shadow-lg transition-colors"
+          style={{
+            backgroundColor: companyTheme?.primaryColor || '#007bff',
+          }}
+          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
             if (hoverColor) {
               e.currentTarget.style.backgroundColor = hoverColor;
             }
           }}
-          onMouseLeave={(e) => {
-            if (companyTheme?.primaryColor) {
-              e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
-            }
-          }}
-          onFocus={(e) => {
-            if (hoverColor) {
-              e.currentTarget.style.backgroundColor = hoverColor;
-            }
-          }}
-          onBlur={(e) => {
-            if (companyTheme?.primaryColor) {
-              e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
-            }
+          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+            e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
           }}
         >
           <MessageCircle className="h-6 w-6" />
-          <span className="sr-only">Open chat</span>
-        </Button>
+        </button>
       </div>
     )
   }
@@ -307,19 +378,21 @@ export function ChatInterface({
             <p className="text-xs text-gray-500 dark:text-gray-400">Online now</p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle theme={defaultTheme} toggleTheme={toggleTheme} isThemeChanging={isThemeChanging} />
-          {onToggleMinimize && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleMinimize}
-              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <Minimize2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-              <span className="sr-only">Minimize chat</span>
-            </Button>
-          )}
+        <div className="flex justify-end gap-1">
+          <LanguageSelector variant="dropdown" className="scale-65" />
+          <button
+            onClick={toggleTheme}
+            disabled={isThemeChanging}
+            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            {defaultTheme === "dark" ? <Sun className="h-4 w-4 text-gray-600 dark:text-gray-400" /> : <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
+          </button>
+          <button
+            onClick={onToggleMinimize}
+            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Minimize2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          </button>
         </div>
       </div>
 
@@ -336,7 +409,7 @@ export function ChatInterface({
             
             return (
               <MessageBubble
-                key={index}
+                key={`${index}-${message.content.substring(0, 20)}`}
                 message={message.content}
                 isUser={message.isUser}
                 timestamp={message.timestamp}
@@ -363,22 +436,22 @@ export function ChatInterface({
               backgroundColor: companyTheme?.primaryColor,
               '--hover-bg-color': hoverColor,
             } as React.CSSProperties & { '--hover-bg-color': string }}
-            onMouseEnter={(e) => {
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
               if (hoverColor) {
                 e.currentTarget.style.backgroundColor = hoverColor;
               }
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
               if (companyTheme?.primaryColor) {
                 e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
               }
             }}
-            onFocus={(e) => {
+            onFocus={(e: React.FocusEvent<HTMLButtonElement>) => {
               if (hoverColor) {
                 e.currentTarget.style.backgroundColor = hoverColor;
               }
             }}
-            onBlur={(e) => {
+            onBlur={(e: React.FocusEvent<HTMLButtonElement>) => {
               if (companyTheme?.primaryColor) {
                 e.currentTarget.style.backgroundColor = companyTheme.primaryColor;
               }

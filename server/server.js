@@ -99,6 +99,20 @@ app.get('/api/widget-config', (req, res) => {
   }
 });
 
+// Get Google Translate API key
+app.get('/api/translate/api-key', (req, res) => {
+  try {
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return res.status(404).json({ error: 'Google Translate API key not configured' });
+    }
+    res.json({ apiKey });
+  } catch (error) {
+    console.error('API key error:', error);
+    res.status(500).json({ error: 'Failed to get API key' });
+  }
+});
+
 // Get company theme
 app.get('/api/companies/:name/theme', async (req, res) => {
   try {
@@ -187,7 +201,7 @@ app.get('/api/companies/:name/id', async (req, res) => {
   }
 });
 
-// Get all companies with chat interactions
+// Get all companies with analytics data
 app.get('/api/companies', async (req, res) => {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -211,34 +225,44 @@ app.get('/api/companies', async (req, res) => {
 
     const companies = companiesResponse.data || [];
 
-    // Get chat interactions for all companies
-    const chatInteractionsResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/chat_interactions?select=*`,
+    // Get analytics for all companies using the company_id index
+    const analyticsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/widget_analytics?select=company_id,event_type,timestamp&order=timestamp.desc`,
       {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json'
         }
       }
     );
 
-    const chatInteractions = chatInteractionsResponse.data || [];
+    const allAnalytics = analyticsResponse.data || [];
 
-    // Merge company data with chat interactions
+    // Merge company data with analytics
     const companiesWithStats = companies.map(company => {
-      const interaction = chatInteractions.find(ci => ci.company_id === company.id);
+      // Filter analytics for this specific company using the company_id index
+      const companyAnalytics = allAnalytics.filter(analytics => analytics.company_id === company.id);
+      
+      // Calculate analytics summary
+      const analyticsSummary = {
+        totalViews: companyAnalytics.filter(a => a.event_type === 'widget_view').length,
+        totalInteractions: companyAnalytics.filter(a => a.event_type !== 'widget_view').length,
+        totalMessages: companyAnalytics.filter(a => a.event_type === 'message_sent').length,
+        totalResponses: companyAnalytics.filter(a => a.event_type === 'message_received').length,
+        uniqueSessions: [...new Set(companyAnalytics.filter(a => a.session_id).map(a => a.session_id))].length,
+        lastActivity: companyAnalytics.length > 0 ? new Date(companyAnalytics[0].timestamp).toLocaleDateString() : 'Never'
+      };
       
       return {
         ...company,
         theme: parseTheme(company.theme),
-        conversations: interaction?.conversations || 0,
-        queries: interaction?.queries || 0,
-        lastActive: interaction?.last_interaction_timestamp 
-          ? getTimeAgo(interaction.last_interaction_timestamp)
-          : 'Never'
+        plan: company.plan,
+        analytics: analyticsSummary
       };
     });
+
+    console.log("companiesWithStats", companiesWithStats)
 
     res.json(companiesWithStats);
   } catch (error) {
@@ -271,24 +295,40 @@ app.get('/api/companies/:id', async (req, res) => {
       }
     );
 
-    // Get chat interactions
-    const chatInteractionResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/chat_interactions?company_id=eq.${id}`,
+    // Get widget analytics using the company_id index for better performance
+    const widgetAnalyticsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${id}&order=timestamp.desc`,
       {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json'
         }
       }
     );
+    const widgetAnalytics = widgetAnalyticsResponse.data || [];
+    console.log(widgetAnalytics)
 
     if (companyResponse.data && companyResponse.data.length > 0) {
       const company = companyResponse.data[0];
       
+      // Calculate analytics summary
+      const analyticsSummary = {
+        totalViews: widgetAnalytics.filter(a => a.event_type === 'widget_view').length,
+        totalInteractions: widgetAnalytics.filter(a => a.event_type !== 'widget_view').length,
+        totalMessages: widgetAnalytics.filter(a => a.event_type === 'message_sent').length,
+        totalResponses: widgetAnalytics.filter(a => a.event_type === 'message_received').length,
+        uniqueSessions: [...new Set(widgetAnalytics.filter(a => a.session_id).map(a => a.session_id))].length,
+        lastActivity: widgetAnalytics.length > 0 ? new Date(widgetAnalytics[0].timestamp).toLocaleDateString() : 'Never',
+        recentActivity: widgetAnalytics.slice(0, 10) // Last 10 activities
+      };
+      console.log(analyticsSummary)
       res.json({
-        company: { ...company, theme: parseTheme(company.theme) },
-        stats: chatInteractionResponse.data[0]
+        company: { 
+          ...company, 
+          theme: parseTheme(company.theme),
+          analytics: analyticsSummary
+        },
       });
     } else {
       res.status(404).json({ error: 'Company not found' });
@@ -388,36 +428,10 @@ app.post('/api/companies', async (req, res) => {
 
     const companyId = companyQueryResponse.data[0].id;
 
-    // Add company to chat interactions
-    const chatInteractionData = {
-      company_id: companyId,
-      conversations: 0,
-      queries: 0,
-      last_interaction_timestamp: new Date().toISOString()
-    };
-
-    // Add company to chat interactions
-    const chatInteractionResponse = await axios.post(
-      `${supabaseUrl}/rest/v1/chat_interactions`,
-      chatInteractionData,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
     res.json({
       success: true,
       id: companyId,
-      company: { ...companyData, id: companyId },
-      stats: {
-        conversations: 0,
-        queries: 0,
-        last_interaction_timestamp: new Date().toISOString()
-      }
+      company: { ...companyData, id: companyId }
     });
   } catch (error) {
     console.error('Create company error:', error.response?.data || error.message);
@@ -1083,6 +1097,91 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
     });
   }
 });
+
+// Get detailed analytics for a company with time filtering
+app.get('/api/companies/:id/analytics', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { period = '7d' } = req.query; // 7d, 30d, 90d, all
+    
+    console.log('📊 Getting analytics for company:', id, 'period:', period);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    let analyticsUrl = `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${id}&order=timestamp.desc`;
+    
+    // Add time filter if not requesting all data
+    if (period !== 'all') {
+      const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - periodDays);
+      const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
+      
+      analyticsUrl += `&timestamp=gte.${encodeURIComponent(startDateStr)}`;
+    }
+
+    // Get analytics using the company_id and timestamp indexes for optimal performance
+    const analyticsResponse = await axios.get(analyticsUrl, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const analytics = analyticsResponse.data || [];
+
+    // Process analytics data
+    const stats = {
+      totalViews: analytics.filter(a => a.event_type === 'widget_view').length,
+      totalInteractions: analytics.filter(a => a.event_type !== 'widget_view').length,
+      totalMessages: analytics.filter(a => a.event_type === 'message_sent').length,
+      totalResponses: analytics.filter(a => a.event_type === 'message_received').length,
+      uniqueSessions: [...new Set(analytics.filter(a => a.session_id).map(a => a.session_id))].length,
+      dailyStats: getDailyStats(analytics, period === 'all' ? 30 : parseInt(period)),
+      period: period,
+      totalEvents: analytics.length
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Analytics fetch error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// Helper function to get optimized analytics using indexes
+async function getCompanyAnalytics(companyId, period = 'all') {
+  const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  let analyticsUrl = `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&order=timestamp.desc`;
+  
+  // Use timestamp index for time-based filtering
+  if (period !== 'all') {
+    const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - periodDays);
+    const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
+    
+    analyticsUrl += `&timestamp=gte.${encodeURIComponent(startDateStr)}`;
+  }
+
+  const response = await axios.get(analyticsUrl, {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return response.data || [];
+}
 
 // Stripe Payment Endpoints
 

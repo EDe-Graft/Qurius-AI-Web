@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { 
   Building2, 
-  MessageCircle, 
   TrendingUp, 
   Users, 
   Plus,
@@ -65,7 +64,6 @@ export default function Admin() {
     totalCompanies: companies.length,
     activeWidgets: 0,
     monthlyRevenue: 0,
-    totalConversations: 0,
     monthlyGrowth: 0,
     revenueGrowth: 0
   })
@@ -73,15 +71,12 @@ export default function Admin() {
   // Update stats when companies change
   useEffect(() => {
     const activeCompanies = companies.filter(c => c.status === 'active')
-    const totalConversations = companies.reduce((sum, c) => sum + (c.conversations || 0), 0)
-    const totalQueries = companies.reduce((sum, c) => sum + (c.queries || 0), 0)
     const monthlyRevenue = companies.length * 800 // Mock revenue calculation
-    
+
     setStats({
       totalCompanies: companies.length,
       activeWidgets: activeCompanies.length,
       monthlyRevenue,
-      totalConversations: totalConversations + totalQueries, // Include both conversations and queries
       monthlyGrowth: companies.length > 0 ? 12.5 : 0, // Mock growth
       revenueGrowth: companies.length > 0 ? 8.2 : 0 // Mock growth
     })
@@ -154,12 +149,12 @@ export default function Admin() {
       if (modalState.mode === 'add') {
         // Add new company via API
         const newCompany = await CompanyService.createCompany(company)
-        setCompanies(prev => [...prev, { ...newCompany, conversations: 0, lastActive: 'Never' }])
+        setCompanies(prev => [...prev, { ...newCompany }])
       } else if (modalState.mode === 'edit' && modalState.company?.id) {
         // Update existing company via API
         const updatedCompany = await CompanyService.updateCompany(modalState.company.id, { ...company })
         setCompanies(prev => prev.map(c => 
-          c.id === modalState.company?.id ? { ...updatedCompany, conversations: c.conversations, lastActive: c.lastActive } : c
+          c.id === modalState.company?.id ? { ...updatedCompany } : c
         ))
       }
     } catch (error) {
@@ -297,11 +292,6 @@ export default function Admin() {
             icon={TrendingUp}
             trend={{ value: stats.revenueGrowth, isPositive: true }}
           />
-          <StatCard
-            title="Total Conversations"
-            value={stats.totalConversations.toLocaleString()}
-            icon={MessageCircle}
-          />
         </div>
 
         {/* Analytics Dashboard */}
@@ -325,7 +315,9 @@ export default function Admin() {
               </select>
             )}
           </div>
-          <AnalyticsDashboard companyId={selectedCompanyId} />
+          <AnalyticsDashboard
+            companyId={selectedCompanyId}
+          />
         </div>
 
         {/* FAQ Management */}
@@ -466,12 +458,14 @@ export default function Admin() {
 
         {/* Companies Table */}
         {!loading && !error && (
-          <CompanyTable
-            companies={companies}
-            onEdit={handleEditCompany}
-            onDelete={handleDeleteCompany}
-            onView={handleViewCompany}
-          />
+          <>           
+            <CompanyTable
+              companies={companies}
+              onEdit={handleEditCompany}
+              onDelete={handleDeleteCompany}
+              onView={handleViewCompany}
+            />
+          </>
         )}
       </main>
 

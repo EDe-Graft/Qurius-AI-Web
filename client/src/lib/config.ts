@@ -35,13 +35,3 @@ export const config = {
   ...OPEN_ROUTER_CONFIG,
   ...JINA_CONFIG,
 };
-
-// // Validate required environment variables
-// if (typeof window !== 'undefined') {
-//   if (!SUPABASE_CONFIG.projectUrl) {
-//     console.error('Missing VITE_SUPABASE_PROJECT_URL');
-//   }
-//   if (!SUPABASE_CONFIG.anonKey) {
-//     console.error('Missing VITE_SUPABASE_ANON_KEY');
-//   }
-// }

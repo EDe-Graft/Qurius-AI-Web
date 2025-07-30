@@ -23,6 +23,14 @@ export interface Company {
   queries?: number
   lastActive?: string
   plan?: string // Subscription plan (free, starter, pro)
+  analytics?: {
+    totalViews: number
+    totalInteractions: number
+    totalMessages: number
+    totalResponses: number
+    uniqueSessions: number
+    lastActivity: string | null
+  }
 }
 
 export class CompanyService {

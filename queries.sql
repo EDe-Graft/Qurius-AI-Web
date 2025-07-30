@@ -112,6 +112,10 @@ CREATE POLICY "Service role can insert analytics" ON widget_analytics
 CREATE POLICY "Service role can update analytics" ON widget_analytics
   FOR UPDATE USING (true);
 
+-- Allow service role to read all analytics (for admin dashboard)
+CREATE POLICY "Service role can read all analytics" ON widget_analytics
+  FOR SELECT USING (true);
+
 -- Updated find_relevant_faqs function
 CREATE OR REPLACE FUNCTION find_relevant_faqs(
     p_company_id UUID, 

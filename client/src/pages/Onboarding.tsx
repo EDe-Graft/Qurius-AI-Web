@@ -2,6 +2,7 @@ import { useState } from "react"
 import { CheckCircle, ArrowRight, Copy, Code, Settings, Palette, MessageCircle, CreditCard, AlertCircle } from "lucide-react"
 import { CompanyService } from "@/services/companyService"
 import { PaymentService } from "@/services/paymentService"
+import { useLanguage } from "@/context/LanguageContext"
 import React from "react"
 
 interface OnboardingStep {
@@ -33,6 +34,7 @@ export function Onboarding() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [copySuccess, setCopySuccess] = useState(false)
+  const { t } = useLanguage()
 
   // Check for success/failure URL parameters
   const [paymentStatus, setPaymentStatus] = useState<{
@@ -65,37 +67,37 @@ export function Onboarding() {
   const steps: OnboardingStep[] = [
     {
       id: "company-info",
-      title: "Company Information",
+      title: t('onboarding.companyInfo'),
       description: "Tell us about your business",
-      icon: <Settings className="h-5 w-5" />,
+      icon: <Settings className="h-6 w-6" />,
       completed: false
     },
     {
       id: "customization",
-      title: "Widget Customization",
+      title: t('onboarding.customization'),
       description: "Customize your chat widget",
-      icon: <Palette className="h-5 w-5" />,
+      icon: <Palette className="h-6 w-6" />,
       completed: false
     },
     {
       id: "payment",
-      title: "Payment Setup",
+      title: t('onboarding.payment'),
       description: "Choose your billing plan",
-      icon: <CreditCard className="h-5 w-5" />,
+      icon: <CreditCard className="h-6 w-6" />,
       completed: false
     },
     {
       id: "integration",
-      title: "Integration",
+      title: t('onboarding.integration'),
       description: "Add the widget to your website",
-      icon: <Code className="h-5 w-5" />,
+      icon: <Code className="h-6 w-6" />,
       completed: false
     },
     {
       id: "complete",
-      title: "Complete Setup",
+      title: t('onboarding.complete'),
       description: "Test and launch your widget",
-      icon: <CheckCircle className="h-5 w-5" />,
+      icon: <CheckCircle className="h-6 w-6" />,
       completed: false
     }
   ]
@@ -201,7 +203,7 @@ export function Onboarding() {
         {/* Header */}
         <div className="text-center mb-8 mt-3">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Welcome to Qurius AI
+            {t('onboarding.welcome')}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
             Set up your AI chat widget in just a few steps
@@ -223,7 +225,7 @@ export function Onboarding() {
                     {index < currentStep ? (
                       <CheckCircle className="h-6 w-6" />
                     ) : (
-                      <div className="h-6 w-6">
+                      <div className="flex items-center justify-center h-6 w-6">
                         {step.icon}
                       </div>
                     )}
@@ -271,11 +273,11 @@ export function Onboarding() {
                 disabled={currentStep === 0}
                 className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ← Previous
+                ← {t('common.previous')}
               </button>
               
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Step {currentStep + 1} of {steps.length}
+                {t('common.step')} {currentStep + 1} of {steps.length}
               </div>
             </div>
           )}
@@ -287,10 +289,12 @@ export function Onboarding() {
 
 // Step Components
 function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error }: any) {
+  const { t } = useLanguage()
+  
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        Company Information
+        {t('onboarding.companyInfo')}
       </h2>
       
       {error && (
@@ -303,7 +307,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Company Name *
+              {t('onboarding.companyName')} *
             </label>
             <input
               type="text"
@@ -317,7 +321,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 pr-2">
-              Industry
+              {t('onboarding.industry')}
             </label>
             <select
               value={companyData.industry}
@@ -338,7 +342,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Website URL
+            {t('onboarding.website')}
           </label>
           <input
             type="url"
@@ -351,7 +355,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Contact Email *
+            {t('onboarding.email')} *
           </label>
           <input
             type="email"
@@ -365,7 +369,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Location
+            {t('onboarding.location')}
           </label>
           <input
             type="text"
@@ -378,7 +382,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Description
+            {t('onboarding.description')}
           </label>
           <textarea
             value={companyData.description}
@@ -397,7 +401,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             disabled={loading}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating..." : "Continue"}
+            {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </button>
         </div>
@@ -407,6 +411,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
 }
 
 function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
+  const { t } = useLanguage()
   const [theme, setTheme] = useState(initialTheme || {
     primaryColor: "#3B82F6",
     backgroundColor: "#FFFFFF",
@@ -438,14 +443,14 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        Customize Your Widget
+        {t('onboarding.customization')}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Default Theme Options */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Choose a Theme
+            {t('onboarding.chooseTheme')}
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {defaultThemes.map((defaultTheme, index) => (
@@ -472,7 +477,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Primary Color
+              {t('onboarding.primaryColor')}
             </label>
             <input
               type="color"
@@ -484,7 +489,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Background Color
+              {t('onboarding.backgroundColor')}
             </label>
             <input
               type="color"
@@ -496,7 +501,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Text Color
+              {t('onboarding.textColor')}
             </label>
             <input
               type="color"
@@ -510,7 +515,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
         {/* Preview */}
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Preview
+            {t('onboarding.preview')}
           </h3>
           <div 
             className="w-full h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
@@ -534,7 +539,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
             disabled={loading}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Saving..." : "Continue"}
+            {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </button>
         </div>
@@ -551,41 +556,50 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
   error: string;
   setCurrentStep: (step: number) => void;
 }) {
+  const { t } = useLanguage()
+  
   const plans = [
     { 
       id: 'free', 
-      name: 'Free', 
+      name: t('plans.free'), 
       price: '$0 / month', 
       features: [
         '1,000 messages/month',
-        'Basic customization',
-        'Email support',
-        'Standard FAQ templates'
+        t('plans.basicCustomization'),
+        t('plans.emailSupport'),
+        t('plans.standardFaqTemplates')
       ] 
     },
     { 
       id: 'starter', 
-      name: 'Starter', 
+      name: t('plans.starter'), 
       price: '$29/month', 
       features: [
         '10,000 messages/month',
-        'Advanced customization',
-        'Priority support',
-        'Analytics dashboard',
-        'Custom FAQ import'
+        t('plans.basicCustomization'),
+        t('plans.prioritySupport'),
+        t('plans.analyticsDashboard'),
+        t('plans.customFaqImport')
       ] 
     },
     { 
       id: 'pro', 
-      name: 'Pro', 
+      name: t('plans.pro'), 
       price: '$99/month', 
       features: [
-        'Unlimited messages',
-        'White-label options',
-        '24/7 phone support',
-        'Advanced analytics',
-        'API access',
-        'Custom integrations'
+        t('plans.unlimitedMessages'),
+        t('plans.whiteLabelOptions'),
+        t('plans.phoneSupport'),
+        t('plans.advancedAnalytics'),
+        t('plans.apiAccess'),
+        t('plans.customIntegrations'),
+        // New Pro features with multi-language support
+        t('plans.multiLanguageSupport'),
+        t('plans.autoLanguageDetection'),
+        t('plans.translatedFaqTemplates'),
+        t('plans.languageSpecificCustomization'),
+        t('plans.multiLanguageAnalytics'),
+        t('plans.customLanguageSupport')
       ] 
     }
   ]
@@ -595,7 +609,7 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
   return (
     <div>
       <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-6">
-        Choose Your Billing Plan
+        {t('onboarding.choosePlan')}
       </h2>
 
       {error && (
@@ -641,7 +655,7 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
               disabled={loading}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Processing..." : "Select Plan"}
+              {loading ? t('common.loading') : "Select Plan"}
             </button>
           </div>
         ))}

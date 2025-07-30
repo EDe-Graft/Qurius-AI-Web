@@ -24,6 +24,14 @@ interface Company {
   conversations?: number
   queries?: number
   lastActive?: string
+  analytics?: {
+    totalViews: number
+    totalInteractions: number
+    totalMessages: number
+    totalResponses: number
+    uniqueSessions: number
+    lastActivity: string | null
+  }
 }
 
 interface CompanyTableProps {
@@ -34,8 +42,6 @@ interface CompanyTableProps {
 }
 
 export function CompanyTable({ companies, onEdit, onDelete, onView }: CompanyTableProps) {
-//   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
-
   const getStatusColor = (status: Company['status']) => {
     switch (status) {
       case 'active':
@@ -135,17 +141,17 @@ export function CompanyTable({ companies, onEdit, onDelete, onView }: CompanyTab
                   <div className="text-sm text-gray-900 dark:text-gray-100">
                     <div className="flex items-center space-x-2">
                       <span className="text-blue-600 dark:text-blue-400">
-                        {company.conversations?.toLocaleString() || '0'} conv
+                        {Number(company.analytics?.totalViews || 0).toLocaleString()} views
                       </span>
                       <span className="text-gray-400">•</span>
                       <span className="text-green-600 dark:text-green-400">
-                        {company.queries?.toLocaleString() || '0'} queries
+                        {Number(company.analytics?.totalInteractions || 0).toLocaleString()} interactions
                       </span>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {company.lastActive}
+                  {company.analytics?.lastActivity || 'Never'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">

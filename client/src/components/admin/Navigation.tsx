@@ -8,7 +8,7 @@ export function PublicNavigation() {
   const location = useLocation()
 
   return (
-    <nav className="fixed top-4 left-4 z-50">
+    <nav className="fixed top-3 left-3 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1">
         <div className="flex space-x-1">
           <Link
