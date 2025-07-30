@@ -85,12 +85,23 @@ export function parseTheme(theme) {
 
 // Define pricing plans
 export const PRICING_PLANS = {
+  'test': {
+    name: 'Test Plan',
+    price: 1,
+    stripe_price_id: null,
+    features: [
+      '100 messages/month',
+      'Basic customization',
+      'Email support',
+      'Standard FAQ templates'
+    ]
+  },
   'free': {
     name: 'Free Plan',
     price: 0,
     stripe_price_id: null,
     features: [
-      '1,000 messages/month',
+      '500 messages/month',
       'Basic customization',
       'Email support',
       'Standard FAQ templates'

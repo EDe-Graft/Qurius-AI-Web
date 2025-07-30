@@ -1189,12 +1189,12 @@ async function getCompanyAnalytics(companyId, period = 'all') {
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
     console.log('💳 Prices:', prices);
-    const { companyId, planId, customerEmail, companyName } = req.body;
-    console.log('💳 Plan ID:', planId, 'Company ID:', companyId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
+    const { companyName, customerEmail, planId } = req.body;
+    console.log('💳 Plan ID:', planId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
     
-    console.log('💳 Creating checkout session for:', { companyId, planId, customerEmail, companyName });
+    console.log('💳 Creating checkout session for:', { companyName, planId, customerEmail });
     
-    if (!companyId || !planId || !customerEmail) {
+    if (!planId || !customerEmail || !companyName) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -1205,13 +1205,6 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
     if (planId === 'free') {
       return res.status(400).json({ error: 'Free plan does not require payment' });
-    }
-
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ error: 'Database configuration missing' });
     }
 
     // Create or get Stripe customer
@@ -1228,7 +1221,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         email: customerEmail,
         name: companyName,
         metadata: {
-          company_id: companyId
+          company_name: companyName,
+          plan_id: planId
         }
       });
     }
@@ -1255,29 +1249,14 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/admin?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/onboarding?canceled=true`,
       metadata: {
-        company_id: companyId,
-        plan_id: planId
+        company_name: companyName,
+        plan_id: planId,
+        customer_email: customerEmail
       }
     });
-
-    // Update company with Stripe customer ID
-    await axios.patch(
-      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
-      {
-        stripe_customer_id: customer.id,
-        plan: planId
-      },
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
 
     res.json({ url: session.url });
   } catch (error) {
@@ -1404,27 +1383,50 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-        const companyId = session.metadata.company_id;
+        const companyName = session.metadata.company_name;
         const planId = session.metadata.plan_id;
+        const customerEmail = session.metadata.customer_email;
         
-        console.log('✅ Checkout completed for company:', companyId, 'plan:', planId);
+        console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
         
-        // Update company with subscription info
-        await axios.patch(
-          `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
-          {
-            stripe_subscription_id: session.subscription,
-            subscription_status: 'active',
-            plan: planId
-          },
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
+        // Create company after successful payment
+        const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('❌ Supabase configuration missing');
+          break;
+        }
+
+        // Create company with subscription info
+        const companyData = {
+          name: companyName,
+          contact_email: customerEmail,
+          plan: planId,
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: session.subscription,
+          subscription_status: 'active',
+          status: 'active',
+          enrollment_date: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+          const companyResponse = await axios.post(
+            `${supabaseUrl}/rest/v1/companies`,
+            companyData,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
             }
-          }
-        );
+          );
+
+          console.log('✅ Company created successfully:', companyResponse.data);
+        } catch (error) {
+          console.error('❌ Error creating company:', error.response?.data || error.message);
+        }
         break;
 
       case 'customer.subscription.updated':

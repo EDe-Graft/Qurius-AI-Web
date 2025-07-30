@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { CheckCircle, ArrowRight, Copy, Code, Settings, Palette, MessageCircle, CreditCard, AlertCircle } from "lucide-react"
 import { CompanyService } from "@/services/companyService"
-import { PaymentService } from "@/services/paymentService"
 import { useLanguage } from "@/context/LanguageContext"
+import { PricingCard } from "@/components/custom/PricingCard"
 import React from "react"
 
 interface OnboardingStep {
@@ -41,6 +41,8 @@ export function Onboarding() {
     type: 'success' | 'canceled' | null;
     sessionId?: string;
   }>({ type: null });
+
+  console.log('paymentStatus', paymentStatus)
 
   // Get selected plan from sessionStorage on component mount
   React.useEffect(() => {
@@ -92,18 +94,13 @@ export function Onboarding() {
       description: "Add the widget to your website",
       icon: <Code className="h-6 w-6" />,
       completed: false
-    },
-    {
-      id: "complete",
-      title: t('onboarding.complete'),
-      description: "Test and launch your widget",
-      icon: <CheckCircle className="h-6 w-6" />,
-      completed: false
     }
   ]
 
   const handleCompanyInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Store company name in sessionStorage for payment flow
+    sessionStorage.setItem('companyName', companyData.name)
     setCurrentStep(1)
   }
 
@@ -131,7 +128,7 @@ export function Onboarding() {
       sessionStorage.setItem('customerEmail', companyData.email) // Add customer email to sessionStorage
 
       setCompanyData(prev => ({ ...prev, id: newCompany.id || "" }))
-      setCurrentStep(4) // Move to complete step
+      setCurrentStep(3) // Move to complete step
     } catch (err: any) {
       setError(err.message || "Failed to create company")
     } finally {
@@ -175,11 +172,9 @@ export function Onboarding() {
       case 1:
         return <CustomizationStep onSubmit={handleCustomizationSubmit} loading={loading} initialTheme={themeData} />
       case 2:
-        return <PaymentStep selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onComplete={handleCompleteSetup} loading={loading} error={error} setCurrentStep={setCurrentStep} />
+        return <PaymentStep selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} setCurrentStep={setCurrentStep} companyData={companyData} themeData={themeData} />
       case 3:
         return <IntegrationStep companyName={companyData.name} onCopy={copyIntegrationCode} onComplete={handleCompleteSetup} loading={loading} error={error} copySuccess={copySuccess} />
-      case 4:
-        return <CompleteStep companyName={companyData.name} paymentStatus={paymentStatus} />
       default:
         return null
     }
@@ -548,63 +543,84 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
   )
 }
 
-function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrentStep }: {
+function PaymentStep({ selectedPlan, setSelectedPlan, setCurrentStep, companyData, themeData }: {
   selectedPlan: string;
   setSelectedPlan: (plan: string) => void;
-  onComplete: () => void;
-  loading: boolean;
-  error: string;
   setCurrentStep: (step: number) => void;
+  companyData: { 
+    name: string; 
+    email: string; 
+    industry: string;
+    website: string;
+    description: string;
+    location: string;
+  };
+  themeData: { primaryColor: string; backgroundColor: string; textColor: string; };
 }) {
   const { t } = useLanguage()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   
-  const plans = [
-    { 
-      id: 'free', 
-      name: t('plans.free'), 
-      price: '$0 / month', 
-      features: [
-        '1,000 messages/month',
-        t('plans.basicCustomization'),
-        t('plans.emailSupport'),
-        t('plans.standardFaqTemplates')
-      ] 
-    },
-    { 
-      id: 'starter', 
-      name: t('plans.starter'), 
-      price: '$29/month', 
-      features: [
-        '10,000 messages/month',
-        t('plans.basicCustomization'),
-        t('plans.prioritySupport'),
-        t('plans.analyticsDashboard'),
-        t('plans.customFaqImport')
-      ] 
-    },
-    { 
-      id: 'pro', 
-      name: t('plans.pro'), 
-      price: '$99/month', 
-      features: [
-        t('plans.unlimitedMessages'),
-        t('plans.whiteLabelOptions'),
-        t('plans.phoneSupport'),
-        t('plans.advancedAnalytics'),
-        t('plans.apiAccess'),
-        t('plans.customIntegrations'),
-        // New Pro features with multi-language support
-        t('plans.multiLanguageSupport'),
-        t('plans.autoLanguageDetection'),
-        t('plans.translatedFaqTemplates'),
-        t('plans.languageSpecificCustomization'),
-        t('plans.multiLanguageAnalytics'),
-        t('plans.customLanguageSupport')
-      ] 
+  console.log('selectedPlan', selectedPlan, loading)
+  const handlePlanSelection = async (plan: string) => {
+    setLoading(true)
+    setError("")
+    
+    try {
+      setSelectedPlan(plan)
+      sessionStorage.setItem('selectedPlan', plan)
+      
+      if (plan === 'free') {
+        // Free plan - no payment needed, go directly to integration
+        setCurrentStep(3) // Go to IntegrationStep
+        return
+      }
+      
+      // For paid plans, store company data in sessionStorage and redirect to payment
+      // Company will be created only after successful payment
+      sessionStorage.setItem('pendingCompanyData', JSON.stringify({
+        name: companyData.name,
+        industry: companyData.industry,
+        website: companyData.website,
+        email: companyData.email,
+        description: companyData.description,
+        location: companyData.location,
+        theme: themeData,
+        plan: plan
+      }))
+      
+      console.log('💳 Triggering payment for plan:', plan)
+      console.log('💳 Company data stored in sessionStorage')
+      
+      const response = await fetch(`${process.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/payments/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: companyData.name,
+          customerEmail: companyData.email,
+          planId: 'test'
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Payment setup failed')
+      }
+      
+      const { url } = await response.json()
+      
+      // Redirect to Stripe checkout
+      window.location.href = url
+      
+    } catch (err: any) {
+      console.error('Payment error:', err)
+      setError(err.message || 'Payment setup failed')
+    } finally {
+      setLoading(false)
     }
-  ]
-
-  // const selectedPlanDetails = plans.find(p => p.id === selectedPlan)
+  }
 
   return (
     <div>
@@ -619,52 +635,126 @@ function PaymentStep({ selectedPlan, setSelectedPlan, loading, error, setCurrent
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={`flex flex-col justify-between p-6 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${
-              selectedPlan === plan.id
-                ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                : "hover:border-gray-300 dark:hover:border-gray-600"
-            }`}
-          >
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {plan.name}
-            </h3>
-            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {plan.price}
-            </p>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300 mb-6">
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => {
-                setSelectedPlan(plan.id)
-                // Save plan to sessionStorage
-                sessionStorage.setItem('selectedPlan', plan.id)
-                console.log('💳 PaymentStep: Selected plan:', plan.id)
-                console.log('💳 PaymentStep: Saved to sessionStorage:', sessionStorage.getItem('selectedPlan'))
-                // Advance to next step instead of completing setup
-                setCurrentStep(3) // Go to IntegrationStep
-              }}
-              disabled={loading}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? t('common.loading') : "Select Plan"}
-            </button>
-          </div>
-        ))}
+        {/* Free Plan */}
+        <PricingCard
+          plan="free"
+          price="$0"
+          features={[
+            "500 messages/month",
+            t('plans.basicCustomization'),
+            t('plans.emailSupport'),
+            t('plans.standardFaqTemplates')
+          ]}
+          onSelect={handlePlanSelection}
+        />
+
+        {/* Starter Plan */}
+        <PricingCard
+          plan="starter"
+          price="$29"
+          features={[
+            "10,000 messages/month",
+            t('plans.basicCustomization'),
+            t('plans.prioritySupport'),
+            t('plans.analyticsDashboard'),
+            t('plans.customFaqImport')
+          ]}
+          onSelect={handlePlanSelection}
+        />
+
+        {/* Pro Plan */}
+        <PricingCard
+          plan="pro"
+          price="$99"
+          features={[
+            t('plans.unlimitedMessages'),
+            t('plans.whiteLabelOptions'),
+            t('plans.phoneSupport'),
+            t('plans.advancedAnalytics'),
+            t('plans.apiAccess'),
+            t('plans.customIntegrations'),
+            t('plans.multiLanguageSupport'),
+            t('plans.autoLanguageDetection'),
+            t('plans.translatedFaqTemplates'),
+            t('plans.languageSpecificCustomization'),
+            t('plans.multiLanguageAnalytics'),
+            t('plans.customLanguageSupport')
+          ]}
+          onSelect={handlePlanSelection}
+          isPopular={true}
+        />
       </div>
     </div>
   )
 }
 
 function IntegrationStep({ companyName, onCopy, onComplete, loading, error, copySuccess }: any) {
+  // const { t } = useLanguage()
+  const selectedPlan = sessionStorage.getItem('selectedPlan') || 'free'
+  const [paymentStatus, setPaymentStatus] = useState<{
+    type: 'success' | 'canceled' | null;
+    sessionId?: string;
+  }>({ type: null });
+
+  // Check for payment status on component mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    const sessionId = urlParams.get('session_id');
+
+    if (success === 'true') {
+      setPaymentStatus({ type: 'success', sessionId: sessionId || undefined });
+      // Clear URL parameters after reading them
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (canceled === 'true') {
+      setPaymentStatus({ type: 'canceled' });
+      // Clear URL parameters after reading them
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [])
+
+  // For free plans, show integration immediately
+  // For paid plans, only show after successful payment
+  const shouldShowIntegration = selectedPlan === 'free' || paymentStatus.type === 'success'
+  console.log('shouldShowIntegration', shouldShowIntegration)
+
+  if (selectedPlan !== 'free' && paymentStatus.type !== 'success') {
+    return (
+      <div className="text-center">
+        <div className="mb-6">
+          <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Payment Required
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Please complete your payment to access the integration code.
+          </p>
+        </div>
+
+        {paymentStatus.type === 'canceled' && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-6">
+            <h3 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">
+              ⚠️ Payment Cancelled
+            </h3>
+            <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+              Your payment was cancelled. Please try again to access the integration code.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <button
+            onClick={() => window.location.href = "/onboarding"}
+            className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Return to Payment
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const integrationCode = `<script src="https://qurius-ai.vercel.app/embed.js" data-company="${companyName}" data-theme="light"></script>`
 
   return (
@@ -672,6 +762,17 @@ function IntegrationStep({ companyName, onCopy, onComplete, loading, error, copy
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
         Add Widget to Your Website
       </h2>
+
+      {paymentStatus.type === 'success' && (
+        <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
+            <span className="text-green-800 dark:text-green-200 font-medium">
+              Payment Successful! Your subscription is now active.
+            </span>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -736,209 +837,6 @@ function IntegrationStep({ companyName, onCopy, onComplete, loading, error, copy
             <CheckCircle className="ml-2 h-4 w-4" />
           </button>
         </div>
-      </div>
-    </div>
-  )
-}
-
-function CompleteStep({ companyName, paymentStatus }: any) {
-  const selectedPlan = sessionStorage.getItem('selectedPlan') || 'free'
-  const companyId = sessionStorage.getItem('companyId') || ''
-  const customerEmail = sessionStorage.getItem('customerEmail') || ''
-  
-  // Debug: Log the plan values
-  console.log('🔍 CompleteStep Debug:')
-  console.log('selectedPlan from sessionStorage:', selectedPlan)
-  console.log('companyId:', companyId)
-  console.log('customerEmail:', customerEmail)
-  console.log('selectedPlan !== "free":', selectedPlan !== 'free')
-
-  const handlePayment = async () => {
-    if (selectedPlan === 'free') {
-      // Free plan - no payment needed
-      return
-    }
-
-    try {
-      await PaymentService.redirectToCheckout({
-        companyId,
-        planId: selectedPlan,
-        customerEmail,
-        companyName
-      })
-    } catch (error) {
-      console.error('Payment error:', error)
-      alert('Payment setup failed. Please try again.')
-    }
-  }
-
-  // Show payment success message
-  if (paymentStatus.type === 'success') {
-    return (
-      <div className="text-center">
-        <div className="mb-6">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Payment Successful! 🎉
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Your subscription has been activated successfully.
-          </p>
-        </div>
-
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
-          <h3 className="font-medium text-green-900 dark:text-green-100 mb-2">
-            ✅ Payment Completed
-          </h3>
-          <p className="text-green-800 dark:text-green-200 text-sm">
-            Your payment has been processed successfully. Your subscription is now active and all features are unlocked.
-            {paymentStatus.sessionId && (
-              <span className="block mt-2 text-xs">
-                Session ID: {paymentStatus.sessionId}
-              </span>
-            )}
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={() => window.location.href = "/admin"}
-            className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Go to Dashboard
-          </button>
-          
-          <button
-            onClick={() => window.open("https://qurius-ai.vercel.app/demo", "_blank")}
-            className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-          >
-            Test Widget
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Show payment cancellation message
-  if (paymentStatus.type === 'canceled') {
-    return (
-      <div className="text-center">
-        <div className="mb-6">
-          <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Payment Cancelled
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Your payment was cancelled. You can try again or continue with the free plan.
-          </p>
-        </div>
-
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-6">
-          <h3 className="font-medium text-yellow-900 dark:text-yellow-100 mb-2">
-            ⚠️ Payment Not Completed
-          </h3>
-          <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-            Your payment was cancelled. You can try the payment again or continue with limited features on the free plan.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={() => window.location.href = "/admin"}
-            className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Go to Dashboard
-          </button>
-          
-          <button
-            onClick={() => window.open("https://qurius-ai.vercel.app/demo", "_blank")}
-            className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-          >
-            Test Widget
-          </button>
-
-          {selectedPlan !== 'free' && (
-            <button
-              onClick={handlePayment}
-              className="w-full md:w-auto px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-            >
-              Try Payment Again
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // Default complete step (no payment status)
-  return (
-    <div className="text-center">
-      <div className="mb-6">
-        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Setup Complete!
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Your AI chat widget is ready to use.
-        </p>
-      </div>
-
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
-        <h3 className="font-medium text-green-900 dark:text-green-100 mb-2">
-          🎉 Welcome to Qurius AI!
-        </h3>
-        <p className="text-green-800 dark:text-green-200 text-sm">
-          Your company "{companyName}" has been successfully registered. 
-          The chat widget is now active and ready to help your customers.
-        </p>
-      </div>
-
-      {selectedPlan !== 'free' && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
-          <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            💳 Complete Your Subscription
-          </h3>
-          <p className="text-blue-800 dark:text-blue-200 text-sm mb-4">
-            You've selected the <strong>{PaymentService.getPlanDisplayName(selectedPlan)}</strong> ({PaymentService.getPlanPrice(selectedPlan) > 0 ? `$${PaymentService.getPlanPrice(selectedPlan)}/month` : 'Free'}). 
-            Complete your payment to unlock all features and start using your AI chat widget.
-          </p>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Plan Features:</h4>
-            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-              {PaymentService.getPlanFeatures(selectedPlan).map((feature, index) => (
-                <li key={index} className="flex items-center">
-                  <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <button
-          onClick={() => window.location.href = "/admin"}
-          className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Go to Dashboard
-        </button>
-        
-        <button
-          onClick={() => window.open("https://qurius-ai.vercel.app/demo", "_blank")}
-          className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-        >
-          Test Widget
-        </button>
-
-        {selectedPlan !== 'free' && (
-          <button
-            onClick={handlePayment}
-            className="w-full sm:w-auto px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 font-medium"
-          >
-            💳 Complete Payment
-          </button>
-        )}
       </div>
     </div>
   )

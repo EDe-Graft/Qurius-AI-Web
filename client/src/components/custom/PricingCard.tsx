@@ -71,7 +71,7 @@ export function PricingCard({
       <ul className="space-y-3 mb-8">
         {features.map((feature, index) => (
           <li key={index} className="flex items-center text-gray-600 dark:text-gray-400">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+            <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
             {feature}
           </li>
         ))}
