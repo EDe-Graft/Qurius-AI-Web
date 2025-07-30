@@ -1189,7 +1189,7 @@ async function getCompanyAnalytics(companyId, period = 'all') {
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
     console.log('💳 PRICING_PLANS:', PRICING_PLANS);
-    const { companyName, customerEmail, planId } = req.body;
+    const { companyName, customerEmail, planId, theme } = req.body;
     console.log('💳 Plan ID:', planId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
     
     console.log('💳 Creating checkout session for:', { companyName, planId, customerEmail });
@@ -1249,12 +1249,24 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}/onboarding?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/onboarding?canceled=true`,
       metadata: {
         company_name: companyName,
         plan_id: planId,
         customer_email: customerEmail
+      },
+      appearance: {
+        theme: 'dark',
+        variables: {
+          colorPrimary: theme.primaryColor,
+          colorBackground: '#1F2937',
+          colorText: '#F9FAFB',
+          colorDanger: '#EF4444',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          spacingUnit: '4px',
+          borderRadius: '8px'
+        }
       }
     });
 

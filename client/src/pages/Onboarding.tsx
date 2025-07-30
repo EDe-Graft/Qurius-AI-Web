@@ -585,7 +585,8 @@ function PaymentStep({ selectedPlan, setSelectedPlan, setCurrentStep, companyDat
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/payments/create-checkout-session`, {
         companyName: companyData.name,
         customerEmail: companyData.email,
-        planId: 'test'
+        planId: 'test',
+        theme: themeData
       })
       
       const { url } = response.data
