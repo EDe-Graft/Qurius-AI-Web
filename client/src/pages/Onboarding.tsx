@@ -4,6 +4,7 @@ import { CompanyService } from "@/services/companyService"
 import { useLanguage } from "@/context/LanguageContext"
 import { PricingCard } from "@/components/custom/PricingCard"
 import React from "react"
+import axios from "axios"
 
 interface OnboardingStep {
   id: string
@@ -581,24 +582,13 @@ function PaymentStep({ selectedPlan, setSelectedPlan, setCurrentStep, companyDat
       console.log('💳 Triggering payment for plan:', plan)
       console.log('💳 Company data stored in sessionStorage')
       
-      const response = await fetch(`${process.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/payments/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          companyName: companyData.name,
-          customerEmail: companyData.email,
-          planId: 'test'
-        }),
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/payments/create-checkout-session`, {
+        companyName: companyData.name,
+        customerEmail: companyData.email,
+        planId: 'test'
       })
       
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Payment setup failed')
-      }
-      
-      const { url } = await response.json()
+      const { url } = response.data
       
       // Redirect to Stripe checkout
       window.location.href = url
