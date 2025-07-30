@@ -88,7 +88,7 @@ export const PRICING_PLANS = {
   'test': {
     name: 'Test Plan',
     price: 1,
-    stripe_price_id: null,
+    stripe_price_id: process.env.STRIPE_TEST_PRICE_ID,
     features: [
       '100 messages/month',
       'Basic customization',

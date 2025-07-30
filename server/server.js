@@ -1188,7 +1188,7 @@ async function getCompanyAnalytics(companyId, period = 'all') {
 // Create checkout session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
-    console.log('💳 Prices:', prices);
+    console.log('💳 PRICING_PLANS:', PRICING_PLANS);
     const { companyName, customerEmail, planId } = req.body;
     console.log('💳 Plan ID:', planId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
     
