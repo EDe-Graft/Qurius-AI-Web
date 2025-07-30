@@ -1255,18 +1255,6 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         company_name: companyName,
         plan_id: planId,
         customer_email: customerEmail
-      },
-      appearance: {
-        theme: 'dark',
-        variables: {
-          colorPrimary: theme.primaryColor,
-          colorBackground: '#1F2937',
-          colorText: '#F9FAFB',
-          colorDanger: '#EF4444',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          spacingUnit: '4px',
-          borderRadius: '8px'
-        }
       }
     });
 
