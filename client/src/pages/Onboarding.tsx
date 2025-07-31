@@ -134,7 +134,7 @@ export function Onboarding() {
             {t('onboarding.welcome')}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            {t('onboarding.welcomeDescription')}
+            Set up your AI chat widget in just a few steps
           </p>
         </div>
 
@@ -455,7 +455,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
                 style={{ color: theme.primaryColor }}
               />
               <p style={{ color: theme.textColor }} className="text-sm">
-                {t('onboarding.chatWidgetPreview')}
+                Chat Widget Preview
               </p>
             </div>
           </div>
