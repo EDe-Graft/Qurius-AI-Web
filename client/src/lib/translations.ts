@@ -132,6 +132,25 @@ export interface TranslationKeys {
     status: string
     allRightsReserved: string
   }
+
+  // Demo Page
+  demo: {
+    title: string
+    companyWebsiteTitle: string
+    companyWebsiteDescription: string
+    keyFeaturesTitle: string
+    feature1: string
+    feature2: string
+    feature3: string
+    feature4: string
+    feature5: string
+    feature6: string
+    tryChatTitle: string
+    tryChatDescription: string
+    learnMoreButton: string
+    getStartedButton: string
+    viewAdminButton: string
+  }
 }
 
 // English translations (base)
@@ -255,6 +274,23 @@ const en: TranslationKeys = {
     contact: 'Contact',
     status: 'Status',
     allRightsReserved: 'All rights reserved.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Company Website Content',
+    companyWebsiteDescription: 'This is a demonstration of how the chat interface would appear when embedded in a professional company website. The chat widget is positioned in the bottom-right corner and can be minimized when not in use.',
+    keyFeaturesTitle: 'Key features include:',
+    feature1: 'Modern, professional design that matches company branding',
+    feature2: 'Light and dark theme support with smooth transitions',
+    feature3: 'Responsive design that works on all devices',
+    feature4: 'ChatGPT-style message layout with user messages on the right',
+    feature5: 'Typing indicators and smooth animations',
+    feature6: 'Minimizable interface to reduce screen clutter',
+    tryChatTitle: 'Try the Chat Interface',
+    tryChatDescription: 'Click the chat button in the bottom-right corner to start a conversation. You can toggle between light and dark themes, minimize the chat, and experience the smooth, professional interface.',
+    learnMoreButton: 'Learn More',
+    getStartedButton: 'Get Started',
+    viewAdminButton: 'View Admin Dashboard'
   }
 }
 
@@ -379,6 +415,23 @@ const es: TranslationKeys = {
     contact: 'Contacto',
     status: 'Estado',
     allRightsReserved: 'Todos los derechos reservados.'
+  },
+  demo: {
+    title: 'Demo de Interfaz de Chat Profesional',
+    companyWebsiteTitle: 'Contenido del Sitio Web de la Empresa',
+    companyWebsiteDescription: 'Esta es una demostración de cómo aparecería la interfaz de chat cuando se integre en un sitio web profesional de una empresa. El widget de chat está posicionado en la esquina inferior derecha y se puede minimizar cuando no se usa.',
+    keyFeaturesTitle: 'Características principales incluyen:',
+    feature1: 'Diseño moderno y profesional que coincide con la marca de la empresa',
+    feature2: 'Soporte para temas claros y oscuros con transiciones suaves',
+    feature3: 'Diseño responsivo que funciona en todos los dispositivos',
+    feature4: 'Diseño de mensajes estilo ChatGPT con mensajes del usuario a la derecha',
+    feature5: 'Indicadores de escritura y animaciones suaves',
+    feature6: 'Interfaz minimizable para reducir el desorden en pantalla',
+    tryChatTitle: 'Prueba la Interfaz de Chat',
+    tryChatDescription: 'Haz clic en el botón de chat en la esquina inferior derecha para comenzar una conversación. Puedes alternar entre temas claros y oscuros, minimizar el chat y experimentar la interfaz suave y profesional.',
+    learnMoreButton: 'Aprender Más',
+    getStartedButton: 'Comenzar',
+    viewAdminButton: 'Ver Panel de Administración'
   }
 }
 
@@ -503,6 +556,23 @@ const fr: TranslationKeys = {
     contact: 'Contact',
     status: 'Statut',
     allRightsReserved: 'Tous droits réservés.'
+  },
+  demo: {
+    title: 'Démo',
+    companyWebsiteTitle: 'Site web de l\'entreprise',
+    companyWebsiteDescription: 'Description pour le site web de l\'entreprise',
+    keyFeaturesTitle: 'Fonctionnalités clés',
+    feature1: 'Fonctionnalité 1',
+    feature2: 'Fonctionnalité 2',
+    feature3: 'Fonctionnalité 3',
+    feature4: 'Fonctionnalité 4',
+    feature5: 'Fonctionnalité 5',
+    feature6: 'Fonctionnalité 6',
+    tryChatTitle: 'Essayer le widget de chat',
+    tryChatDescription: 'Description pour essayer le widget de chat',
+    learnMoreButton: 'En savoir plus',
+    getStartedButton: 'Commencer',
+    viewAdminButton: 'Voir l\'administrateur'
   }
 }
 
@@ -627,6 +697,23 @@ const de: TranslationKeys = {
     contact: 'Contacto',
     status: 'Estado',
     allRightsReserved: 'Todos los derechos reservados.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Sitio web de la empresa',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa',
+    keyFeaturesTitle: 'Características clave',
+    feature1: 'Característica 1',
+    feature2: 'Característica 2',
+    feature3: 'Característica 3',
+    feature4: 'Característica 4',
+    feature5: 'Característica 5',
+    feature6: 'Característica 6',
+    tryChatTitle: 'Prueba el widget de chat',
+    tryChatDescription: 'Descripción para probar el widget de chat',
+    learnMoreButton: 'Aprender más',
+    getStartedButton: 'Comenzar',
+    viewAdminButton: 'Ver Administrador'
   }
 }
 
@@ -751,6 +838,23 @@ const zh: TranslationKeys = {
     contact: '联系',
     status: '状态',
     allRightsReserved: '版权所有。'
+  },
+  demo: {
+    title: '演示',
+    companyWebsiteTitle: '公司网站',
+    companyWebsiteDescription: '公司网站描述',
+    keyFeaturesTitle: '关键功能',
+    feature1: '功能1',
+    feature2: '功能2',
+    feature3: '功能3',
+    feature4: '功能4',
+    feature5: '功能5',
+    feature6: '功能6',
+    tryChatTitle: '试用聊天小部件',
+    tryChatDescription: '试用聊天小部件描述',
+    learnMoreButton: '了解更多',
+    getStartedButton: '开始',
+    viewAdminButton: '查看管理员'
   }
 }
 
@@ -875,6 +979,23 @@ const ja: TranslationKeys = {
     contact: 'お問い合わせ',
     status: 'ステータス',
     allRightsReserved: '全著作権所有。'
+  },
+  demo: {
+    title: 'デモ',
+    companyWebsiteTitle: '会社ウェブサイト',
+    companyWebsiteDescription: '会社ウェブサイトの説明',
+    keyFeaturesTitle: '主要機能',
+    feature1: '機能1',
+    feature2: '機能2',
+    feature3: '機能3',
+    feature4: '機能4',
+    feature5: '機能5',
+    feature6: '機能6',
+    tryChatTitle: 'チャットウィジェットを試す',
+    tryChatDescription: 'チャットウィジェットを試すための説明',
+    learnMoreButton: 'もっと知る',
+    getStartedButton: 'はじめる',
+    viewAdminButton: '管理者を見る'
   }
 }
 
@@ -999,6 +1120,23 @@ const pt: TranslationKeys = {
     contact: 'Contato',
     status: 'Status',
     allRightsReserved: 'Todos os direitos reservados.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Site da Empresa',
+    companyWebsiteDescription: 'Descrição para o site da empresa',
+    keyFeaturesTitle: 'Recursos Principais',
+    feature1: 'Recursos 1',
+    feature2: 'Recursos 2',
+    feature3: 'Recursos 3',
+    feature4: 'Recursos 4',
+    feature5: 'Recursos 5',
+    feature6: 'Recursos 6',
+    tryChatTitle: 'Experimentar Widget de Chat',
+    tryChatDescription: 'Descrição para experimentar o widget de chat',
+    learnMoreButton: 'Saber Mais',
+    getStartedButton: 'Começar',
+    viewAdminButton: 'Ver Administrador'
   }
 }
 
@@ -1123,6 +1261,23 @@ const it: TranslationKeys = {
     contact: 'Contacto',
     status: 'Estado',
     allRightsReserved: 'Todos los derechos reservados.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Sito web dell\'azienda',
+    companyWebsiteDescription: 'Descrizione per il sito web dell\'azienda',
+    keyFeaturesTitle: 'Funzionalità principali',
+    feature1: 'Funzionalità 1',
+    feature2: 'Funzionalità 2',
+    feature3: 'Funzionalità 3',
+    feature4: 'Funzionalità 4',
+    feature5: 'Funzionalità 5',
+    feature6: 'Funzionalità 6',
+    tryChatTitle: 'Prova il widget di chat',
+    tryChatDescription: 'Descrizione per provare il widget di chat',
+    learnMoreButton: 'Scopri di più',
+    getStartedButton: 'Inizia',
+    viewAdminButton: 'Vedi amministratore'
   }
 }
 
@@ -1247,6 +1402,23 @@ const ru: TranslationKeys = {
     contact: 'Contacto',
     status: 'Estado',
     allRightsReserved: 'Todos los derechos reservados.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Сайт компании',
+    companyWebsiteDescription: 'Описание для сайта компании',
+    keyFeaturesTitle: 'Ключевые функции',
+    feature1: 'Функция 1',
+    feature2: 'Функция 2',
+    feature3: 'Функция 3',
+    feature4: 'Функция 4',
+    feature5: 'Функция 5',
+    feature6: 'Функция 6',
+    tryChatTitle: 'Попробуйте виджет чата',
+    tryChatDescription: 'Описание для проверки виджета чата',
+    learnMoreButton: 'Узнать больше',
+    getStartedButton: 'Начать',
+    viewAdminButton: 'Просмотреть администратора'
   }
 }
 
@@ -1371,6 +1543,23 @@ const ko: TranslationKeys = {
     contact: 'Contacto',
     status: 'Estado',
     allRightsReserved: 'Todos los derechos reservados.'
+  },
+  demo: {
+    title: 'Demo',
+    companyWebsiteTitle: 'Sitio web de la empresa',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa',
+    keyFeaturesTitle: 'Características clave',
+    feature1: 'Característica 1',
+    feature2: 'Característica 2',
+    feature3: 'Característica 3',
+    feature4: 'Característica 4',
+    feature5: 'Característica 5',
+    feature6: 'Característica 6',
+    tryChatTitle: 'Prueba el widget de chat',
+    tryChatDescription: 'Descripción para probar el widget de chat',
+    learnMoreButton: 'Aprender más',
+    getStartedButton: 'Comenzar',
+    viewAdminButton: 'Ver Administrador'
   }
 }
 

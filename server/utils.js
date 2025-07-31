@@ -85,6 +85,16 @@ export function parseTheme(theme) {
 
 // Define pricing plans
 export const PRICING_PLANS = {
+  'personal': {
+    name: 'Personal Plan',
+    price: 0.01,
+    stripe_price_id: process.env.STRIPE_PERSONAL_PRICE_ID,
+    features: [
+      '10 messages/month',
+      'Basic customization',
+      'Email support'
+    ]
+  },
   'test': {
     name: 'Test Plan',
     price: 1,

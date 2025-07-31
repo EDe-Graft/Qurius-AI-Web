@@ -20,6 +20,12 @@ export function PricingCard({
 }: PricingCardProps) {
   const { t } = useLanguage()
 
+  // Show only the most important features (first 6) and add "many more features"
+  const displayFeatures = features.slice(0, 4)
+  if (features.length > 4) {
+    displayFeatures.push("Many more features...")
+  }
+
   const getButtonClass = () => {
     switch (plan) {
       case 'free':
@@ -47,19 +53,18 @@ export function PricingCard({
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-700 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col justify-between ${isPopular ? 'ring-2 ring-blue-500' : ''}`}>
-      {isPopular && (
-        <div className="text-center mb-4">
-          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-            Most Popular
-          </span>
-        </div>
-      )}
-      
+    <div className={`bg-white dark:bg-gray-700 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col justify-between h-[500px] ${isPopular ? 'ring-2 ring-blue-500' : ''}`}>      
       <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          {getPlanTitle()}
-        </h3>
+        <div className="relative">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            {getPlanTitle()}
+          </h3>
+          {isPopular && (
+            <span className="absolute -top-9 right-20 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              Most Popular
+            </span>
+          )}
+        </div>
         <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
           {price}
         </div>
@@ -68,11 +73,11 @@ export function PricingCard({
         </p>
       </div>
       
-      <ul className="space-y-3 mb-8">
-        {features.map((feature, index) => (
+      <ul className="space-y-3 mb-8 flex-grow">
+        {displayFeatures.map((feature, index) => (
           <li key={index} className="flex items-center text-gray-600 dark:text-gray-400">
-            <CheckCircle className="h-6 w-6 text-green-500 mr-3" />
-            {feature}
+            <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+            <span className="text-sm">{feature}</span>
           </li>
         ))}
       </ul>

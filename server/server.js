@@ -50,11 +50,160 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'withCredentials']
 }));
 
-// parse json
-app.use(express.json());
-
 // Add OPTIONS handling for preflight requests
 app.options('*', cors());
+
+// Stripe webhook handler - MUST be before express.json() middleware
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('❌ Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  console.log('📦 Webhook event:', event.type);
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        const companyName = session.metadata.company_name;
+        const planId = session.metadata.plan_id;
+        const customerEmail = session.metadata.customer_email;
+        
+        console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
+        
+        // Create company after successful payment
+        const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('❌ Supabase configuration missing');
+          break;
+        }
+
+        // Create company with subscription info
+        const companyData = {
+          name: companyName,
+          contact_email: customerEmail,
+          plan: planId,
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: session.subscription,
+          subscription_status: 'active',
+          status: 'active',
+          enrollment_date: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+          const companyResponse = await axios.post(
+            `${supabaseUrl}/rest/v1/companies`,
+            companyData,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          console.log('✅ Company created successfully:', companyResponse.data);
+        } catch (error) {
+          console.error('❌ Error creating company:', error.response?.data || error.message);
+        }
+        break;
+
+      case 'customer.subscription.updated':
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        
+        // Find company by customer ID
+        const companyResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${customerId}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (companyResponse.data && companyResponse.data[0]) {
+          const company = companyResponse.data[0];
+          
+          await axios.patch(
+            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
+            {
+              subscription_status: subscription.status,
+              subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString()
+            },
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
+        break;
+
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object;
+        const deletedCustomerId = deletedSubscription.customer;
+        
+        // Find company by customer ID
+        const deletedCompanyResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${deletedCustomerId}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (deletedCompanyResponse.data && deletedCompanyResponse.data[0]) {
+          const company = deletedCompanyResponse.data[0];
+          
+          await axios.patch(
+            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
+            {
+              subscription_status: 'canceled',
+              plan: 'free'
+            },
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        }
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('❌ Webhook processing error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
+// parse json
+app.use(express.json());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -1239,6 +1388,10 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       });
     }
 
+    const frontendUrl = process.env.FRONTEND_URL || 
+      (process.env.NODE_ENV === 'production' ? 'https://qurius-ai.vercel.app' : 'http://localhost:5173');
+
+
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
@@ -1249,8 +1402,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/onboarding?canceled=true`,
+      success_url: `${frontendUrl}/integration?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/integration?canceled=true`,
       metadata: {
         company_name: companyName,
         plan_id: planId,
@@ -1357,158 +1510,6 @@ app.get('/api/payments/subscription-status/:companyId', async (req, res) => {
   } catch (error) {
     console.error('❌ Subscription status error:', error);
     res.status(500).json({ error: 'Failed to get subscription status' });
-  }
-});
-
-// Stripe webhook handler
-app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  console.log('📦 Webhook event:', event.type);
-
-  const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object;
-        const companyName = session.metadata.company_name;
-        const planId = session.metadata.plan_id;
-        const customerEmail = session.metadata.customer_email;
-        
-        console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
-        
-        // Create company after successful payment
-        const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        
-        if (!supabaseUrl || !supabaseKey) {
-          console.error('❌ Supabase configuration missing');
-          break;
-        }
-
-        // Create company with subscription info
-        const companyData = {
-          name: companyName,
-          contact_email: customerEmail,
-          plan: planId,
-          stripe_customer_id: session.customer,
-          stripe_subscription_id: session.subscription,
-          subscription_status: 'active',
-          status: 'active',
-          enrollment_date: new Date().toISOString().split('T')[0]
-        };
-
-        try {
-          const companyResponse = await axios.post(
-            `${supabaseUrl}/rest/v1/companies`,
-            companyData,
-            {
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-
-          console.log('✅ Company created successfully:', companyResponse.data);
-        } catch (error) {
-          console.error('❌ Error creating company:', error.response?.data || error.message);
-        }
-        break;
-
-      case 'customer.subscription.updated':
-        const subscription = event.data.object;
-        const customerId = subscription.customer;
-        
-        // Find company by customer ID
-        const companyResponse = await axios.get(
-          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${customerId}`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (companyResponse.data && companyResponse.data[0]) {
-          const company = companyResponse.data[0];
-          
-          await axios.patch(
-            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
-            {
-              subscription_status: subscription.status,
-              subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString()
-            },
-            {
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-        }
-        break;
-
-      case 'customer.subscription.deleted':
-        const deletedSubscription = event.data.object;
-        const deletedCustomerId = deletedSubscription.customer;
-        
-        // Find company by customer ID
-        const deletedCompanyResponse = await axios.get(
-          `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${deletedCustomerId}`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (deletedCompanyResponse.data && deletedCompanyResponse.data[0]) {
-          const company = deletedCompanyResponse.data[0];
-          
-          await axios.patch(
-            `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
-            {
-              subscription_status: 'canceled',
-              plan: 'free'
-            },
-            {
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-        }
-        break;
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
