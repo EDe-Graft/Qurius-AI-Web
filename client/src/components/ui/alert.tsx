@@ -1,5 +1,4 @@
 import React from "react"
-import { AlertCircle, CheckCircle } from "lucide-react"
 
 const Alert = React.forwardRef<
   HTMLDivElement,
