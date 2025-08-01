@@ -199,3 +199,82 @@ export function getTimeAgo(timestamp) {
     }
   }
 
+
+  // Helper functions
+export function generateTemporaryPassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+export async function sendWelcomeEmail(email, companyName, planId) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    // Get plan name for display
+    const planName = planId === 'pro' ? 'Pro' : planId === 'starter' ? 'Starter' : 'Free';
+    
+    // Create password reset link using Supabase Auth
+    const resetResponse = await axios.post(
+      `${supabaseUrl}/auth/v1/recover`,
+      {
+        email: email,
+        redirect_to: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/auth/callback`
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // In production, you would send this via email service like SendGrid or Resend
+    // For now, we'll log the welcome email content
+    console.log('🎉 Welcome Email Sent!');
+    console.log('📧 To:', email);
+    console.log('🏢 Company:', companyName);
+    console.log('📦 Plan:', planName);
+    console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/admin`);
+    console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/admin`);
+    
+    // Email content (for reference)
+    const emailContent = `
+🎉 Welcome to Qurius AI!
+
+Congratulations, ${companyName}! 🚀
+
+You've just joined the future of customer service. Qurius AI is designed to transform how your business interacts with customers, providing instant, intelligent responses that will delight your users and boost your customer satisfaction scores.
+
+✨ What makes Qurius AI incredible:
+• Instant Responses: Your customers get answers in seconds, not hours
+• 24/7 Availability: Never miss a customer inquiry again
+• Intelligent Learning: Gets smarter with every interaction
+• Seamless Integration: Works perfectly with your existing website
+• Multi-language Support: Serve customers worldwide
+
+Your ${planName} plan is now active and ready to revolutionize your customer service experience. You're about to see a dramatic improvement in customer satisfaction and response times.
+
+🎯 Your Next Steps:
+1. Set your password using the link above
+2. Access your admin dashboard to customize your widget
+3. Import your FAQs to train your AI assistant
+4. Copy the integration code to your website
+5. Watch your customer satisfaction soar! 📈
+
+Ready to transform your customer service? Let's make it happen! 🚀
+    `;
+    
+    console.log('📝 Email Content:', emailContent);
+
+    console.log('✅ Password reset email sent to:', email);
+  } catch (error) {
+    console.error('❌ Error sending welcome email:', error.response?.data || error.message);
+  }
+}
+

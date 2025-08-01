@@ -9,6 +9,7 @@ CREATE TABLE public.companies (
     industry TEXT,
     website TEXT,
     contact_email TEXT,
+    admin_email TEXT, -- Email of the company admin
     logo_url TEXT,
     enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status TEXT DEFAULT 'active',
@@ -21,7 +22,7 @@ CREATE TABLE public.companies (
     last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-); 
+);
 
 -- Updated FAQs table
 CREATE TABLE public.faqs (
@@ -178,6 +179,7 @@ FOR ALL USING (auth.role() = 'authenticated');
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS industry TEXT;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS website TEXT;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
+-- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS admin_email TEXT;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS logo_url TEXT;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS enrollment_date DATE;
 -- ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';

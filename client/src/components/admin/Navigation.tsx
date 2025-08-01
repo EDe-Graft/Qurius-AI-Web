@@ -3,9 +3,12 @@ import { Home, User2, LogIn, LogOut, Computer } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
 
+
 // Public navigation without authentication
 export function PublicNavigation() {
   const location = useLocation()
+  const { authFlow } = useAuth()
+  console.log('authFlow', authFlow)
 
   return (
     // if window.innerWidth is less than 768, then the navigation should be centered according to the screen width
@@ -69,7 +72,7 @@ export function PublicNavigation() {
 // Admin navigation with authentication
 export function AdminNavigation() {
   const location = useLocation()
-  const { isAuthenticated, signOut } = useAuth()
+  const { isAuthenticated, signOut, authFlow } = useAuth()
 
   return (
     <nav className={`fixed top-4 left-4 z-50 ${window.innerWidth < 768 ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}`}>
@@ -112,7 +115,7 @@ export function AdminNavigation() {
             Admin
           </Link>
           
-          {isAuthenticated ? (
+          {isAuthenticated && authFlow === 'supabase' ? (
             <button
               onClick={signOut}
               className="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"

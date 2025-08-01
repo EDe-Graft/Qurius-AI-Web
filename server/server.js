@@ -5,9 +5,7 @@ import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse, PRICING_PLANS } from './utils.js';
-
-
+import { getTimeAgo, parseTheme, getDailyStats, getEmbedding, getAIResponse, PRICING_PLANS, generateTemporaryPassword, sendWelcomeEmail } from './utils.js';
 
 dotenv.config();
 
@@ -18,12 +16,6 @@ const PORT = process.env.PORT || 3001;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
-
-
-// Debug: Log the price IDs being used
-console.log('🔧 Stripe Price IDs:');
-console.log('Starter Price ID:', process.env.STRIPE_STARTER_PRICE_ID);
-console.log('Pro Price ID:', process.env.STRIPE_PRO_PRICE_ID);
 
 // Middleware
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500,https://qurius-ai.vercel.app').split(',').map(origin => origin.trim());
@@ -92,6 +84,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const companyData = {
           name: companyName,
           contact_email: customerEmail,
+          admin_email: customerEmail, // Add admin email
           plan: planId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
@@ -114,6 +107,39 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           );
 
           console.log('✅ Company created successfully:', companyResponse.data);
+
+          // Create admin user account
+          try {
+            const adminUserResponse = await axios.post(
+              `${supabaseUrl}/auth/v1/admin/users`,
+              {
+                email: customerEmail,
+                password: generateTemporaryPassword(), // Generate temporary password
+                email_confirm: true,
+                user_metadata: { 
+                  role: 'company_admin',
+                  company_name: companyName,
+                  company_id: companyResponse.data.id
+                }
+              },
+              {
+                headers: {
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+
+            console.log('✅ Admin user created successfully:', adminUserResponse.data);
+
+            // Send welcome email with password reset
+            await sendWelcomeEmail(customerEmail, companyName, planId);
+
+          } catch (userError) {
+            console.error('❌ Error creating admin user:', userError.response?.data || userError.message);
+          }
+
         } catch (error) {
           console.error('❌ Error creating company:', error.response?.data || error.message);
         }
@@ -485,6 +511,59 @@ app.get('/api/companies/:id', async (req, res) => {
   } catch (error) {
     console.error('Get company error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch company' });
+  }
+});
+
+// Check if email belongs to a company admin
+app.post('/api/companies/admin-check', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Check if email exists in companies table as admin_email
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?admin_email=eq.${encodeURIComponent(email)}&select=id,name,admin_email,status`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (companyResponse.data && companyResponse.data.length > 0) {
+      const company = companyResponse.data[0];
+      
+      // Only allow access if company is active
+      if (company.status === 'active') {
+        res.json({
+          isAdmin: true,
+          company: {
+            id: company.id,
+            name: company.name,
+            admin_email: company.admin_email
+          }
+        });
+      } else {
+        res.json({ isAdmin: false, message: 'Company account is not active' });
+      }
+    } else {
+      res.json({ isAdmin: false, message: 'Email not found as company admin' });
+    }
+  } catch (error) {
+    console.error('Admin check error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to check admin status' });
   }
 });
 
@@ -1513,6 +1592,240 @@ app.get('/api/payments/subscription-status/:companyId', async (req, res) => {
   }
 });
 
+// ========================================
+// AUTHENTICATION ENDPOINTS
+// ========================================
+
+// Check super admin credentials
+app.post('/api/auth/super-admin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Check against environment variables
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
+    
+    if (!superAdminEmail || !superAdminPassword) {
+      console.error('❌ Super admin credentials not configured in environment variables');
+      return res.status(500).json({ 
+        error: 'Super admin authentication not configured' 
+      });
+    }
+    
+    // Verify credentials
+    if (email === superAdminEmail && password === superAdminPassword) {
+      console.log('✅ Super admin authentication successful:', email);
+      return res.json({ 
+        isSuperAdmin: true,
+        user: {
+          id: 'super-admin-id',
+          email: email,
+          role: 'super_admin',
+          user_metadata: { role: 'super_admin' },
+          app_metadata: { role: 'super_admin' }
+        }
+      });
+    } else {
+      console.log('❌ Super admin authentication failed for:', email);
+      return res.status(401).json({ 
+        error: 'Invalid super admin credentials' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Super admin authentication error:', error);
+    return res.status(500).json({ 
+      error: 'Authentication server error' 
+    });
+  }
+});
+
+// ========================================
+// TEST ENDPOINTS (Development Only)
+// ========================================
+
+// Create test company (bypasses Stripe payment)
+app.post('/api/test/create-company', async (req, res) => {
+  try {
+    const { 
+      companyName, 
+      email, 
+      plan, 
+      industry, 
+      website, 
+      description, 
+      theme 
+    } = req.body;
+    
+    console.log('🧪 Creating test company:', companyName);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Create company data
+    const companyData = {
+      name: companyName,
+      contact_email: email,
+      admin_email: email, // Set admin email
+      industry: industry,
+      website: website,
+      description: description,
+      theme: theme,
+      plan: plan,
+      status: 'active',
+      enrollment_date: new Date().toISOString().split('T')[0]
+    };
+
+    // Create company
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/companies`,
+      companyData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Get the company ID
+    const companyQueryResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}&order=created_at.desc&limit=1`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const companyId = companyQueryResponse.data[0].id;
+
+    console.log('✅ Test company created successfully:', companyId);
+
+    res.json({
+      success: true,
+      company: { ...companyData, id: companyId }
+    });
+  } catch (error) {
+    console.error('❌ Test company creation error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create test company' 
+    });
+  }
+});
+
+// Create test admin user
+app.post('/api/test/create-admin-user', async (req, res) => {
+  try {
+    const { email, companyName, companyId } = req.body;
+    
+    console.log('🧪 Creating test admin user:', email);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Create admin user account
+    const adminUserResponse = await axios.post(
+      `${supabaseUrl}/auth/v1/admin/users`,
+      {
+        email: email,
+        password: generateTemporaryPassword(),
+        email_confirm: true,
+        user_metadata: { 
+          role: 'company_admin',
+          company_name: companyName,
+          company_id: companyId
+        }
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ Test admin user created successfully');
+
+    res.json({
+      success: true,
+      user: adminUserResponse.data
+    });
+  } catch (error) {
+    console.error('❌ Test admin user creation error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create test admin user' 
+    });
+  }
+});
+
+// Send test welcome email
+app.post('/api/test/send-welcome-email', async (req, res) => {
+  try {
+    const { email, companyName, planId } = req.body;
+    
+    console.log('🧪 Sending test welcome email to:', email);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Send password reset email
+    const resetResponse = await axios.post(
+      `${supabaseUrl}/auth/v1/recover`,
+      {
+        email: email,
+        redirect_to: `${process.env.FRONTEND_URL}/auth/callback`
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Log the welcome email content (for testing)
+    const planName = planId === 'pro' ? 'Pro' : planId === 'starter' ? 'Starter' : 'Free';
+    
+    console.log('🎉 Test Welcome Email Sent!');
+    console.log('📧 To:', email);
+    console.log('🏢 Company:', companyName);
+    console.log('📦 Plan:', planName);
+    console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL}/auth/callback`);
+    console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL}/admin`);
+    
+    console.log('✅ Test welcome email sent successfully');
+
+    res.json({
+      success: true,
+      message: 'Test welcome email sent'
+    });
+  } catch (error) {
+    console.error('❌ Test welcome email error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to send test welcome email' 
+    });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {
