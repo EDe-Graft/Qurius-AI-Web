@@ -1530,7 +1530,7 @@ app.post('/api/payments/create-portal-session', async (req, res) => {
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app' || 'http://localhost:5173'}`,
+      return_url: `${process.env.FRONTEND_URL}/integration`,
     });
 
     res.json({ url: session.url });
@@ -1830,6 +1830,6 @@ app.post('/api/test/send-welcome-email', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
 }); 
