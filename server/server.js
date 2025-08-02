@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import Stripe from 'stripe';
 import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
-import { PRICING_PLANS } from '../constants.js';
+import { PRICING_PLANS } from './constants.js';
 
 dotenv.config();
 
