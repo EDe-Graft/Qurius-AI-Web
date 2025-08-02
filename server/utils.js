@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { formatReadableDateTime, toTitleCase } from './helper.js';
 
 //getEmbedding from Jina AI
 export async function getEmbedding(question, answer) {
@@ -83,67 +84,6 @@ export function parseTheme(theme) {
   return theme;
 }
 
-// Define pricing plans
-export const PRICING_PLANS = {
-  'personal': {
-    name: 'Personal Plan',
-    price: 0.01,
-    stripe_price_id: process.env.STRIPE_PERSONAL_PRICE_ID,
-    features: [
-      '10 messages/month',
-      'Basic customization',
-      'Email support'
-    ]
-  },
-  'test': {
-    name: 'Test Plan',
-    price: 1,
-    stripe_price_id: process.env.STRIPE_TEST_PRICE_ID,
-    features: [
-      '100 messages/month',
-      'Basic customization',
-      'Email support',
-      'Standard FAQ templates'
-    ]
-  },
-  'free': {
-    name: 'Free Plan',
-    price: 0,
-    stripe_price_id: null,
-    features: [
-      '500 messages/month',
-      'Basic customization',
-      'Email support',
-      'Standard FAQ templates'
-    ]
-  },
-  'starter': {
-    name: 'Starter Plan',
-    price: 29,
-    stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
-    features: [
-      '10,000 messages/month',
-      'Advanced customization',
-      'Priority support',
-      'Analytics dashboard',
-      'Custom FAQ import'
-    ]
-  },
-  'pro': {
-    name: 'Pro Plan',
-    price: 99,
-    stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
-    features: [
-      'Unlimited messages',
-      'White-label options',
-      '24/7 phone support',
-      'Advanced analytics',
-      'API access',
-      'Custom integrations'
-    ]
-  }
-};
-
 
 // Helper function to get daily stats
 export function getDailyStats(analytics, days) {
@@ -173,43 +113,116 @@ export function getDailyStats(analytics, days) {
   return dailyStats;
 }
 
-// Helper function to calculate time ago
-export function getTimeAgo(timestamp) {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInMs = now - past;
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInWeeks = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7));
-    const diffInMonths = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 30));
-  
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minutes ago`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours} hours ago`;
-    } else if (diffInDays < 7) {
-      return `${diffInDays} days ago`;
-    } else if (diffInWeeks < 4) {
-      return `${diffInWeeks} weeks ago`;
-    } else if (diffInMonths < 12) {
-      return `${diffInMonths} months ago`;
-    } else {
-      return `${Math.floor(diffInMonths / 12)} years ago`;
+
+//Create company and profile and auth user and send welcome email
+export async function createCompany(companyData) {
+  try {
+    const { name, location, description, theme, industry, website, email, logo_url, status, plan, domain } = companyData;
+
+    // Extract domain from website URL if not provided
+    let extractedDomain = domain;
+    if (!domain && website) {
+      try {
+        const url = new URL(website.startsWith('http') ? website : `https://${website}`);
+        extractedDomain = url.hostname;
+        console.log('Extracted domain from website:', extractedDomain);
+      } catch (error) {
+        console.log('Could not extract domain from website:', website);
+        extractedDomain = '';
+      }
+    }
+
+    // Log the company data
+    console.log('Creating company:', companyData);
+
+    // Get supabase URL and key
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    // Prepare company data for database
+    const companyDataForDB = {
+      name: toTitleCase(name),
+      location: toTitleCase(location),
+      description,
+      theme: theme, // Store theme object directly as JSON
+      industry,
+      website,
+      domain: domain || extractedDomain,
+      contact_email: email,
+      admin_email: email,
+      logo_url: logo_url || '',
+      status: status || 'active',
+      plan: plan || 'free', // Default to free plan
+      // enrollment_date: formatReadableDateTime(new Date())
+    };
+
+    // Create company
+    const companyResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/companies`,
+      companyDataForDB,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+    console.log("Company created:", companyResponse.data)
+
+    const companyId = companyResponse.data[0].id;
+    return { companyId, name, email, plan };
+
+    } catch (error) {
+      console.error('❌ Error creating company:', error.response?.data || error.message);
+      throw new Error('Failed to create company');
     }
   }
 
+//Create auth user
+export async function createAuthUser(companyId, email) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // Helper functions
-export function generateTemporaryPassword() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    const authUser = {
+      email,
+      role: 'company_admin',
+      user_metadata: {
+        company_id: companyId,
+        role: 'company_admin'
+      }
+    }
+    const userResponse = await axios.post(
+      `${supabaseUrl}/auth/v1/admin/users`,
+      authUser,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    const userId = userResponse.data.id;
+    console.log("Auth user created:", userResponse.data)
+    return userId;
+  } catch (error) {
+    console.error('❌ Error creating auth user:', error.response?.data || error.message);
+    throw new Error('Failed to create auth user');
   }
-  return result;
 }
 
+
+
+// Send welcome email
 export async function sendWelcomeEmail(email, companyName, planId) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -240,8 +253,8 @@ export async function sendWelcomeEmail(email, companyName, planId) {
     console.log('📧 To:', email);
     console.log('🏢 Company:', companyName);
     console.log('📦 Plan:', planName);
-    console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/admin`);
-    console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/admin`);
+    console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL}/auth/callback`);
+    console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL}/admin`);
     
     // Email content (for reference)
     const emailContent = `
@@ -270,11 +283,9 @@ Your ${planName} plan is now active and ready to revolutionize your customer ser
 Ready to transform your customer service? Let's make it happen! 🚀
     `;
     
-    console.log('📝 Email Content:', emailContent);
 
     console.log('✅ Password reset email sent to:', email);
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);
   }
 }
-

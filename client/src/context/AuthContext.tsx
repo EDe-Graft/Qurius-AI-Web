@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setSession(currentSession)
         setUser(currentUser)
+        console.log("currentUser", currentUser)
 
         // If we have a valid Supabase session and user, set authFlow to supabase
         if (currentSession && currentUser && currentUser.id && currentUser.id !== 'user-id') {

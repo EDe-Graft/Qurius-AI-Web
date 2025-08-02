@@ -17,7 +17,7 @@ interface Company {
   industry: string
   website: string
   contact_email?: string
-  email: string // Required to match service interface
+  admin_email?: string // Required to match service interface
   logo_url: string
   enrollment_date?: string
   status?: 'active' | 'inactive' | 'suspended'

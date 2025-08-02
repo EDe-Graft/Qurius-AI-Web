@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
 //get url and key from backend server
-const response = await axios.get(`${BACKEND_URL}/api/widget-config`)
+const response = await axios.get(`${BACKEND_URL}/api/supabase-config`)
 const { supabaseUrl, supabaseAnonKey } = response.data
 
 if (!supabaseUrl) {
@@ -20,5 +20,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Re-export Database type for convenience
 export type { Database } from '../../types/database'
-
-export default supabase

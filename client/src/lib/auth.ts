@@ -115,16 +115,18 @@ export const signIn = async (email: string, password: string) => {
       if (superAdminResponse.data.isSuperAdmin) {
         console.log('✅ Super admin authentication successful');
         isSuperAdmin = true;
+      } else {
+        console.log('🔍 Not a super admin, checking company admin...');
       }
     } catch (superAdminError: any) {
-      // Only continue if it's a 401 (not a super admin)
-      // If it's any other error (network, server, etc.), throw it
-      if (superAdminError.response?.status !== 401) {
-        console.error('❌ Super admin authentication error:', superAdminError);
-        throw new Error(superAdminError.response?.data?.error || 'Super admin authentication failed');
+      // Only throw error if it's a network/server error (5xx status)
+      // 4xx status codes (like 401) should be handled as "not a super admin"
+      if (superAdminError.response?.status >= 500) {
+        console.error('❌ Super admin authentication server error:', superAdminError);
+        throw new Error(superAdminError.response?.data?.error || 'Super admin authentication server error');
       }
-      // Not a super admin, continue with regular authentication
-      console.log('🔍 Not a super admin, checking company admin...');
+      // For 4xx status codes, treat as "not a super admin" and continue
+      console.log('🔍 Not a super admin (4xx response), checking company admin...');
     }
 
     // Check if this is a company admin
@@ -188,16 +190,13 @@ export const signOut = async () => {
 // Get current user
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      throw new Error(error.message)
-    }
+    const { data: { user } } = await supabase.auth.getUser()
     
     return user
   } catch (error) {
     // Fallback to localStorage if Supabase fails
     console.warn('Supabase getCurrentUser failed, using localStorage fallback')
+    console.error('Error details:', error)
     return await localStorageAuth.getCurrentUser()
   }
 }
@@ -273,7 +272,7 @@ export const getUserRole = (user: User | null): 'super_admin' | 'company_admin' 
   if (!user) return 'regular_user'
   
   // Check user metadata for role
-  const role = user.user_metadata?.role || user.app_metadata?.role
+  const role = user?.user_metadata?.role || user?.role
   return role || null
 }
 
@@ -281,7 +280,6 @@ export const getUserRole = (user: User | null): 'super_admin' | 'company_admin' 
 export const isSuperAdmin = (user: User | null): boolean => {
   const role = getUserRole(user)
   const isSuper = role === 'super_admin'
-  console.log('🔍 isSuperAdmin - Role:', role, 'Is super admin:', isSuper)
   return isSuper
 }
 
@@ -289,6 +287,5 @@ export const isSuperAdmin = (user: User | null): boolean => {
 export const isCompanyAdmin = (user: User | null): boolean => {
   const role = getUserRole(user)
   const isCompany = role === 'company_admin'
-  console.log('🔍 isCompanyAdmin - Role:', role, 'Is company admin:', isCompany)
   return isCompany
 }

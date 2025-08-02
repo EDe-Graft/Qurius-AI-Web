@@ -28,7 +28,7 @@ export function TestPaymentBypass() {
     setError("")
 
     try {
-      // Step 1: Create company directly (bypassing Stripe)
+      // Create company directly (bypassing Stripe), and create profile and auth user and send welcome email
       const companyResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/test/create-company`, {
         ...formData,
         theme: {
@@ -40,25 +40,6 @@ export function TestPaymentBypass() {
 
       const companyData = companyResponse.data
       console.log('✅ Test company created:', companyData)
-
-      // Step 2: Create admin user account
-      const userResponse = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/test/create-admin-user`, {
-        email: formData.email,
-        companyName: formData.companyName,
-        companyId: companyData.company.id
-      })
-
-      const userData = userResponse.data
-      console.log('✅ Admin user created:', userData)
-
-      // Step 3: Send welcome email with password reset
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/test/send-welcome-email`, {
-        email: formData.email,
-        companyName: formData.companyName,
-        planId: formData.plan
-      })
-
-      console.log('✅ Welcome email sent')
 
       setSuccess(true)
       

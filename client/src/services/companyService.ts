@@ -13,16 +13,23 @@ export interface Company {
   }
   industry: string
   website: string
-  email: string
+  email?: string
   contact_email?: string // For backward compatibility
+  admin_email?: string
   logo_url: string
   created_at?: string
+  updated_at?: string
   enrollment_date?: string
   status?: 'active' | 'inactive' | 'suspended'
   conversations?: number
   queries?: number
-  lastActive?: string
+  last_active?: string // Backend uses snake_case
   plan?: string // Subscription plan (free, starter, pro)
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+  subscription_status?: string
+  subscription_end_date?: string
+  embedding?: any
   analytics?: {
     totalViews: number
     totalInteractions: number
@@ -43,7 +50,7 @@ export class CompanyService {
         name: company.name,
         industry: company.industry,
         website: company.website,
-        contact_email: company.email,
+        email: company.email,
         description: company.description,
         location: company.location,
         theme: JSON.stringify(company.theme),
@@ -80,7 +87,7 @@ export class CompanyService {
         delete updateData.email
       }
 
-      const response = await axios.put(`${this.BACKEND_URL}/api/companies/${companyId}`, updateData, {
+      const response = await axios.patch(`${this.BACKEND_URL}/api/companies/${companyId}`, updateData, {
         headers: { 'Content-Type': 'application/json' },
       })
       

@@ -17,7 +17,7 @@ interface Company {
   industry: string
   website: string
   contact_email?: string
-  email: string
+  admin_email?: string
   logo_url: string
   enrollment_date?: string
   status?: 'active' | 'inactive' | 'suspended'
@@ -47,7 +47,7 @@ const defaultCompany: Company = {
   industry: '',
   website: '',
   contact_email: '',
-  email: '',
+  admin_email: '',
   logo_url: '',
   enrollment_date: new Date().toISOString().split('T')[0],
   status: 'active'

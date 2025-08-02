@@ -30,10 +30,8 @@ export default function Admin() {
 
   // Render appropriate admin component based on user role
   if (isSuperAdmin(user)) {
-    console.log('✅ Admin component - Rendering QuriusAdmin (super admin)')
     return <QuriusAdmin user={user} />
   } else if (isCompanyAdmin(user)) {
-    console.log('✅ Admin component - Rendering CompanyAdmin (company admin)')
     return <CompanyAdmin user={user} />
   }
 

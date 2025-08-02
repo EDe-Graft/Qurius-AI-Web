@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { ChevronLeft, ChevronRight, Star } from "lucide-react"
-import { TESTIMONIALS } from "@/lib/utils"
+import { TESTIMONIALS } from "@/lib/constants"
 
 interface TestimonialCarouselProps {
   autoRotateInterval?: number

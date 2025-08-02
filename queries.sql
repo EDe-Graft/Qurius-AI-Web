@@ -1,6 +1,6 @@
--- Updated companies table with additional fields
+-- Companies table
 CREATE TABLE public.companies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL UNIQUE,
     domain TEXT UNIQUE,
     location TEXT,
@@ -8,8 +8,8 @@ CREATE TABLE public.companies (
     theme JSONB NOT NULL DEFAULT '{"primaryColor": "#58c4dc", "backgroundColor": "#F3F4F6", "textColor": "#000000"}',
     industry TEXT,
     website TEXT,
-    contact_email TEXT,
-    admin_email TEXT, -- Email of the company admin
+    contact_email TEXT UNIQUE,
+    admin_email TEXT UNIQUE, -- Email of the company admin
     logo_url TEXT,
     enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status TEXT DEFAULT 'active',
@@ -21,10 +21,10 @@ CREATE TABLE public.companies (
     embedding extensions.vector(768), -- Use fully qualified vector type
     last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT
 );
 
--- Updated FAQs table
+-- FAQs table
 CREATE TABLE public.faqs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -60,14 +60,6 @@ CREATE POLICY "Service role can update FAQs" ON faqs
 CREATE POLICY "Service role can delete FAQs" ON faqs
   FOR DELETE USING (true);
 
--- Create chat interaction log for analytics
-CREATE TABLE public.chat_interactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
-    company_id UUID NOT NULL REFERENCES public.companies(id),
-    conversations INTEGER DEFAULT 0,
-    queries INTEGER DEFAULT 0,
-    last_interaction_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-);
 
 -- Widget Analytics Table
 CREATE TABLE IF NOT EXISTS widget_analytics (
