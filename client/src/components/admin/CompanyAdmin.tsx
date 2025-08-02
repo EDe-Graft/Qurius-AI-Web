@@ -73,7 +73,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           throw new Error('Company ID not found. Please contact support.')
         }
 
-        const companyData = await CompanyService.getCompanyById(companyId)
+        const companyData = await CompanyService.getCompanyById('18c69d1d-89c3-432f-b7e6-cb69c67de342')
         setCompany(companyData)
         console.log("company data", companyData)
         
