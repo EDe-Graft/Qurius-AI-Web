@@ -201,11 +201,17 @@ app.use(express.json());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit for development
   message: 'Too many requests from this IP'
 });
 
-app.use('/api/', limiter);
+// Apply rate limiting only in production or when explicitly enabled
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_RATE_LIMIT === 'true') {
+  app.use('/api/', limiter);
+  console.log('🔒 Rate limiting enabled');
+} else {
+  console.log('🚫 Rate limiting disabled for development');
+}
 
 // Production monitoring endpoints
 app.get('/api/status', (req, res) => {
@@ -662,14 +668,15 @@ app.delete('/api/companies/:id', async (req, res) => {
   }
 });
 
-// Search FAQs
+// Search FAQs with enhanced analytics tracking
 app.post('/api/faqs/search', async (req, res) => {
   try {
-    const { question, companyName } = req.body;
+    const { question, companyName, sessionId } = req.body;
     console.log('Searching FAQs for company:', companyName);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
@@ -727,30 +734,132 @@ app.post('/api/faqs/search', async (req, res) => {
         
         if (bestMatch.similarity >= confidenceThreshold) {
           console.log('Using FAQ with confidence:', bestMatch.similarity);
-          res.json(faqResponse.data);
+          
+          // Track FAQ match
+          await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
+          
+          res.json([{ 
+            question: question, 
+            answer: bestMatch.answer, 
+            source: 'faq',
+            faqId: bestMatch.faq_id,
+            confidence: bestMatch.similarity
+          }]);
         } else {
           console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
           const aiResponse = await getAIResponse(question, companyName);
-          res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
+          
+          // Track AI fallback
+          await trackAIFallback(companyId, sessionId, 'low_confidence', bestMatch.similarity);
+          
+          res.json([{ 
+            question: question, 
+            answer: aiResponse, 
+            source: 'ai',
+            fallbackReason: 'low_confidence',
+            confidence: bestMatch.similarity
+          }]);
         }
       } else {
         // No FAQ found, fallback to AI
         console.log('No FAQ found, falling back to AI');
         const aiResponse = await getAIResponse(question, companyName);
-        res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
+        
+        // Track AI fallback
+        await trackAIFallback(companyId, sessionId, 'no_faq_found');
+        
+        res.json([{ 
+          question: question, 
+          answer: aiResponse, 
+          source: 'ai',
+          fallbackReason: 'no_faq_found'
+        }]);
       }
     } catch (embeddingError) {
       console.log('Embedding search failed, falling back to AI:', embeddingError.message);
       
       // Fallback to AI when semantic search fails
       const aiResponse = await getAIResponse(question, companyName);
-      res.json([{ question: question, answer: aiResponse, source: 'ai' }]);
+      
+      // Track AI fallback
+      await trackAIFallback(companyId, sessionId, 'embedding_error');
+      
+      res.json([{ 
+        question: question, 
+        answer: aiResponse, 
+        source: 'ai',
+        fallbackReason: 'embedding_error'
+      }]);
     }
   } catch (error) {
     console.error('FAQ search error:', error.response?.data || error.message);
     res.json([]);
   }
 });
+
+// Helper function to track FAQ matches
+async function trackFAQMatch(companyId, sessionId, faqId, confidenceScore, responseSource) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'faq_matched',
+      session_id: sessionId,
+      faq_id: faqId,
+      confidence_score: confidenceScore,
+      response_source: responseSource,
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track FAQ match:', error);
+  }
+}
+
+// Helper function to track AI fallbacks
+async function trackAIFallback(companyId, sessionId, fallbackReason, confidenceScore = null) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'ai_fallback',
+      session_id: sessionId,
+      ai_fallback_reason: fallbackReason,
+      confidence_score: confidenceScore,
+      response_source: 'ai',
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track AI fallback:', error);
+  }
+}
 
 // Get embeddings from Jina
 app.post('/api/embeddings', async (req, res) => {
@@ -929,6 +1038,213 @@ app.post('/api/analytics/widget-view', async (req, res) => {
   }
 });
 
+// Enhanced widget interaction tracking with new event types
+app.post('/api/analytics/widget-interaction', async (req, res) => {
+  try {
+    const { 
+      companyName, 
+      eventType, 
+      message, 
+      response, 
+      timestamp, 
+      sessionId,
+      rating,
+      feedbackText,
+      language,
+      themeMode,
+      faqId,
+      aiFallbackReason,
+      responseSource,
+      confidenceScore
+    } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get company ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const companyId = companyResponse.data[0].id;
+
+    // Record widget interaction with enhanced data
+    const interactionData = {
+      company_id: companyId,
+      event_type: eventType,
+      message: message || null,
+      response: response || null,
+      timestamp: timestamp || new Date().toISOString(),
+      session_id: sessionId || null,
+      rating: rating || null,
+      feedback_text: feedbackText || null,
+      language: language || null,
+      theme_mode: themeMode || null,
+      faq_id: faqId || null,
+      ai_fallback_reason: aiFallbackReason || null,
+      response_source: responseSource || null,
+      confidence_score: confidenceScore || null
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      interactionData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // If this is a rating event, also record in user_ratings table
+    if (eventType === 'rating_given' && rating) {
+      const ratingData = {
+        company_id: companyId,
+        session_id: sessionId,
+        message_id: `${sessionId}_${Date.now()}`, // Generate unique message ID
+        rating: rating,
+        feedback_text: feedbackText,
+        response_text: response,
+        response_source: responseSource,
+        faq_id: faqId,
+        confidence_score: confidenceScore
+      };
+
+      await axios.post(
+        `${supabaseUrl}/rest/v1/user_ratings`,
+        ratingData,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Widget interaction tracking error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to track widget interaction' });
+  }
+});
+
+// New endpoint for user ratings
+app.post('/api/analytics/rating', async (req, res) => {
+  try {
+    const { 
+      companyName, 
+      rating, 
+      feedbackText, 
+      responseText, 
+      responseSource, 
+      faqId, 
+      confidenceScore,
+      sessionId 
+    } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get company ID
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const companyId = companyResponse.data[0].id;
+
+    // Record rating in both tables
+    const ratingData = {
+      company_id: companyId,
+      session_id: sessionId,
+      message_id: `${sessionId}_${Date.now()}`,
+      rating: rating, // 1 for thumbs up, -1 for thumbs down
+      feedback_text: feedbackText,
+      response_text: responseText,
+      response_source: responseSource,
+      faq_id: faqId,
+      confidence_score: confidenceScore
+    };
+
+    // Insert into user_ratings table
+    await axios.post(
+      `${supabaseUrl}/rest/v1/user_ratings`,
+      ratingData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Also record as analytics event
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'rating_given',
+      rating: rating,
+      feedback_text: feedbackText,
+      response: responseText,
+      response_source: responseSource,
+      faq_id: faqId,
+      confidence_score: confidenceScore,
+      session_id: sessionId,
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Rating tracking error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to track rating' });
+  }
+});
+
 app.post('/api/analytics/widget-interaction', async (req, res) => {
   try {
     const { companyName, eventType, message, response, timestamp, sessionId } = req.body;
@@ -1010,8 +1326,26 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
     const nowStr = now.toISOString().replace('T', ' ').replace('Z', '+00');
 
+    // Use the new analytics summary function
+    const summaryResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_analytics_summary`,
+      {
+        p_company_id: companyId,
+        p_start_date: startDateStr,
+        p_end_date: nowStr
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
-    // Get analytics data - use proper PostgreSQL timestamp format
+    const summary = summaryResponse.data?.[0] || {};
+
+    // Get daily stats for chart
     const analyticsResponse = await axios.get(
       `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&timestamp=gte.${encodeURIComponent(startDateStr)}&order=timestamp.desc`,
       {
@@ -1025,17 +1359,26 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
 
     const analytics = analyticsResponse.data || [];
 
-    // Process analytics data
+    // Process analytics data with enhanced metrics
     const stats = {
-      totalViews: analytics.filter(a => a.event_type === 'widget_view').length,
-      totalInteractions: analytics.filter(a => a.event_type !== 'widget_view').length,
-      totalMessages: analytics.filter(a => a.event_type === 'message_sent').length,
-      totalResponses: analytics.filter(a => a.event_type === 'message_received').length,
-      uniqueSessions: [...new Set(analytics.filter(a => a.session_id).map(a => a.session_id))].length,
-      dailyStats: getDailyStats(analytics, periodDays)
+      totalViews: summary.total_views || 0,
+      totalInteractions: summary.total_interactions || 0,
+      totalMessages: summary.total_messages || 0,
+      totalResponses: summary.total_responses || 0,
+      uniqueSessions: summary.unique_sessions || 0,
+      totalRatings: summary.total_ratings || 0,
+      positiveRatings: summary.positive_ratings || 0,
+      negativeRatings: summary.negative_ratings || 0,
+      averageRating: summary.avg_rating || 0,
+      faqMatchRate: summary.faq_match_rate || 0,
+      aiFallbackRate: summary.ai_fallback_rate || 0,
+      languageChanges: summary.language_changes || 0,
+      themeChanges: summary.theme_changes || 0,
+      dailyStats: getDailyStats(analytics, periodDays),
+      lastActivity: summary.last_activity || null
     };
 
-
+    console.log('Analytics data:', stats);
     res.json(stats);
   } catch (error) {
     console.error('❌ Analytics fetch error:', error.response?.data || error.message);
@@ -1043,13 +1386,11 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
   }
 });
 
-
-
-// Test endpoint to insert sample analytics data
-app.post('/api/analytics/test-data/:companyId', async (req, res) => {
+// New endpoint for detailed ratings analytics
+app.get('/api/analytics/ratings/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
-    console.log('🧪 Inserting test analytics data for company:', companyId);
+    const { period = '7d' } = req.query;
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1058,59 +1399,204 @@ app.post('/api/analytics/test-data/:companyId', async (req, res) => {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
-    // Insert test data
-    const testData = [
-      {
-        company_id: companyId,
-        event_type: 'widget_view',
-        page_url: 'https://test.com/page1',
-        user_agent: 'Test Browser',
-        session_id: 'test_session_1',
-        timestamp: new Date().toISOString()
-      },
-      {
-        company_id: companyId,
-        event_type: 'widget_opened',
-        session_id: 'test_session_1',
-        timestamp: new Date().toISOString()
-      },
-      {
-        company_id: companyId,
-        event_type: 'message_sent',
-        message: 'Hello, how can you help me?',
-        session_id: 'test_session_1',
-        timestamp: new Date().toISOString()
-      },
-      {
-        company_id: companyId,
-        event_type: 'message_received',
-        response: 'I can help you with various questions!',
-        session_id: 'test_session_1',
-        timestamp: new Date().toISOString()
-      }
-    ];
+    // Calculate date range
+    const now = new Date();
+    const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+    const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
 
-    for (const data of testData) {
-      await axios.post(
-        `${supabaseUrl}/rest/v1/widget_analytics`,
-        data,
-        {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
+    // Get ratings data
+    const ratingsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/user_ratings?company_id=eq.${companyId}&created_at=gte.${encodeURIComponent(startDateStr)}&order=created_at.desc`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
         }
-      );
-      console.log('✅ Inserted test data:', data.event_type);
-    }
+      }
+    );
 
-    res.json({ success: true, message: 'Test data inserted successfully' });
+    const ratings = ratingsResponse.data || [];
+
+    // Process ratings data
+    const ratingsStats = {
+      totalRatings: ratings.length,
+      positiveRatings: ratings.filter(r => r.rating === 1).length,
+      negativeRatings: ratings.filter(r => r.rating === -1).length,
+      averageRating: ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 0,
+      satisfactionRate: ratings.length > 0 ? (ratings.filter(r => r.rating === 1).length / ratings.length) * 100 : 0,
+      ratingsBySource: {
+        faq: ratings.filter(r => r.response_source === 'faq').length,
+        ai: ratings.filter(r => r.response_source === 'ai').length
+      },
+      recentRatings: ratings.slice(0, 10), // Last 10 ratings
+      feedbackCount: ratings.filter(r => r.feedback_text).length
+    };
+
+    res.json(ratingsStats);
   } catch (error) {
-    console.error('❌ Test data insertion error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to insert test data' });
+    console.error('❌ Ratings analytics error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch ratings analytics' });
   }
 });
+
+// New endpoint for FAQ performance analytics
+app.get('/api/analytics/faq-performance/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { period = '7d' } = req.query;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Calculate date range
+    const now = new Date();
+    const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
+    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+    const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
+
+    // Get FAQ performance data
+    const analyticsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&event_type=in.(faq_matched,ai_fallback)&timestamp=gte.${encodeURIComponent(startDateStr)}&order=timestamp.desc`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const analytics = analyticsResponse.data || [];
+
+    // Get FAQ details for performance analysis
+    const faqsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const faqs = faqsResponse.data || [];
+
+    // Process FAQ performance data
+    const faqStats = {
+      totalQueries: analytics.length,
+      faqMatches: analytics.filter(a => a.event_type === 'faq_matched').length,
+      aiFallbacks: analytics.filter(a => a.event_type === 'ai_fallback').length,
+      matchRate: analytics.length > 0 ? (analytics.filter(a => a.event_type === 'faq_matched').length / analytics.length) * 100 : 0,
+      averageConfidence: analytics.filter(a => a.confidence_score).reduce((sum, a) => sum + a.confidence_score, 0) / analytics.filter(a => a.confidence_score).length || 0,
+      topFallbackReasons: analytics
+        .filter(a => a.event_type === 'ai_fallback' && a.ai_fallback_reason)
+        .reduce((acc, a) => {
+          acc[a.ai_fallback_reason] = (acc[a.ai_fallback_reason] || 0) + 1;
+          return acc;
+        }, {}),
+      faqUsage: faqs.map(faq => ({
+        id: faq.id,
+        question: faq.question,
+        usageCount: analytics.filter(a => a.faq_id === faq.id).length,
+        averageRating: 0 // TODO: Calculate from ratings
+      }))
+    };
+
+    res.json(faqStats);
+  } catch (error) {
+    console.error('❌ FAQ performance error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch FAQ performance' });
+  }
+});
+
+// Batch analytics events endpoint
+app.post('/api/analytics/batch-events', async (req, res) => {
+  try {
+    const { events } = req.body;
+    
+    if (!events || !Array.isArray(events)) {
+      return res.status(400).json({ error: 'Events array is required' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Process each event
+    const results = [];
+    for (const event of events) {
+      try {
+        const { companyName, eventType, message, response, timestamp, sessionId, ...additionalData } = event.data;
+        
+        // Get company ID
+        const companyResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (companyResponse.data && companyResponse.data.length > 0) {
+          const companyId = companyResponse.data[0].id;
+
+          // Record widget interaction
+          const interactionData = {
+            company_id: companyId,
+            event_type: eventType,
+            message: message || null,
+            response: response || null,
+            timestamp: timestamp || new Date().toISOString(),
+            session_id: sessionId || null,
+            ...additionalData
+          };
+
+          await axios.post(
+            `${supabaseUrl}/rest/v1/widget_analytics`,
+            interactionData,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          results.push({ success: true, event: eventType });
+        } else {
+          results.push({ success: false, error: 'Company not found', event: eventType });
+        }
+      } catch (error) {
+        console.error('Batch event processing error:', error);
+        results.push({ success: false, error: error.message, event: event.eventType });
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      processed: results.length,
+      results 
+    });
+  } catch (error) {
+    console.error('Batch events error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to process batch events' });
+  }
+});
+
 
 // FAQ import endpoint
 app.post('/api/companies/:companyId/faqs', async (req, res) => {
@@ -1534,163 +2020,59 @@ app.post('/api/auth/super-admin', async (req, res) => {
 // ========================================
 
 // Create test company (bypasses Stripe payment)
-app.post('/api/test/create-company', async (req, res) => {
-  try {
-    const { 
-      companyName, 
-      email, 
-      plan, 
-      industry, 
-      website, 
-      description, 
-      theme 
-    } = req.body;
-    
-    console.log('🧪 Creating test company:', companyName);
-    
-
-    // Create company data
-    const companyData = {
-      name: companyName,
-      email,
-      industry: industry,
-      website: website,
-      description: description,
-      theme: theme,
-      plan: plan,
-      status: 'active',
-      enrollment_date: formatReadableDateTime(new Date())
-    };
-
-    // Create company
-    const { companyId } = await createCompany(companyData)
-
-    // Create auth user
-    await createAuthUser(companyId, email)
-
-    // Send Welcome Email
-    await sendWelcomeEmail(email, companyName, plan)
-
-    console.log('✅ Test company created successfully:', companyId);
-
-    res.json({
-      success: true,
-      company: { ...companyData, id: companyId }
-    });
-  } catch (error) {
-    console.error('❌ Test company creation error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to create test company' 
-    });
-  }
-});
-
-// Create test admin user
-// app.post('/api/test/create-admin-user', async (req, res) => {
+// app.post('/api/test/create-company', async (req, res) => {
 //   try {
-//     const { email, companyName, companyId } = req.body;
+//     const { 
+//       companyName, 
+//       email, 
+//       plan, 
+//       industry, 
+//       website, 
+//       description, 
+//       theme 
+//     } = req.body;
     
-//     console.log('🧪 Creating test admin user:', email);
+//     console.log('🧪 Creating test company:', companyName);
     
-//     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-//     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-//     if (!supabaseUrl || !supabaseKey) {
-//       return res.status(500).json({ error: 'Supabase configuration missing' });
-//     }
 
-//     // Create admin user account
-//     const adminUserResponse = await axios.post(
-//       `${supabaseUrl}/auth/v1/admin/users`,
-//       {
-//         email: email,
-//         password: generateTemporaryPassword(),
-//         email_confirm: true,
-//         user_metadata: { 
-//           role: 'company_admin',
-//           company_name: companyName,
-//           company_id: companyId
-//         }
-//       },
-//       {
-//         headers: {
-//           'apikey': supabaseKey,
-//           'Authorization': `Bearer ${supabaseKey}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
+//     // Create company data
+//     const companyData = {
+//       name: companyName,
+//       email,
+//       industry: industry,
+//       website: website,
+//       description: description,
+//       theme: theme,
+//       plan: plan,
+//       status: 'active',
+//       enrollment_date: formatReadableDateTime(new Date())
+//     };
 
-//     console.log('✅ Test admin user created successfully');
+//     // Create company
+//     const { companyId } = await createCompany(companyData)
+
+//     // Create auth user
+//     await createAuthUser(companyId, email)
+
+//     // Send Welcome Email
+//     await sendWelcomeEmail(email, companyName, plan)
+
+//     console.log('✅ Test company created successfully:', companyId);
 
 //     res.json({
 //       success: true,
-//       user: adminUserResponse.data
+//       company: { ...companyData, id: companyId }
 //     });
 //   } catch (error) {
-//     console.error('❌ Test admin user creation error:', error.response?.data || error.message);
+//     console.error('❌ Test company creation error:', error.response?.data || error.message);
 //     res.status(500).json({ 
 //       success: false,
-//       error: 'Failed to create test admin user' 
+//       error: 'Failed to create test company' 
 //     });
 //   }
 // });
 
-// Send test welcome email
-// app.post('/api/test/send-welcome-email', async (req, res) => {
-//   try {
-//     const { email, companyName, planId } = req.body;
-    
-//     console.log('🧪 Sending test welcome email to:', email);
-    
-//     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-//     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-//     if (!supabaseUrl || !supabaseKey) {
-//       return res.status(500).json({ error: 'Supabase configuration missing' });
-//     }
 
-//     // Send password reset email
-//     const resetResponse = await axios.post(
-//       `${supabaseUrl}/auth/v1/recover`,
-//       {
-//         email: email,
-//         redirect_to: `${process.env.FRONTEND_URL}/auth/callback`
-//       },
-//       {
-//         headers: {
-//           'apikey': supabaseKey,
-//           'Authorization': `Bearer ${supabaseKey}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     // Log the welcome email content (for testing)
-//     const planName = planId === 'pro' ? 'Pro' : planId === 'starter' ? 'Starter' : 'Free';
-    
-//     console.log('🎉 Test Welcome Email Sent!');
-//     console.log('📧 To:', email);
-//     console.log('🏢 Company:', companyName);
-//     console.log('📦 Plan:', planName);
-//     console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL}/auth/callback`);
-//     console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL}/admin`);
-    
-//     console.log('✅ Test welcome email sent successfully');
-
-//     res.json({
-//       success: true,
-//       message: 'Test welcome email sent'
-//     });
-//   } catch (error) {
-//     console.error('❌ Test welcome email error:', error.response?.data || error.message);
-//     res.status(500).json({ 
-//       success: false,
-//       error: 'Failed to send test welcome email' 
-//     });
-//   }
-// });
 
 // Start server
 app.listen(PORT, () => {
@@ -1698,3 +2080,4 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
 }); 
+

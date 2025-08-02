@@ -14,6 +14,7 @@ import { faqService } from "@/services/faqService"
 import { cn, darkenColor } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { interpolate } from '@/lib/translations'
+import { getAIResponse } from "@/services/aiService"
 
 
 // Chat Interface
@@ -41,17 +42,19 @@ export function ChatInterface({
     {
       content: getWelcomeMessage(),
       isUser: false,
+      liked: null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
 
   // Update welcome message when language or company name changes
   useEffect(() => {
-    if (messages.length === 1 && !messages[0].isUser) {
+    if (!messages[0].isUser) {
       setMessages([
         {
           content: getWelcomeMessage(),
           isUser: false,
+          liked: null,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ])
@@ -139,6 +142,14 @@ export function ChatInterface({
     if (streaming) {
       setUserScrolled(false)
     }
+  }
+
+  const handleRatingChange = (messageIndex: number, rating: 'like' | 'dislike' | null) => {
+    setMessages(prev => prev.map((message, index) => 
+      index === messageIndex 
+        ? { ...message, liked: rating }
+        : message
+    ))
   }
 
 
@@ -231,6 +242,7 @@ export function ChatInterface({
         const aiMessage: Message = {
           content: translatedResponse,
           isUser: false,
+          liked: null,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, aiMessage])
@@ -238,27 +250,36 @@ export function ChatInterface({
         
         // Track message received
         if (companyName) {
-          AnalyticsService.trackMessageReceived(companyName, translatedResponse)
+          AnalyticsService.trackMessageReceived(companyName, translatedResponse, 'faq')
         }
       } else {
         console.log('⚠️ No FAQ answer found, using fallback...')
         // No FAQ answer found, fallback to AI response
-        const fallbackMessage = 'I apologize, but I don\'t have specific information about that. Please contact our support team for assistance.'
-        let translatedFallback = fallbackMessage
+        const aiResponse = await getAIResponse([{ role: 'user', content: translatedInput }], companyName || '')
+        console.log('✅ AI response:', aiResponse)
+
+        // Translate AI response to user's language
+        let translatedFallback = aiResponse
         try {
-          translatedFallback = await TranslationService.translateToUserLanguage(fallbackMessage, currentLanguage)
+          translatedFallback = await TranslationService.translateToUserLanguage(aiResponse, currentLanguage)
         } catch (translationError) {
           console.warn('⚠️ Fallback translation failed:', translationError)
-        }
+        }         
         
         setMessages((prev) => [
           ...prev,
           {
             content: translatedFallback,
             isUser: false,
+            liked: null,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
         ])
+
+        // Track AI fallback
+        if (companyName) {
+          AnalyticsService.trackAIFallback(companyName, 'no_faq_found', 0.5)
+        }
       }
     } catch (error) {
       console.error('❌ Error in handleSendMessage:', error)
@@ -379,9 +400,21 @@ export function ChatInterface({
           </div>
         </div>
         <div className="flex justify-end gap-1">
-          <LanguageSelector variant="dropdown" className="scale-65" />
+          <LanguageSelector 
+            variant="dropdown" 
+            className="scale-65" 
+            companyName={companyName}
+          />
           <button
-            onClick={toggleTheme}
+            onClick={
+              () => {
+                toggleTheme()
+                //track theme change after toggle
+                if (companyName) {
+                  AnalyticsService.trackThemeChange(companyName, defaultTheme)
+                }
+              }
+            }
             disabled={isThemeChanging}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
@@ -411,12 +444,16 @@ export function ChatInterface({
               <MessageBubble
                 key={`${index}-${message.content.substring(0, 20)}`}
                 message={message.content}
+                messageIndex={index}
+                liked={message.liked}
                 isUser={message.isUser}
                 timestamp={message.timestamp}
                 onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
                 skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
                 isLastAiMessage={isLastAiMessage} // Only stream the last AI message
                 companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
+                companyName={companyName} // Pass company name for analytics
+                onRatingChange={(rating) => handleRatingChange(index, rating)} // Pass the new handler with message index
               />
             );
           })}

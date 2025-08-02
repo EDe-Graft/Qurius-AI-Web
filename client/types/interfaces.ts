@@ -61,6 +61,8 @@ export interface ChatInputProps {
 // Message Bubble
 export interface MessageBubbleProps {
     message: string
+    messageIndex: number
+    liked?: 'like' | 'dislike' | null
     isUser: boolean
     timestamp?: string
     onStreamingChange?: (isStreaming: boolean) => void
@@ -68,6 +70,8 @@ export interface MessageBubbleProps {
     isLastAiMessage?: boolean // Only stream the last AI message
     defaultTheme?: "light" | "dark"
     companyTheme?: CompanyTheme
+    companyName?: string // For analytics tracking
+    onRatingChange?: (rating: 'like' | 'dislike' | null) => void // Add callback for rating changes
   }
   
 
@@ -75,5 +79,6 @@ export interface MessageBubbleProps {
 export interface Message {
     content: string
     isUser: boolean
+    liked?: 'like' | 'dislike' | null
     timestamp: string
 }

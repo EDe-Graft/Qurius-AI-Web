@@ -73,7 +73,7 @@ interface ThemeProviderProps {
 }
 
 // 6. Implement the provider component
-export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+export const ThemeProvider = ({ children}: ThemeProviderProps) => {
   // Check for saved theme preference or use system preference
   const getInitialTheme = (): 'light' | 'dark' => {
     if (typeof window !== 'undefined') {
@@ -98,11 +98,11 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('theme', scheme);
     }
+ 
   };
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
-    
     // Set theme changing state to true
     setIsThemeChanging(true);
     

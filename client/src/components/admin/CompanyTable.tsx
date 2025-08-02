@@ -39,6 +39,9 @@ interface CompanyTableProps {
   onEdit: (company: Company) => void
   onDelete: (companyId: string) => void
   onView: (company: Company) => void
+  onManageFAQs?: (company: Company) => void
+  onViewIntegrationCode?: (company: Company) => void
+  onConfigureWidget?: (company: Company) => void
 }
 
 export function CompanyTable({ companies, onEdit, onDelete, onView }: CompanyTableProps) {

@@ -6,6 +6,14 @@ export interface WidgetAnalytics {
   totalMessages: number
   totalResponses: number
   uniqueSessions: number
+  totalRatings: number
+  positiveRatings: number
+  negativeRatings: number
+  averageRating: number
+  faqMatchRate: number
+  aiFallbackRate: number
+  languageChanges: number
+  themeChanges: number
   dailyStats: DailyStat[]
 }
 
@@ -14,6 +22,35 @@ export interface DailyStat {
   views: number
   interactions: number
   messages: number
+}
+
+export interface RatingAnalytics {
+  totalRatings: number
+  positiveRatings: number
+  negativeRatings: number
+  averageRating: number
+  satisfactionRate: number
+  ratingsBySource: {
+    faq: number
+    ai: number
+  }
+  recentRatings: any[]
+  feedbackCount: number
+}
+
+export interface FAQPerformance {
+  totalQueries: number
+  faqMatches: number
+  aiFallbacks: number
+  matchRate: number
+  averageConfidence: number
+  topFallbackReasons: Record<string, number>
+  faqUsage: Array<{
+    id: string
+    question: string
+    usageCount: number
+    averageRating: number
+  }>
 }
 
 export class AnalyticsService {
@@ -37,12 +74,22 @@ export class AnalyticsService {
     }
   }
 
-  // Track widget interaction
+  // Enhanced widget interaction tracking
   static async trackWidgetInteraction(
     companyName: string, 
-    eventType: 'message_sent' | 'message_received' | 'widget_opened' | 'widget_closed',
+    eventType: 'message_sent' | 'message_received' | 'widget_opened' | 'widget_closed' | 'rating_given' | 'language_changed' | 'theme_changed' | 'faq_matched' | 'ai_fallback',
     message?: string,
-    response?: string
+    response?: string,
+    additionalData?: {
+      rating?: number
+      feedbackText?: string
+      language?: string
+      themeMode?: string
+      faqId?: string
+      aiFallbackReason?: string
+      responseSource?: 'faq' | 'ai'
+      confidenceScore?: number
+    }
   ) {
     try {
       const sessionId = this.getSessionId()
@@ -53,10 +100,39 @@ export class AnalyticsService {
         message,
         response,
         sessionId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...additionalData
       })
     } catch (error) {
       console.error('Failed to track widget interaction:', error)
+    }
+  }
+
+  // Submit user rating
+  static async submitRating(
+    companyName: string,
+    rating: number, // 1 for thumbs up, -1 for thumbs down
+    responseText: string,
+    responseSource: 'faq' | 'ai',
+    feedbackText?: string,
+    faqId?: string,
+    confidenceScore?: number
+  ) {
+    try {
+      const sessionId = this.getSessionId()
+      
+      await axios.post(`${this.BACKEND_URL}/api/analytics/rating`, {
+        companyName,
+        rating,
+        feedbackText,
+        responseText,
+        responseSource,
+        faqId,
+        confidenceScore,
+        sessionId
+      })
+    } catch (error) {
+      console.error('Failed to submit rating:', error)
     }
   }
 
@@ -64,11 +140,34 @@ export class AnalyticsService {
   static async getCompanyAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
     try {
       const response = await axios.get(`${this.BACKEND_URL}/api/analytics/company/${companyId}?period=${period}`)
-      console.log('Analytics data for company:', companyId, response.data)
+      // console.log('Analytics data:', response.data)
       return response.data
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
       throw new Error('Failed to fetch analytics')
+    }
+  }
+
+  // Get detailed ratings analytics
+  static async getRatingsAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<RatingAnalytics> {
+    try {
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/ratings/${companyId}?period=${period}`)
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch ratings analytics:', error)
+      throw new Error('Failed to fetch ratings analytics')
+    }
+  }
+
+  // Get FAQ performance analytics
+  static async getFAQPerformance(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
+    try {
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/faq-performance/${companyId}?period=${period}`)
+      // console.log('FAQ performance for company:', companyId, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch FAQ performance:', error)
+      throw new Error('Failed to fetch FAQ performance')
     }
   }
 
@@ -97,8 +196,82 @@ export class AnalyticsService {
     await this.trackWidgetInteraction(companyName, 'message_sent', message)
   }
 
-  // Track message received
-  static async trackMessageReceived(companyName: string, response: string) {
-    await this.trackWidgetInteraction(companyName, 'message_received', undefined, response)
+  // Track message received with source tracking
+  static async trackMessageReceived(
+    companyName: string, 
+    response: string, 
+    responseSource: 'faq' | 'ai',
+    faqId?: string,
+    confidenceScore?: number,
+    aiFallbackReason?: string
+  ) {
+    await this.trackWidgetInteraction(companyName, 'message_received', undefined, response, {
+      responseSource,
+      faqId,
+      confidenceScore,
+      aiFallbackReason
+    })
+  }
+
+  // Track language change
+  static async trackLanguageChange(companyName: string, language: string) {
+    await this.trackWidgetInteraction(companyName, 'language_changed', undefined, undefined, {
+      language
+    })
+  }
+
+  // Track theme change
+  static async trackThemeChange(companyName: string, themeMode: 'light' | 'dark') {
+    await this.trackWidgetInteraction(companyName, 'theme_changed', undefined, undefined, {
+      themeMode
+    })
+  }
+
+  // Track FAQ match
+  static async trackFAQMatch(
+    companyName: string, 
+    faqId: string, 
+    confidenceScore: number
+  ) {
+    await this.trackWidgetInteraction(companyName, 'faq_matched', undefined, undefined, {
+      faqId,
+      confidenceScore,
+      responseSource: 'faq'
+    })
+  }
+
+  // Track AI fallback
+  static async trackAIFallback(
+    companyName: string, 
+    reason: string, 
+    confidenceScore?: number
+  ) {
+    await this.trackWidgetInteraction(companyName, 'ai_fallback', undefined, undefined, {
+      aiFallbackReason: reason,
+      confidenceScore,
+      responseSource: 'ai'
+    })
+  }
+
+  // Track user rating
+  static async trackRating(
+    companyName: string,
+    rating: number,
+    responseText: string,
+    responseSource: 'faq' | 'ai',
+    feedbackText?: string,
+    faqId?: string,
+    confidenceScore?: number
+  ) {
+    await this.trackWidgetInteraction(companyName, 'rating_given', undefined, responseText, {
+      rating,
+      feedbackText,
+      responseSource,
+      faqId,
+      confidenceScore
+    })
+
+    // Also submit to dedicated rating endpoint
+    await this.submitRating(companyName, rating, responseText, responseSource, feedbackText, faqId, confidenceScore)
   }
 } 

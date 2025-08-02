@@ -1,29 +1,33 @@
 import { useState, useEffect } from "react"
 import { 
   Building2, 
-  Users, 
   Plus,
   Settings,
-  BarChart3,
   Activity,
   Sun,
   Moon,
   LogOut,
   FileText,
   Globe,
-  DollarSign
+  DollarSign,
+  Download,
+  ThumbsUp,
+
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { StatCard } from "@/components/admin/StatCard"
+import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
 import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImport from "@/components/admin/FAQImport"
+import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
+import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
+import { AnalyticsService } from "@/services/analyticsService"
 import { isSuperAdmin } from "@/lib/auth"
 
 interface QuriusAdminProps {
@@ -37,6 +41,86 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
+
+  // Enhanced analytics state
+  const [systemAnalytics, setSystemAnalytics] = useState<{
+    totalCompanies: number
+    activeWidgets: number
+    monthlyRevenue: number
+    monthlyGrowth: number
+    revenueGrowth: number
+    totalRatings: number
+    averageRating: number
+    totalFAQMatches: number
+    totalAIFallbacks: number
+    averageFAQMatchRate: number
+    averageAIFallbackRate: number
+  }>({
+    totalCompanies: 0,
+    activeWidgets: 0,
+    monthlyRevenue: 0,
+    monthlyGrowth: 0,
+    revenueGrowth: 0,
+    totalRatings: 0,
+    averageRating: 0,
+    totalFAQMatches: 0,
+    totalAIFallbacks: 0,
+    averageFAQMatchRate: 0,
+    averageAIFallbackRate: 0
+  })
+
+  // Modal states
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean
+    mode: 'view' | 'add' | 'edit'
+    company: Company | null
+  }>({
+    isOpen: false,
+    mode: 'view',
+    company: null
+  })
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    companyId: string | null
+  }>({
+    isOpen: false,
+    companyId: null
+  })
+
+  const [faqModal, setFaqModal] = useState<{
+    isOpen: boolean
+    companyId: string | null
+    companyName: string
+  }>({
+    isOpen: false,
+    companyId: null,
+    companyName: ''
+  })
+
+  const [integrationModal, setIntegrationModal] = useState<{
+    isOpen: boolean
+    companyName: string
+  }>({
+    isOpen: false,
+    companyName: ''
+  })
+
+  const [widgetSettingsModal, setWidgetSettingsModal] = useState<{
+    isOpen: boolean
+    companyId: string
+    companyName: string
+    initialTheme: any
+  }>({
+    isOpen: false,
+    companyId: '',
+    companyName: '',
+    initialTheme: {
+      primaryColor: '#9810fa',
+      backgroundColor: '#ffffff',
+      textColor: '#000000'
+    }
+  })
 
   // Verify super admin access
   useEffect(() => {
@@ -52,6 +136,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         setError(null)
         const fetchedCompanies = await CompanyService.getAllCompanies()
         setCompanies(fetchedCompanies)
+        
+        // Calculate system-wide analytics
+        await calculateSystemAnalytics(fetchedCompanies)
       } catch (err: any) {
         console.error('Error loading companies:', err)
         setError(err.message || 'Failed to load companies')
@@ -63,61 +150,58 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     loadCompanies()
   }, [user])
 
-  const [stats, setStats] = useState({
-    totalCompanies: 0,
-    activeWidgets: 0,
-    monthlyRevenue: 0,
-    monthlyGrowth: 0,
-    revenueGrowth: 0
-  })
+  // Calculate system-wide analytics
+  const calculateSystemAnalytics = async (companies: Company[]) => {
+    try {
+      let totalRatings = 0
+      let totalRatingSum = 0
+      let totalFAQMatches = 0
+      let totalAIFallbacks = 0
+      let totalQueries = 0
 
-  // Update stats when companies change
-  useEffect(() => {
-    const activeCompanies = companies.filter(c => c.status === 'active')
-    const monthlyRevenue = companies.reduce((total, company) => {
-      const planRevenue = company.plan === 'pro' ? 99 : company.plan === 'starter' ? 29 : 0
-      return total + planRevenue
-    }, 0)
+      // Get analytics for each company
+      for (const company of companies) {
+        if (company.id) {
+          try {
+            const [analytics, faqPerformance] = await Promise.all([
+              AnalyticsService.getCompanyAnalytics(company.id, '7d'),
+              AnalyticsService.getFAQPerformance(company.id, '7d')
+            ])
 
-    setStats({
-      totalCompanies: companies.length,
-      activeWidgets: activeCompanies.length,
-      monthlyRevenue,
-      monthlyGrowth: companies.length > 0 ? 12.5 : 0,
-      revenueGrowth: companies.length > 0 ? 8.2 : 0
-    })
-  }, [companies])
+            totalRatings += analytics.totalRatings || 0
+            totalRatingSum += (analytics.averageRating || 0) * (analytics.totalRatings || 0)
+            totalFAQMatches += faqPerformance.faqMatches || 0
+            totalAIFallbacks += faqPerformance.aiFallbacks || 0
+            totalQueries += faqPerformance.totalQueries || 0
+          } catch (error) {
+            console.error(`Failed to load analytics for company ${company.id}:`, error)
+          }
+        }
+      }
 
-  // Modal state
-  const [modalState, setModalState] = useState<{
-    isOpen: boolean
-    mode: 'view' | 'add' | 'edit'
-    company: Company | null
-  }>({
-    isOpen: false,
-    mode: 'view',
-    company: null
-  })
+      const activeCompanies = companies.filter(c => c.status === 'active')
+      const monthlyRevenue = companies.reduce((total, company) => {
+        const planRevenue = company.plan === 'pro' ? 99 : company.plan === 'starter' ? 29 : 0
+        return total + planRevenue
+      }, 0)
 
-  // Confirmation dialog state
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean
-    companyId: string | null
-  }>({
-    isOpen: false,
-    companyId: null
-  })
-
-  // FAQ management state
-  const [faqModal, setFaqModal] = useState<{
-    isOpen: boolean
-    companyId: string | null
-    companyName: string
-  }>({
-    isOpen: false,
-    companyId: null,
-    companyName: ''
-  })
+      setSystemAnalytics({
+        totalCompanies: companies.length,
+        activeWidgets: activeCompanies.length,
+        monthlyRevenue,
+        monthlyGrowth: companies.length > 0 ? 12.5 : 0,
+        revenueGrowth: companies.length > 0 ? 8.2 : 0,
+        totalRatings,
+        averageRating: totalRatings > 0 ? totalRatingSum / totalRatings : 0,
+        totalFAQMatches,
+        totalAIFallbacks,
+        averageFAQMatchRate: totalQueries > 0 ? (totalFAQMatches / totalQueries) * 100 : 0,
+        averageAIFallbackRate: totalQueries > 0 ? (totalAIFallbacks / totalQueries) * 100 : 0
+      })
+    } catch (error) {
+      console.error('Failed to calculate system analytics:', error)
+    }
+  }
 
   const handleAddCompany = () => {
     setModalState({
@@ -220,6 +304,54 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     setFaqModal({ isOpen: false, companyId: null, companyName: '' })
   }
 
+  // Integration code handlers
+  const handleViewIntegrationCode = (company: Company) => {
+    setIntegrationModal({
+      isOpen: true,
+      companyName: company.name
+    })
+  }
+
+  const closeIntegrationModal = () => {
+    setIntegrationModal({ isOpen: false, companyName: '' })
+  }
+
+  // Widget settings handlers
+  const handleConfigureWidget = (company: Company) => {
+    setWidgetSettingsModal({
+      isOpen: true,
+      companyId: company.id || '',
+      companyName: company.name,
+      initialTheme: company.theme || {
+        primaryColor: '#9810fa',
+        backgroundColor: '#ffffff',
+        textColor: '#000000'
+      }
+    })
+  }
+
+  const handleThemeUpdate = (newTheme: any) => {
+    // Update the company's theme in the local state
+    setCompanies(prev => prev.map(company => 
+      company.id === widgetSettingsModal.companyId 
+        ? { ...company, theme: newTheme }
+        : company
+    ))
+  }
+
+  const closeWidgetSettingsModal = () => {
+    setWidgetSettingsModal({
+      isOpen: false,
+      companyId: '',
+      companyName: '',
+      initialTheme: {
+        primaryColor: '#9810fa',
+        backgroundColor: '#ffffff',
+        textColor: '#000000'
+      }
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -318,29 +450,65 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
+        {/* System Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Companies"
-            value={stats.totalCompanies}
+            value={systemAnalytics.totalCompanies}
             icon={Building2}
-            trend={{ value: stats.monthlyGrowth, isPositive: true }}
+            trend={{ value: systemAnalytics.monthlyGrowth, isPositive: true }}
+            type="count"
           />
           <StatCard
             title="Active Widgets"
-            value={stats.activeWidgets}
+            value={systemAnalytics.activeWidgets}
             icon={Activity}
+            type="count"
           />
           <StatCard
             title="Monthly Revenue"
-            value={`$${stats.monthlyRevenue.toLocaleString()}`}
+            value={`$${systemAnalytics.monthlyRevenue.toLocaleString()}`}
             icon={DollarSign}
-            trend={{ value: stats.revenueGrowth, isPositive: true }}
+            trend={{ value: systemAnalytics.revenueGrowth, isPositive: true }}
           />
           <StatCard
             title="System Health"
             value="100%"
             icon={Globe}
+            color="success"
+          />
+        </div>
+
+        {/* Enhanced System Analytics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <RatingStatCard
+            title="System Rating"
+            value={systemAnalytics.averageRating}
+            positiveRatings={Math.round(systemAnalytics.totalRatings * 0.7)} // Estimate
+            negativeRatings={Math.round(systemAnalytics.totalRatings * 0.3)} // Estimate
+            totalRatings={systemAnalytics.totalRatings}
+            color={systemAnalytics.averageRating >= 4 ? 'success' : systemAnalytics.averageRating >= 3 ? 'warning' : 'danger'}
+          />
+          <FAQMatchStatCard
+            title="Avg FAQ Match Rate"
+            value={systemAnalytics.averageFAQMatchRate}
+            faqMatches={systemAnalytics.totalFAQMatches}
+            totalQueries={systemAnalytics.totalFAQMatches + systemAnalytics.totalAIFallbacks}
+            color={systemAnalytics.averageFAQMatchRate >= 70 ? 'success' : systemAnalytics.averageFAQMatchRate >= 50 ? 'warning' : 'danger'}
+          />
+          <AIFallbackStatCard
+            title="Avg AI Fallback Rate"
+            value={systemAnalytics.averageAIFallbackRate}
+            aiFallbacks={systemAnalytics.totalAIFallbacks}
+            totalQueries={systemAnalytics.totalFAQMatches + systemAnalytics.totalAIFallbacks}
+            color={systemAnalytics.averageAIFallbackRate <= 30 ? 'success' : systemAnalytics.averageAIFallbackRate <= 50 ? 'warning' : 'danger'}
+          />
+          <StatCard
+            title="Total Ratings"
+            value={systemAnalytics.totalRatings}
+            icon={ThumbsUp}
+            type="count"
+            color="info"
           />
         </div>
 
@@ -370,81 +538,48 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           />
         </div>
 
-        {/* FAQ Management */}
-        {companies.length > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                FAQ Management
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Import and manage FAQs for all companies
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {companies.map((company) => (
-                  <div key={company.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        {company.name}
-                      </h3>
-                      <FileText className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                      Manage FAQs for this company
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleManageFAQs(company)}
-                      className="w-full"
-                    >
-                      Manage FAQs
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <Download className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  System Analytics
+                  Integration Codes
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  View detailed performance metrics
+                  View integration codes for companies
                 </p>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Use the table below to view integration codes for individual companies
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                  <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  User Management
+                  FAQ Management
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Manage admin users and permissions
+                  Import and manage FAQs for all companies
                 </p>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Use the table below to manage FAQs for individual companies
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -456,13 +591,16 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  System Settings
+                  Widget Settings
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Configure system preferences
+                  Configure widget themes for companies
                 </p>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Use the table below to configure widget settings for individual companies
+            </p>
           </div>
         </div>
 
@@ -474,6 +612,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               onEdit={handleEditCompany}
               onDelete={handleDeleteCompany}
               onView={handleViewCompany}
+              onManageFAQs={handleManageFAQs}
+              onViewIntegrationCode={handleViewIntegrationCode}
+              onConfigureWidget={handleConfigureWidget}
             />
           </>
         )}
@@ -528,6 +669,22 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           </div>
         </div>
       )}
+
+      {/* Integration Code Modal */}
+      <IntegrationCodeModal
+        isOpen={integrationModal.isOpen}
+        onClose={closeIntegrationModal}
+        companyName={integrationModal.companyName}
+      />
+
+      {/* Widget Settings Modal */}
+      <WidgetSettingsModal
+        isOpen={widgetSettingsModal.isOpen}
+        onClose={closeWidgetSettingsModal}
+        companyId={widgetSettingsModal.companyId}
+        initialTheme={widgetSettingsModal.initialTheme}
+        onThemeUpdate={handleThemeUpdate}
+      />
     </div>
   )
 } 

@@ -60,18 +60,41 @@ CREATE POLICY "Service role can update FAQs" ON faqs
 CREATE POLICY "Service role can delete FAQs" ON faqs
   FOR DELETE USING (true);
 
-
--- Widget Analytics Table
+-- Widget Analytics Table (Updated with new event types)
 CREATE TABLE IF NOT EXISTS widget_analytics (
   id SERIAL PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  event_type VARCHAR(50) NOT NULL, -- 'widget_view', 'message_sent', 'message_received', 'widget_opened', 'widget_closed'
+  event_type VARCHAR(50) NOT NULL, -- 'widget_view', 'message_sent', 'message_received', 'widget_opened', 'widget_closed', 'rating_given', 'language_changed', 'theme_changed', 'faq_matched', 'ai_fallback'
   page_url TEXT,
   user_agent TEXT,
   message TEXT,
   response TEXT,
   session_id VARCHAR(255),
+  -- New fields for enhanced analytics
+  rating INTEGER, -- 1 for thumbs up, -1 for thumbs down
+  feedback_text TEXT, -- Optional feedback from user
+  language VARCHAR(10), -- Language code (e.g., 'en', 'es', 'fr')
+  theme_mode VARCHAR(10), -- 'light' or 'dark'
+  faq_id UUID REFERENCES faqs(id), -- Reference to matched FAQ
+  ai_fallback_reason TEXT, -- Reason for AI fallback
+  response_source VARCHAR(20), -- 'faq' or 'ai'
+  confidence_score REAL, -- Similarity score for FAQ matches
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User Ratings Table (for detailed rating analytics)
+CREATE TABLE IF NOT EXISTS user_ratings (
+  id SERIAL PRIMARY KEY,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  session_id VARCHAR(255),
+  message_id VARCHAR(255), -- To link rating to specific message
+  rating INTEGER NOT NULL, -- 1 for thumbs up, -1 for thumbs down
+  feedback_text TEXT,
+  response_text TEXT, -- The response that was rated
+  response_source VARCHAR(20), -- 'faq' or 'ai'
+  faq_id UUID REFERENCES faqs(id), -- If response came from FAQ
+  confidence_score REAL, -- If from FAQ, the similarity score
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -82,16 +105,28 @@ CREATE INDEX idx_companies_name ON public.companies(name);
 CREATE INDEX idx_companies_domain ON public.companies(domain);
 CREATE INDEX idx_companies_status ON public.companies(status);
 
--- Indexes for better performance
+-- Enhanced indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON widget_analytics(company_id);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON widget_analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_timestamp ON widget_analytics(timestamp);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_session_id ON widget_analytics(session_id);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_rating ON widget_analytics(rating);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_response_source ON widget_analytics(response_source);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_language ON widget_analytics(language);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_theme_mode ON widget_analytics(theme_mode);
+
+-- Indexes for user ratings
+CREATE INDEX IF NOT EXISTS idx_user_ratings_company_id ON user_ratings(company_id);
+CREATE INDEX IF NOT EXISTS idx_user_ratings_session_id ON user_ratings(session_id);
+CREATE INDEX IF NOT EXISTS idx_user_ratings_rating ON user_ratings(rating);
+CREATE INDEX IF NOT EXISTS idx_user_ratings_response_source ON user_ratings(response_source);
+CREATE INDEX IF NOT EXISTS idx_user_ratings_created_at ON user_ratings(created_at);
 
 -- Enable RLS
 ALTER TABLE widget_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_ratings ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
+-- RLS Policies for widget_analytics
 CREATE POLICY "Companies can view their own analytics" ON widget_analytics
   FOR SELECT USING (
     company_id IN (
@@ -107,6 +142,20 @@ CREATE POLICY "Service role can update analytics" ON widget_analytics
 
 -- Allow service role to read all analytics (for admin dashboard)
 CREATE POLICY "Service role can read all analytics" ON widget_analytics
+  FOR SELECT USING (true);
+
+-- RLS Policies for user_ratings
+CREATE POLICY "Companies can view their own ratings" ON user_ratings
+  FOR SELECT USING (
+    company_id IN (
+      SELECT id FROM companies WHERE name = current_setting('request.jwt.claims', true)::json->>'company_name'
+    )
+  );
+
+CREATE POLICY "Service role can insert ratings" ON user_ratings
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can read all ratings" ON user_ratings
   FOR SELECT USING (true);
 
 -- Updated find_relevant_faqs function
@@ -132,6 +181,59 @@ BEGIN
     WHERE f.company_id = p_company_id
     ORDER BY similarity DESC
     LIMIT p_top_k;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get analytics summary with new metrics
+CREATE OR REPLACE FUNCTION get_analytics_summary(
+    p_company_id UUID,
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+) RETURNS TABLE (
+    total_views INTEGER,
+    total_interactions INTEGER,
+    total_messages INTEGER,
+    total_responses INTEGER,
+    unique_sessions INTEGER,
+    total_ratings INTEGER,
+    positive_ratings INTEGER,
+    negative_ratings INTEGER,
+    avg_rating DOUBLE PRECISION,
+    faq_match_rate DOUBLE PRECISION,
+    ai_fallback_rate DOUBLE PRECISION,
+    language_changes INTEGER,
+    theme_changes INTEGER,
+    last_activity TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        COUNT(CASE WHEN wa.event_type = 'widget_view' THEN 1 END)::INTEGER as total_views,
+        COUNT(CASE WHEN wa.event_type IN ('message_sent', 'message_received', 'widget_opened', 'widget_closed') THEN 1 END)::INTEGER as total_interactions,
+        COUNT(CASE WHEN wa.event_type = 'message_sent' THEN 1 END)::INTEGER as total_messages,
+        COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::INTEGER as total_responses,
+        COUNT(DISTINCT wa.session_id)::INTEGER as unique_sessions,
+        COUNT(CASE WHEN wa.event_type = 'rating_given' THEN 1 END)::INTEGER as total_ratings,
+        COUNT(CASE WHEN wa.event_type = 'rating_given' AND wa.rating = 1 THEN 1 END)::INTEGER as positive_ratings,
+        COUNT(CASE WHEN wa.event_type = 'rating_given' AND wa.rating = -1 THEN 1 END)::INTEGER as negative_ratings,
+        AVG(CASE WHEN wa.event_type = 'rating_given' THEN wa.rating::DOUBLE PRECISION END) as avg_rating,
+        CASE 
+            WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
+            THEN (COUNT(CASE WHEN wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            ELSE 0 
+        END as faq_match_rate,
+        CASE 
+            WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
+            THEN 100 - (COUNT(CASE WHEN wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            ELSE 0 
+        END as ai_fallback_rate,
+        COUNT(CASE WHEN wa.event_type = 'language_changed' THEN 1 END)::INTEGER as language_changes,
+        COUNT(CASE WHEN wa.event_type = 'theme_changed' THEN 1 END)::INTEGER as theme_changes,
+        MAX(wa.timestamp) as last_activity
+    FROM widget_analytics wa
+    WHERE wa.company_id = p_company_id
+    AND (p_start_date IS NULL OR wa.timestamp >= p_start_date)
+    AND (p_end_date IS NULL OR wa.timestamp <= p_end_date);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -178,3 +280,13 @@ FOR ALL USING (auth.role() = 'authenticated');
 
 -- Alter theme column to JSON type to store theme objects
 -- ALTER TABLE public.companies ALTER COLUMN theme TYPE JSON USING theme::JSON;
+
+-- Add new columns to existing widget_analytics table (run these if table already exists)
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS rating INTEGER;
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS feedback_text TEXT;
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS language VARCHAR(10);
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS theme_mode VARCHAR(10);
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS faq_id UUID REFERENCES faqs(id);
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS ai_fallback_reason TEXT;
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS response_source VARCHAR(20);
+-- ALTER TABLE widget_analytics ADD COLUMN IF NOT EXISTS confidence_score REAL;

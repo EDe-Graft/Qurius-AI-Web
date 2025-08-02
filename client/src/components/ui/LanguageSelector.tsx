@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import { ChevronDown, Globe } from 'lucide-react'
 import { useLanguage, LANGUAGE_NAMES, LANGUAGE_FLAGS, type Language } from '@/context/LanguageContext'
+import { AnalyticsService } from '@/services/analyticsService'
 
 interface LanguageSelectorProps {
   className?: string
   variant?: 'dropdown' | 'buttons'
+  companyName?: string
 }
 
-export function LanguageSelector({ className = '', variant = 'dropdown' }: LanguageSelectorProps) {
+export function LanguageSelector({ className = '', variant = 'dropdown', companyName }: LanguageSelectorProps) {
   const { currentLanguage, setLanguage, isLanguageChanging } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
 
   const handleLanguageChange = (language: Language) => {
     setLanguage(language)
     setIsOpen(false)
+    if (companyName) {
+      AnalyticsService.trackLanguageChange(companyName, language)
+    }
   }
 
   if (variant === 'buttons') {

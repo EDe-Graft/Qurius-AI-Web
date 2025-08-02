@@ -13,30 +13,24 @@ import {
   Building2,
   Globe,
   Mail,
-  Calendar,
-  Palette,
-  Save,
-  X
+  Calendar
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { StatCard } from "@/components/admin/StatCard"
+import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImport from "@/components/admin/FAQImport"
+import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
+import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
+import { AnalyticsService, type WidgetAnalytics, type RatingAnalytics, type FAQPerformance } from "@/services/analyticsService"
 import { getUserRole } from "@/lib/auth"
 import { toTitleCase } from "@/lib/utils"
 
 interface CompanyAdminProps {
   user: any
-}
-
-interface WidgetTheme {
-  primaryColor: string
-  backgroundColor: string
-  textColor: string
 }
 
 export function CompanyAdmin({ user }: CompanyAdminProps) {
@@ -47,12 +41,13 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [error, setError] = useState<string | null>(null)
   const [showFAQImport, setShowFAQImport] = useState(false)
   const [showWidgetConfig, setShowWidgetConfig] = useState(false)
-  const [widgetTheme, setWidgetTheme] = useState<WidgetTheme>({
-    primaryColor: '#9810fa',
-    backgroundColor: '#ffffff',
-    textColor: '#000000'
-  })
-  const [savingTheme, setSavingTheme] = useState(false)
+  const [showIntegrationCode, setShowIntegrationCode] = useState(false)
+
+  // Enhanced analytics state
+  const [analytics, setAnalytics] = useState<WidgetAnalytics | null>(null)
+  const [ratingAnalytics, setRatingAnalytics] = useState<RatingAnalytics | null>(null)
+  const [faqPerformance, setFaqPerformance] = useState<FAQPerformance | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   // Get company data for this admin
   useEffect(() => {
@@ -75,12 +70,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
         const companyData = await CompanyService.getCompanyById('18c69d1d-89c3-432f-b7e6-cb69c67de342')
         setCompany(companyData)
-        console.log("company data", companyData)
-        
-        // Initialize widget theme from company data
-        if (companyData?.theme) {
-          setWidgetTheme(companyData.theme)
-        }
+        // console.log("company data", companyData)
       } catch (err: any) {
         console.error('❌ Error loading company:', err)
         setError(err.message || 'Failed to load company data')
@@ -92,29 +82,34 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     loadCompany()
   }, [])
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalViews: 0,
-    totalInteractions: 0,
-    totalMessages: 0,
-    totalResponses: 0,
-    uniqueSessions: 0,
-    lastActivity: 'Never'
-  })
-
-  // Update stats when company data changes
+  // Load enhanced analytics when company is available
   useEffect(() => {
-    if (company?.analytics) {
-      setStats({
-        totalViews: company.analytics.totalViews || 0,
-        totalInteractions: company.analytics.totalInteractions || 0,
-        totalMessages: company.analytics.totalMessages || 0,
-        totalResponses: company.analytics.totalResponses || 0,
-        uniqueSessions: company.analytics.uniqueSessions || 0,
-        lastActivity: company.analytics.lastActivity || 'Never'
-      })
+    const loadAnalytics = async () => {
+      if (!company?.id) return
+
+      try {
+        setAnalyticsLoading(true)
+        
+        // Load all analytics data in parallel
+        const [analyticsData, ratingsData, faqData] = await Promise.all([
+          AnalyticsService.getCompanyAnalytics(company.id, '7d'),
+          AnalyticsService.getRatingsAnalytics(company.id, '7d'),
+          AnalyticsService.getFAQPerformance(company.id, '7d')
+        ])
+
+        setAnalytics(analyticsData)
+        setRatingAnalytics(ratingsData)
+        console.log("ratings data", ratingAnalytics)
+        setFaqPerformance(faqData)
+      } catch (error) {
+        console.error('Failed to load analytics:', error)
+      } finally {
+        setAnalyticsLoading(false)
+      }
     }
-  }, [company])
+
+    loadAnalytics()
+  }, [company?.id])
 
   const handleFAQImport = async (faqs: Array<{ question: string; answer: string }>) => {
     if (!company?.id) return
@@ -129,33 +124,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     }
   }
 
-  const copyIntegrationCode = () => {
-    const code = `<script src="${window.location.origin}/embed.js" data-company="${company?.name}"></script>`
-    navigator.clipboard.writeText(code)
-    alert('Integration code copied to clipboard!')
-  }
-
-  const handleSaveTheme = async () => {
-    if (!company?.id) return
-
-    try {
-      setSavingTheme(true)
-      // Update company theme
-      await CompanyService.updateCompany(company.id, {
-        theme: widgetTheme
-      })
-      
-      // Update local company state
-      setCompany(prev => prev ? { ...prev, theme: widgetTheme } : null)
-      
-      alert('Widget theme updated successfully!')
-      setShowWidgetConfig(false)
-    } catch (error) {
-      console.error('Error saving theme:', error)
-      alert(`Failed to save theme: ${error}`)
-    } finally {
-      setSavingTheme(false)
-    }
+  const handleThemeUpdate = (newTheme: any) => {
+    setCompany(prev => prev ? { ...prev, theme: newTheme } : null)
   }
 
   const formatDate = (dateString: string) => {
@@ -165,37 +135,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       day: 'numeric'
     })
   }
-
-  const ColorPicker = ({ 
-    label, 
-    color, 
-    onChange 
-  }: { 
-    label: string
-    color: string
-    onChange: (color: string) => void 
-  }) => (
-    <div className="flex items-center space-x-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
-        {label}
-      </label>
-      <div className="flex items-center space-x-2">
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
-        />
-        <input
-          type="text"
-          value={color}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          placeholder="#000000"
-        />
-      </div>
-    </div>
-  )
 
   if (loading) {
     return (
@@ -287,29 +226,68 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
+        {/* Enhanced Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Widget Views"
-            value={stats.totalViews}
+            value={analytics?.totalViews || 0}
             icon={Eye}
+            type="count"
           />
           <StatCard
             title="Total Interactions"
-            value={stats.totalInteractions}
+            value={analytics?.totalInteractions || 0}
             icon={Activity}
+            type="count"
           />
           <StatCard
             title="Messages Sent"
-            value={stats.totalMessages}
+            value={analytics?.totalMessages || 0}
             icon={MessageCircle}
+            type="count"
           />
           <StatCard
             title="Unique Sessions"
-            value={stats.uniqueSessions}
+            value={analytics?.uniqueSessions || 0}
             icon={Users}
+            type="count"
           />
         </div>
+
+        {/* Enhanced Analytics Cards */}
+        {analytics && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <RatingStatCard
+              title="Average Rating"
+              value={analytics.averageRating || 0}
+              positiveRatings={analytics.positiveRatings}
+              negativeRatings={analytics.negativeRatings}
+              totalRatings={analytics.totalRatings}
+              color={analytics.averageRating >= 4 ? 'success' : analytics.averageRating >= 3 ? 'warning' : 'danger'}
+            />
+            <FAQMatchStatCard
+              title="FAQ Match Rate"
+              value={analytics.faqMatchRate || 0}
+              faqMatches={faqPerformance?.faqMatches}
+              totalQueries={faqPerformance?.totalQueries}
+              color={analytics.faqMatchRate >= 70 ? 'success' : analytics.faqMatchRate >= 50 ? 'warning' : 'danger'}
+            />
+            <AIFallbackStatCard
+              title="AI Fallback Rate"
+              value={analytics.aiFallbackRate || 0}
+              aiFallbacks={faqPerformance?.aiFallbacks}
+              totalQueries={faqPerformance?.totalQueries}
+              color={analytics.aiFallbackRate <= 30 ? 'success' : analytics.aiFallbackRate <= 50 ? 'warning' : 'danger'}
+            />
+            <StatCard
+              title="Language Changes"
+              value={analytics.languageChanges || 0}
+              icon={Globe}
+              type="count"
+              color="info"
+            />
+          </div>
+        )}
 
         {/* Analytics Dashboard */}
         <div className="mb-8">
@@ -317,6 +295,12 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Analytics Dashboard
             </h2>
+            {analyticsLoading && (
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                Loading analytics...
+              </div>
+            )}
           </div>
           <AnalyticsDashboard
             companyId={company?.id}
@@ -342,11 +326,11 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               </div>
             </div>
             <Button
-              onClick={copyIntegrationCode}
+              onClick={() => setShowIntegrationCode(true)}
               className="mt-4 w-full"
               variant="outline"
             >
-              Copy Integration Code
+              View Integration Code
             </Button>
           </div>
 
@@ -577,166 +561,25 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         </div>
       )}
 
-      {/* Widget Configuration Modal */}
-      {showWidgetConfig && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                    <Palette className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                    Widget Theme Configuration
-                  </h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowWidgetConfig(false)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-6">
-                {/* Theme Preview */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Theme Preview
-                  </h3>
-                  <div 
-                    className="w-full h-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
-                    style={{ backgroundColor: widgetTheme.backgroundColor }}
-                  >
-                    <div 
-                      className="px-4 py-2 rounded-lg text-sm font-medium"
-                      style={{ 
-                        backgroundColor: widgetTheme.primaryColor,
-                        color: widgetTheme.textColor
-                      }}
-                    >
-                      Sample Widget Button
-                    </div>
-                  </div>
-                </div>
+      {/* Integration Code Modal */}
+      <IntegrationCodeModal
+        isOpen={showIntegrationCode}
+        onClose={() => setShowIntegrationCode(false)}
+        companyName={company?.name || ''}
+      />
 
-                {/* Color Configuration */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Color Settings
-                  </h3>
-                  
-                  <ColorPicker
-                    label="Primary Color"
-                    color={widgetTheme.primaryColor}
-                    onChange={(color) => setWidgetTheme(prev => ({ ...prev, primaryColor: color }))}
-                  />
-                  
-                  <ColorPicker
-                    label="Background Color"
-                    color={widgetTheme.backgroundColor}
-                    onChange={(color) => setWidgetTheme(prev => ({ ...prev, backgroundColor: color }))}
-                  />
-                  
-                  <ColorPicker
-                    label="Text Color"
-                    color={widgetTheme.textColor}
-                    onChange={(color) => setWidgetTheme(prev => ({ ...prev, textColor: color }))}
-                  />
-                </div>
-
-                {/* Preset Themes */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
-                    Preset Themes
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setWidgetTheme({
-                        primaryColor: '#9810fa',
-                        backgroundColor: '#ffffff',
-                        textColor: '#000000'
-                      })}
-                      className="text-xs"
-                    >
-                      Purple Theme
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setWidgetTheme({
-                        primaryColor: '#3B82F6',
-                        backgroundColor: '#ffffff',
-                        textColor: '#1F2937'
-                      })}
-                      className="text-xs"
-                    >
-                      Blue Theme
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setWidgetTheme({
-                        primaryColor: '#10B981',
-                        backgroundColor: '#ffffff',
-                        textColor: '#000000'
-                      })}
-                      className="text-xs"
-                    >
-                      Green Theme
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setWidgetTheme({
-                        primaryColor: '#F59E0B',
-                        backgroundColor: '#ffffff',
-                        textColor: '#000000'
-                      })}
-                      className="text-xs"
-                    >
-                      Orange Theme
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowWidgetConfig(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveTheme}
-                    disabled={savingTheme}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    {savingTheme ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Saving...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <Save className="h-4 w-4" />
-                        <span>Save Theme</span>
-                      </div>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Widget Settings Modal */}
+      <WidgetSettingsModal
+        isOpen={showWidgetConfig}
+        onClose={() => setShowWidgetConfig(false)}
+        companyId={company?.id || ''}
+        initialTheme={company?.theme || {
+          primaryColor: '#9810fa',
+          backgroundColor: '#ffffff',
+          textColor: '#000000'
+        }}
+        onThemeUpdate={handleThemeUpdate}
+      />
     </div>
   )
 } 
