@@ -216,15 +216,19 @@ BEGIN
         COUNT(CASE WHEN wa.event_type = 'rating_given' THEN 1 END)::INTEGER as total_ratings,
         COUNT(CASE WHEN wa.event_type = 'rating_given' AND wa.rating = 1 THEN 1 END)::INTEGER as positive_ratings,
         COUNT(CASE WHEN wa.event_type = 'rating_given' AND wa.rating = -1 THEN 1 END)::INTEGER as negative_ratings,
-        AVG(CASE WHEN wa.event_type = 'rating_given' THEN wa.rating::DOUBLE PRECISION END) as avg_rating,
+        CASE 
+            WHEN COUNT(CASE WHEN wa.event_type = 'rating_given' THEN 1 END) > 0 
+            THEN (COUNT(CASE WHEN wa.event_type = 'rating_given' AND wa.rating = 1 THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'rating_given' THEN 1 END)::DOUBLE PRECISION) * 100
+            ELSE 0 
+        END as avg_rating,
         CASE 
             WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
-            THEN (COUNT(CASE WHEN wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            THEN (COUNT(CASE WHEN wa.event_type = 'message_received' AND wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
             ELSE 0 
         END as faq_match_rate,
         CASE 
             WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
-            THEN 100 - (COUNT(CASE WHEN wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            THEN 100 - (COUNT(CASE WHEN wa.event_type = 'message_received' AND wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
             ELSE 0 
         END as ai_fallback_rate,
         COUNT(CASE WHEN wa.event_type = 'language_changed' THEN 1 END)::INTEGER as language_changes,

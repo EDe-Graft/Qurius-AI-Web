@@ -50,7 +50,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
       // Give time for components to initialize before streaming starts
       setTimeout(() => {
         simulateStream(message)
-      }, 1000)
+      }, 1500)
     } else if (!isUser && !skipStreaming && !isInitialized && isLastAiMessage) {
       // Set streaming state but don't start yet
       setIsStreaming(true)

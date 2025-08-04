@@ -31,8 +31,8 @@ export async function getEmbedding(question: string, answer: string): Promise<{ 
 // Get AI response from our backend (secure)
 export async function getAIResponse(messages: Array<{ role: string; content: string }>, companyName: string): Promise<string> {
   try {
-    console.log('Calling backend at:', `${BACKEND_URL}/api/chat`);
-    const response = await axios.post(`${BACKEND_URL}/api/chat`, {
+    console.log('Calling backend at:', `${BACKEND_URL}/api/ai/chat`);
+    const response = await axios.post(`${BACKEND_URL}/api/ai/chat`, {
       messages,
       companyName
     }, axiosConfig);

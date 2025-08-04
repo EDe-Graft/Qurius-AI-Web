@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { formatReadableDateTime, toTitleCase } from './helper.js';
+import { toTitleCase } from './helper.js';
+import { WelcomeEmailTemplate } from './emailTemplates.js';
+import { sendEmail } from './config/resend.js';
 
 //getEmbedding from Jina AI
 export async function getEmbedding(question, answer) {
@@ -25,7 +27,7 @@ export async function getEmbedding(question, answer) {
 
 
 // Get AI response using OpenAI
-export async function getAIResponse(question, companyName) {
+export async function getAIResponse({role, content, companyName}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-4o-mini';
@@ -44,8 +46,8 @@ export async function getAIResponse(question, companyName) {
             content: systemPrompt
           },
           {
-            role: 'user',
-            content: question
+            role: role,
+            content: content
           }
         ],
         max_tokens: maxTokens,
@@ -54,7 +56,8 @@ export async function getAIResponse(question, companyName) {
       {
         headers: {
           'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SOURCE_URL
         }
       }
     );
@@ -185,7 +188,7 @@ export async function createCompany(companyData) {
   }
 
 //Create auth user
-export async function createAuthUser(companyId, email) {
+export async function createAuthUser(email) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -194,7 +197,6 @@ export async function createAuthUser(companyId, email) {
       email,
       role: 'company_admin',
       user_metadata: {
-        company_id: companyId,
         role: 'company_admin'
       }
     }
@@ -220,23 +222,66 @@ export async function createAuthUser(companyId, email) {
   }
 }
 
+//Update auth user metadata with company id
+export async function updateAuthUser(companyId, userId) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    const userResponse = await axios.put(
+      `${supabaseUrl}/auth/v1/admin/users/${userId}`,
+      {
+        user_metadata: { company_id: companyId }
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    console.log("Auth user updated:", userResponse.data)
+  }
+  catch (error) {
+    console.error('❌ Error updating auth user:', error.response?.data || error.message);
+    throw new Error('Failed to update auth user');
+  }
+}
 
 // Send welcome email
-export async function sendWelcomeEmail(email, companyName, planId) {
+export async function sendWelcomeEmail(companyEmail, companyName, planId) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     // Get plan name for display
     const planName = planId === 'pro' ? 'Pro' : planId === 'starter' ? 'Starter' : 'Free';
-    
-    // Create password reset link using Supabase Auth
-    const resetResponse = await axios.post(
+
+    // Generate email HTML from template
+    const emailHtml = WelcomeEmailTemplate({
+      companyName,
+      planName,
+      adminLink: `${process.env.FRONTEND_URL}/admin`
+    });
+
+    // Send welcome email via Resend
+    const emailResult = await sendEmail({
+      from: 'Qurius AI <hello@qurius.app>',
+      replyTo: 'qurius.ai@gmail.com',
+      to: companyEmail,
+      subject: `Welcome to Qurius AI, ${companyName}!`,
+      html: emailHtml
+    });
+
+     // Send password reset link using Supabase Auth
+     await axios.post(
       `${supabaseUrl}/auth/v1/recover`,
       {
-        email: email,
-        redirect_to: `${process.env.FRONTEND_URL || 'https://qurius-ai.vercel.app'}/auth/callback`
+        email: companyEmail,
+        redirect_to: `${process.env.FRONTEND_URL}/auth/callback`
       },
       {
         headers: {
@@ -247,45 +292,17 @@ export async function sendWelcomeEmail(email, companyName, planId) {
       }
     );
 
-    // In production, you would send this via email service like SendGrid or Resend
-    // For now, we'll log the welcome email content
-    console.log('🎉 Welcome Email Sent!');
-    console.log('📧 To:', email);
+    if (emailResult.success === false) {
+      console.log('⚠️ Welcome email not sent (Resend not configured)');
+    } else {
+      console.log('✅ Welcome email sent successfully');
+    }
+    console.log('📧 To:', companyEmail);
     console.log('🏢 Company:', companyName);
     console.log('📦 Plan:', planName);
-    console.log('🔗 Password Reset Link:', `${process.env.FRONTEND_URL}/auth/callback`);
-    console.log('📊 Admin Dashboard:', `${process.env.FRONTEND_URL}/admin`);
     
-    // Email content (for reference)
-    const emailContent = `
-🎉 Welcome to Qurius AI!
-
-Congratulations, ${companyName}! 🚀
-
-You've just joined the future of customer service. Qurius AI is designed to transform how your business interacts with customers, providing instant, intelligent responses that will delight your users and boost your customer satisfaction scores.
-
-✨ What makes Qurius AI incredible:
-• Instant Responses: Your customers get answers in seconds, not hours
-• 24/7 Availability: Never miss a customer inquiry again
-• Intelligent Learning: Gets smarter with every interaction
-• Seamless Integration: Works perfectly with your existing website
-• Multi-language Support: Serve customers worldwide
-
-Your ${planName} plan is now active and ready to revolutionize your customer service experience. You're about to see a dramatic improvement in customer satisfaction and response times.
-
-🎯 Your Next Steps:
-1. Set your password using the link above
-2. Access your admin dashboard to customize your widget
-3. Import your FAQs to train your AI assistant
-4. Copy the integration code to your website
-5. Watch your customer satisfaction soar! 📈
-
-Ready to transform your customer service? Let's make it happen! 🚀
-    `;
-    
-
-    console.log('✅ Password reset email sent to:', email);
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);
+    throw error;
   }
 }

@@ -41,7 +41,8 @@ export function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="pt-18 flex justify-between items-center py-6">
             <div className="flex items-center">
-              <MessageCircle className="h-8 w-8 text-blue-600" />
+              {/* <MessageCircle className="h-8 w-8 text-blue-600" /> */}
+              <img src="/logo.png" alt="Qurius AI" className="h-10 w-10" />
               <span className="ml-2 text-xl font-bold text-gray-900 dark:text-gray-100">Qurius AI</span>
             </div>
             

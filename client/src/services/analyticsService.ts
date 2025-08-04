@@ -24,19 +24,7 @@ export interface DailyStat {
   messages: number
 }
 
-export interface RatingAnalytics {
-  totalRatings: number
-  positiveRatings: number
-  negativeRatings: number
-  averageRating: number
-  satisfactionRate: number
-  ratingsBySource: {
-    faq: number
-    ai: number
-  }
-  recentRatings: any[]
-  feedbackCount: number
-}
+
 
 export interface FAQPerformance {
   totalQueries: number
@@ -108,33 +96,7 @@ export class AnalyticsService {
     }
   }
 
-  // Submit user rating
-  static async submitRating(
-    companyName: string,
-    rating: number, // 1 for thumbs up, -1 for thumbs down
-    responseText: string,
-    responseSource: 'faq' | 'ai',
-    feedbackText?: string,
-    faqId?: string,
-    confidenceScore?: number
-  ) {
-    try {
-      const sessionId = this.getSessionId()
-      
-      await axios.post(`${this.BACKEND_URL}/api/analytics/rating`, {
-        companyName,
-        rating,
-        feedbackText,
-        responseText,
-        responseSource,
-        faqId,
-        confidenceScore,
-        sessionId
-      })
-    } catch (error) {
-      console.error('Failed to submit rating:', error)
-    }
-  }
+
 
   // Get analytics for a company
   static async getCompanyAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
@@ -148,16 +110,7 @@ export class AnalyticsService {
     }
   }
 
-  // Get detailed ratings analytics
-  static async getRatingsAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<RatingAnalytics> {
-    try {
-      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/ratings/${companyId}?period=${period}`)
-      return response.data
-    } catch (error) {
-      console.error('Failed to fetch ratings analytics:', error)
-      throw new Error('Failed to fetch ratings analytics')
-    }
-  }
+
 
   // Get FAQ performance analytics
   static async getFAQPerformance(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
@@ -263,6 +216,7 @@ export class AnalyticsService {
     faqId?: string,
     confidenceScore?: number
   ) {
+    // Use trackWidgetInteraction for ratings to keep everything in one table
     await this.trackWidgetInteraction(companyName, 'rating_given', undefined, responseText, {
       rating,
       feedbackText,
@@ -270,8 +224,5 @@ export class AnalyticsService {
       faqId,
       confidenceScore
     })
-
-    // Also submit to dedicated rating endpoint
-    await this.submitRating(companyName, rating, responseText, responseSource, feedbackText, faqId, confidenceScore)
   }
 } 

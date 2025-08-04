@@ -25,7 +25,7 @@ import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
-import { AnalyticsService, type WidgetAnalytics, type RatingAnalytics, type FAQPerformance } from "@/services/analyticsService"
+import { AnalyticsService, type WidgetAnalytics, type FAQPerformance } from "@/services/analyticsService"
 import { getUserRole } from "@/lib/auth"
 import { toTitleCase } from "@/lib/utils"
 
@@ -45,7 +45,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
   // Enhanced analytics state
   const [analytics, setAnalytics] = useState<WidgetAnalytics | null>(null)
-  const [ratingAnalytics, setRatingAnalytics] = useState<RatingAnalytics | null>(null)
+
   const [faqPerformance, setFaqPerformance] = useState<FAQPerformance | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
@@ -91,15 +91,13 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         setAnalyticsLoading(true)
         
         // Load all analytics data in parallel
-        const [analyticsData, ratingsData, faqData] = await Promise.all([
+        const [analyticsData, faqData] = await Promise.all([
           AnalyticsService.getCompanyAnalytics(company.id, '7d'),
-          AnalyticsService.getRatingsAnalytics(company.id, '7d'),
           AnalyticsService.getFAQPerformance(company.id, '7d')
         ])
 
         setAnalytics(analyticsData)
-        setRatingAnalytics(ratingsData)
-        console.log("ratings data", ratingAnalytics)
+        // Ratings data is now included in the main analytics
         setFaqPerformance(faqData)
       } catch (error) {
         console.error('Failed to load analytics:', error)

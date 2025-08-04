@@ -1,15 +1,16 @@
 // server/index.js
+import dotenv from 'dotenv';
+// Load environment variables first
+dotenv.config({ path: './.env' });
+
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
-import dotenv from 'dotenv';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
-
-dotenv.config();
 
 const app = express();;
 const PORT = process.env.PORT || 3001;
@@ -96,16 +97,22 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         };
 
         try {
-          const { companyId, companyName, email } = await createCompany(companyData);
-          console.log('✅ Company created successfully');
+          //Create auth user first to avoid duplicate users
+          const userId = await createAuthUser(customerEmail)
 
-          // Create auth user
-          await createAuthUser(companyId, companyName, email);
-          console.log('✅ Auth user created successfully');
+          //if success, create company
+          if (userId) {
+            const { companyId, companyName, email: companyEmail } = await createCompany(companyData);
+            console.log('✅ Company created successfully:', companyId);
 
-          // Send welcome email with password reset
-          await sendWelcomeEmail(email, companyName, planId);
-          console.log('✅ Welcome email sent successfully');
+            // Update auth user with company id
+            await updateAuthUser(companyId, userId)
+            console.log('✅ Auth user updated successfully:', userId);
+
+            // Send welcome email with password reset
+            await sendWelcomeEmail(companyEmail, companyName, planId);
+            console.log('✅ Welcome email sent successfully');
+          }
 
         } catch (error) {
           console.error('❌ Error creating company:', error.response?.data || error.message);
@@ -541,13 +548,19 @@ app.post('/api/companies', async (req, res) => {
   try {
     const companyData = req.body;
 
-    const { companyId, companyName, email, plan } = await createCompany(companyData)
+    //Create auth user first to avoid duplicate users
+    const userId = await createAuthUser(email)
 
-    // Create auth user
-    await createAuthUser(companyId, email)
+    //if success, create company
+    if (userId) {
+      const { companyId, companyName, email: companyEmail, plan } = await createCompany(companyData)
 
-    //Send Welcome Email
-    await sendWelcomeEmail(email, companyName, plan)
+      // Update auth user with company id
+      await updateAuthUser(companyId, userId)
+
+      //Send Welcome Email
+      await sendWelcomeEmail(companyEmail, companyName, plan)
+    }
 
 
     res.json({
@@ -747,7 +760,7 @@ app.post('/api/faqs/search', async (req, res) => {
           }]);
         } else {
           console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
-          const aiResponse = await getAIResponse(question, companyName);
+          const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
           
           // Track AI fallback
           await trackAIFallback(companyId, sessionId, 'low_confidence', bestMatch.similarity);
@@ -763,7 +776,7 @@ app.post('/api/faqs/search', async (req, res) => {
       } else {
         // No FAQ found, fallback to AI
         console.log('No FAQ found, falling back to AI');
-        const aiResponse = await getAIResponse(question, companyName);
+        const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
         
         // Track AI fallback
         await trackAIFallback(companyId, sessionId, 'no_faq_found');
@@ -779,7 +792,7 @@ app.post('/api/faqs/search', async (req, res) => {
       console.log('Embedding search failed, falling back to AI:', embeddingError.message);
       
       // Fallback to AI when semantic search fails
-      const aiResponse = await getAIResponse(question, companyName);
+      const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
       
       // Track AI fallback
       await trackAIFallback(companyId, sessionId, 'embedding_error');
@@ -884,92 +897,6 @@ app.post('/api/embeddings', async (req, res) => {
   }
 });
 
-// // Create admin user (for development only)
-// app.post('/api/create-admin', async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-    
-//     if (!email || !password) {
-//       return res.status(400).json({ error: 'Email and password are required' });
-//     }
-
-//     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-//     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-//     if (!supabaseUrl || !supabaseKey) {
-//       return res.status(500).json({ error: 'Supabase configuration missing' });
-//     }
-
-//     const response = await axios.post(
-//       `${supabaseUrl}/auth/v1/admin/users`,
-//       {
-//         email,
-//         password,
-//         email_confirm: true,
-//         user_metadata: { role: 'admin' }
-//       },
-//       {
-//         headers: {
-//           'apikey': supabaseKey,
-//           'Authorization': `Bearer ${supabaseKey}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     res.json({
-//       success: true,
-//       user: response.data
-//     });
-//   } catch (error) {
-//     console.error('Create admin error:', error.response?.data || error.message);
-//     res.status(500).json({ 
-//       success: false,
-//       error: 'Failed to create admin user' 
-//     });
-//   }
-// });
-
-// Get AI response
-app.post('/api/chat', async (req, res) => {
-  try {
-    console.log('Getting AI response from:', req.headers.origin);
-    const { messages, companyName } = req.body;
-    
-    if (!messages || !companyName) {
-      return res.status(400).json({ error: 'Messages and company name are required' });
-    }
-
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: 'openai/gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a helpful assistant for ${companyName}. Answer questions based on their FAQ knowledge base.`
-          },
-          ...messages
-        ],
-        max_tokens: 500
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPEN_ROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.SOURCE_URL || 'https://qurius-ai.vercel.app'
-        }
-      }
-    );
-
-    res.json({
-      answer: response.data.choices[0].message.content
-    });
-  } catch (error) {
-    console.error('Chat error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to get AI response' });
-  }
-});
 
 // Analytics endpoints
 app.post('/api/analytics/widget-view', async (req, res) => {
@@ -1147,161 +1074,67 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
   }
 });
 
-// New endpoint for user ratings
-app.post('/api/analytics/rating', async (req, res) => {
-  try {
-    const { 
-      companyName, 
-      rating, 
-      feedbackText, 
-      responseText, 
-      responseSource, 
-      faqId, 
-      confidenceScore,
-      sessionId 
-    } = req.body;
+
+
+
+// old widget interaction tracking
+// app.post('/api/analytics/widget-interaction', async (req, res) => {
+//   try {
+//     const { companyName, eventType, message, response, timestamp, sessionId } = req.body;
     
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+//     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+//     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ error: 'Supabase configuration missing' });
-    }
+//     if (!supabaseUrl || !supabaseKey) {
+//       return res.status(500).json({ error: 'Supabase configuration missing' });
+//     }
 
-    // Get company ID
-    const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+//     // Get company ID
+//     const companyResponse = await axios.get(
+//       `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+//       {
+//         headers: {
+//           'apikey': supabaseKey,
+//           'Authorization': `Bearer ${supabaseKey}`,
+//           'Content-Type': 'application/json'
+//         }
+//       }
+//     );
 
-    if (!companyResponse.data || companyResponse.data.length === 0) {
-      return res.status(404).json({ error: 'Company not found' });
-    }
+//     if (!companyResponse.data || companyResponse.data.length === 0) {
+//       return res.status(404).json({ error: 'Company not found' });
+//     }
 
-    const companyId = companyResponse.data[0].id;
+//     const companyId = companyResponse.data[0].id;
 
-    // Record rating in both tables
-    const ratingData = {
-      company_id: companyId,
-      session_id: sessionId,
-      message_id: `${sessionId}_${Date.now()}`,
-      rating: rating, // 1 for thumbs up, -1 for thumbs down
-      feedback_text: feedbackText,
-      response_text: responseText,
-      response_source: responseSource,
-      faq_id: faqId,
-      confidence_score: confidenceScore
-    };
+//     // Record widget interaction
+//     const interactionData = {
+//       company_id: companyId,
+//       event_type: eventType, // 'message_sent', 'message_received', 'widget_opened', 'widget_closed', 'faq_matched', 'ai_fallback', 'rating_given', 'language_changed', 'theme_changed'
+//       message: message || null,
+//       response: response || null,
+//       timestamp: timestamp || new Date().toISOString(),
+//       session_id: sessionId || null
+//     };
 
-    // Insert into user_ratings table
-    await axios.post(
-      `${supabaseUrl}/rest/v1/user_ratings`,
-      ratingData,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+//     await axios.post(
+//       `${supabaseUrl}/rest/v1/widget_analytics`,
+//       interactionData,
+//       {
+//         headers: {
+//           'apikey': supabaseKey,
+//           'Authorization': `Bearer ${supabaseKey}`,
+//           'Content-Type': 'application/json'
+//         }
+//       }
+//     );
 
-    // Also record as analytics event
-    const analyticsData = {
-      company_id: companyId,
-      event_type: 'rating_given',
-      rating: rating,
-      feedback_text: feedbackText,
-      response: responseText,
-      response_source: responseSource,
-      faq_id: faqId,
-      confidence_score: confidenceScore,
-      session_id: sessionId,
-      timestamp: new Date().toISOString()
-    };
-
-    await axios.post(
-      `${supabaseUrl}/rest/v1/widget_analytics`,
-      analyticsData,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Rating tracking error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to track rating' });
-  }
-});
-
-app.post('/api/analytics/widget-interaction', async (req, res) => {
-  try {
-    const { companyName, eventType, message, response, timestamp, sessionId } = req.body;
-    
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ error: 'Supabase configuration missing' });
-    }
-
-    // Get company ID
-    const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (!companyResponse.data || companyResponse.data.length === 0) {
-      return res.status(404).json({ error: 'Company not found' });
-    }
-
-    const companyId = companyResponse.data[0].id;
-
-    // Record widget interaction
-    const interactionData = {
-      company_id: companyId,
-      event_type: eventType, // 'message_sent', 'message_received', 'widget_opened', 'widget_closed'
-      message: message || null,
-      response: response || null,
-      timestamp: timestamp || new Date().toISOString(),
-      session_id: sessionId || null
-    };
-
-    await axios.post(
-      `${supabaseUrl}/rest/v1/widget_analytics`,
-      interactionData,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Widget interaction tracking error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to track widget interaction' });
-  }
-});
+//     res.json({ success: true });
+//   } catch (error) {
+//     console.error('Widget interaction tracking error:', error.response?.data || error.message);
+//     res.status(500).json({ error: 'Failed to track widget interaction' });
+//   }
+// });
 
 app.get('/api/analytics/company/:companyId', async (req, res) => {
   try {
@@ -1386,60 +1219,7 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
   }
 });
 
-// New endpoint for detailed ratings analytics
-app.get('/api/analytics/ratings/:companyId', async (req, res) => {
-  try {
-    const { companyId } = req.params;
-    const { period = '7d' } = req.query;
-    
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ error: 'Supabase configuration missing' });
-    }
 
-    // Calculate date range
-    const now = new Date();
-    const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 7;
-    const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
-    const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
-
-    // Get ratings data
-    const ratingsResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/user_ratings?company_id=eq.${companyId}&created_at=gte.${encodeURIComponent(startDateStr)}&order=created_at.desc`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const ratings = ratingsResponse.data || [];
-
-    // Process ratings data
-    const ratingsStats = {
-      totalRatings: ratings.length,
-      positiveRatings: ratings.filter(r => r.rating === 1).length,
-      negativeRatings: ratings.filter(r => r.rating === -1).length,
-      averageRating: ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 0,
-      satisfactionRate: ratings.length > 0 ? (ratings.filter(r => r.rating === 1).length / ratings.length) * 100 : 0,
-      ratingsBySource: {
-        faq: ratings.filter(r => r.response_source === 'faq').length,
-        ai: ratings.filter(r => r.response_source === 'ai').length
-      },
-      recentRatings: ratings.slice(0, 10), // Last 10 ratings
-      feedbackCount: ratings.filter(r => r.feedback_text).length
-    };
-
-    res.json(ratingsStats);
-  } catch (error) {
-    console.error('❌ Ratings analytics error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch ratings analytics' });
-  }
-});
 
 // New endpoint for FAQ performance analytics
 app.get('/api/analytics/faq-performance/:companyId', async (req, res) => {
@@ -2024,7 +1804,7 @@ app.post('/api/auth/super-admin', async (req, res) => {
 //   try {
 //     const { 
 //       companyName, 
-//       email, 
+//       email: companyEmail, 
 //       plan, 
 //       industry, 
 //       website, 
@@ -2038,7 +1818,7 @@ app.post('/api/auth/super-admin', async (req, res) => {
 //     // Create company data
 //     const companyData = {
 //       name: companyName,
-//       email,
+//       email: companyEmail,
 //       industry: industry,
 //       website: website,
 //       description: description,
@@ -2048,21 +1828,31 @@ app.post('/api/auth/super-admin', async (req, res) => {
 //       enrollment_date: formatReadableDateTime(new Date())
 //     };
 
-//     // Create company
-//     const { companyId } = await createCompany(companyData)
+//     // Create auth user first to avoid duplicate users
+//     const userId = await createAuthUser(companyEmail)
 
-//     // Create auth user
-//     await createAuthUser(companyId, email)
+//     //if success, create company
+//     if (userId) {
+//       const { companyId } = await createCompany(companyData)
+//       console.log('✅ Test company created successfully:', companyId);
 
-//     // Send Welcome Email
-//     await sendWelcomeEmail(email, companyName, plan)
+//       // Update auth user with company id
+//       await updateAuthUser(companyId, userId)
 
-//     console.log('✅ Test company created successfully:', companyId);
+//       // Send Welcome Email
+//       await sendWelcomeEmail(companyEmail, companyName, plan)
+//       console.log('✅ Welcome email sent successfully');
 
-//     res.json({
-//       success: true,
-//       company: { ...companyData, id: companyId }
-//     });
+//       res.json({
+//         success: true,
+//         company: { ...companyData, id: companyId }
+//       });
+//     } else {
+//       res.status(500).json({ 
+//         success: false,
+//         error: 'Failed to create auth user' 
+//       });
+//     }
 //   } catch (error) {
 //     console.error('❌ Test company creation error:', error.response?.data || error.message);
 //     res.status(500).json({ 

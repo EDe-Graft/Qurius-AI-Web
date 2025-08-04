@@ -18,7 +18,7 @@ class FAQService {
   private BACKEND_URL = config.backendUrl;
 
   // Get FAQ answer using semantic search
-  async getFAQAnswer(companyName: string, userQuestion: string): Promise<string | null> {
+  async getFAQAnswer(companyName: string, userQuestion: string): Promise<{ answer: string; source: 'faq' | 'ai' } | null> {
     try {
       const response = await axios.post(`${this.BACKEND_URL}/api/faqs/search`, {
         companyName,
@@ -29,13 +29,22 @@ class FAQService {
       
       // Handle array of FAQ results
       if (Array.isArray(response.data) && response.data.length > 0) {
-        // Return the answer from the first (most relevant) FAQ
-        return response.data[0].answer || null;
+        const firstResult = response.data[0];
+        // Return both answer and source
+        if (firstResult.answer) {
+          return {
+            answer: firstResult.answer,
+            source: firstResult.source || 'ai'
+          };
+        }
       }
       
       // Handle single FAQ object
       if (response.data && response.data.answer) {
-        return response.data.answer;
+        return {
+          answer: response.data.answer,
+          source: response.data.source || 'ai'
+        };
       }
       
       return null;

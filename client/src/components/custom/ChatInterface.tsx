@@ -14,7 +14,6 @@ import { faqService } from "@/services/faqService"
 import { cn, darkenColor } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { interpolate } from '@/lib/translations'
-import { getAIResponse } from "@/services/aiService"
 
 
 // Chat Interface
@@ -72,13 +71,13 @@ export function ChatInterface({
   useEffect(() => {
     const testServices = async () => {
       try {
-        console.log('🧪 Testing translation service...')
+        // console.log('🧪 Testing translation service...')
         const testResult = await TranslationService.translateToEnglish('Hello world')
         console.log('✅ Translation service test result:', testResult)
         
-        console.log('🧪 Testing FAQ service...')
-        const faqResult = await faqService.getFAQAnswer('test-company', 'test question')
-        console.log('✅ FAQ service test result:', faqResult)
+        // console.log('🧪 Testing FAQ service...')
+        // const faqResult = await faqService.getFAQAnswer('test-company', 'test question')
+        // console.log('✅ FAQ service test result:', faqResult)
       } catch (error) {
         console.error('❌ Service test failed:', error)
       }
@@ -152,6 +151,18 @@ export function ChatInterface({
     ))
   }
 
+  // const handleClearChat = () => {
+  //   // Keep only the welcome message
+  //   setMessages([
+  //     {
+  //       content: getWelcomeMessage(),
+  //       isUser: false,
+  //       liked: null,
+  //       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  //     },
+  //   ])
+  // }
+
 
   // Auto-scroll during streaming if user hasn't scrolled
   useEffect(() => {
@@ -216,7 +227,7 @@ export function ChatInterface({
       let translatedInput = content
       try {
         translatedInput = await TranslationService.translateToEnglish(content)
-        console.log('✅ Translated input:', translatedInput)
+        // console.log('✅ Translated input:', translatedInput)
       } catch (translationError) {
         console.warn('⚠️ Translation failed, using original input:', translationError)
         translatedInput = content // Use original input if translation fails
@@ -225,18 +236,19 @@ export function ChatInterface({
       console.log('🤖 Getting FAQ answer...')
       // Get AI response in English
       const result = await faqService.getFAQAnswer(companyName || '', translatedInput)
-      console.log('✅ FAQ result:', result)
+      // console.log('✅ FAQ result:', result)
+      // console.log('🔍 Result type:', typeof result, 'Truthy:', !!result)
       
       if (result) {
-        console.log('🔄 Translating AI response to user language...')
-        // Translate AI response to user's language
-        let translatedResponse = result
+        console.log('🔄 Translating response to user language...')
+        // Translate response to user's language
+        let translatedResponse = result.answer
         try {
-          translatedResponse = await TranslationService.translateToUserLanguage(result, currentLanguage)
-          console.log('✅ Translated response:', translatedResponse)
+          translatedResponse = await TranslationService.translateToUserLanguage(result.answer, currentLanguage)
+          // console.log('✅ Translated response:', translatedResponse)
         } catch (translationError) {
           console.warn('⚠️ Response translation failed, using original:', translationError)
-          translatedResponse = result // Use original response if translation fails
+          translatedResponse = result.answer // Use original response if translation fails
         }
         
         const aiMessage: Message = {
@@ -248,38 +260,21 @@ export function ChatInterface({
         setMessages((prev) => [...prev, aiMessage])
         setWasMinimized(false)
         
-        // Track message received
+        // Track message received with correct source
         if (companyName) {
-          AnalyticsService.trackMessageReceived(companyName, translatedResponse, 'faq')
+          AnalyticsService.trackMessageReceived(companyName, translatedResponse, result.source)
         }
       } else {
-        console.log('⚠️ No FAQ answer found, using fallback...')
-        // No FAQ answer found, fallback to AI response
-        const aiResponse = await getAIResponse([{ role: 'user', content: translatedInput }], companyName || '')
-        console.log('✅ AI response:', aiResponse)
-
-        // Translate AI response to user's language
-        let translatedFallback = aiResponse
-        try {
-          translatedFallback = await TranslationService.translateToUserLanguage(aiResponse, currentLanguage)
-        } catch (translationError) {
-          console.warn('⚠️ Fallback translation failed:', translationError)
-        }         
-        
+        console.log('⚠️ No response found from server')
         setMessages((prev) => [
           ...prev,
           {
-            content: translatedFallback,
+            content: 'Sorry, I encountered an error. Please try again.',
             isUser: false,
             liked: null,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
         ])
-
-        // Track AI fallback
-        if (companyName) {
-          AnalyticsService.trackAIFallback(companyName, 'no_faq_found', 0.5)
-        }
       }
     } catch (error) {
       console.error('❌ Error in handleSendMessage:', error)
@@ -400,6 +395,16 @@ export function ChatInterface({
           </div>
         </div>
         <div className="flex justify-end gap-1">
+          {/* Clear Chat Button - Only show when there are more than 1 message */}
+          {/* {messages.length > 1 && (
+            <button
+              onClick={handleClearChat}
+              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors group"
+              title="Clear chat"
+            >
+              <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-red-500 transition-colors" />
+            </button>
+          )} */}
           <LanguageSelector 
             variant="dropdown" 
             className="scale-65" 

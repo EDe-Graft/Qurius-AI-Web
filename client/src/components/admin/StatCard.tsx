@@ -152,7 +152,8 @@ export function RatingStatCard({
             {title}
           </p>
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-            {typeof value === 'number' ? `${value.toFixed(1)}/5` : value}
+            {/* show rating as a percentage */}
+            {typeof value === 'number' ? `${value.toFixed(1)}%` : value}
           </p>
           {totalRatings && totalRatings > 0 && (
             <div className="flex items-center mt-2 space-x-4">
