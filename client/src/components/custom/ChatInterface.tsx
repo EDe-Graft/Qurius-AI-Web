@@ -33,6 +33,9 @@ export function ChatInterface({
   const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
   const isDark = defaultTheme === 'dark'
 
+  // Animation state for smooth transition
+  const [isVisible, setIsVisible] = useState(false)
+
   // Compute the translated welcome message
   const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { companyName: companyName || 'AI' })
 
@@ -111,6 +114,24 @@ export function ChatInterface({
       }
     }
   }, [isMinimized, companyName])
+
+  // Handle visibility animation when chat is opened
+  useEffect(() => {
+    if (!isMinimized) {
+      // Start invisible
+      setIsVisible(false)
+      
+      // After 1 second, make it visible with smooth transition
+      const timer = setTimeout(() => {
+        setIsVisible(true)
+      }, 500)
+      
+      return () => clearTimeout(timer)
+    } else {
+      // When minimized, hide immediately
+      setIsVisible(false)
+    }
+  }, [isMinimized])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -303,7 +324,8 @@ export function ChatInterface({
 
   if (isMinimized) {
     return (
-      <div 
+      <div
+        className="animate-bounce"
         style={{
           position: 'fixed',
           bottom: '1rem',
@@ -334,6 +356,11 @@ export function ChatInterface({
     )
   }
 
+  // Don't render the chat interface if it's not visible yet
+  if (!isVisible) {
+    return null
+  }
+
   return (
     <div
       className={cn(
@@ -342,6 +369,9 @@ export function ChatInterface({
         "transition-all duration-300 ease-in-out",
         "relative", // Add relative positioning for spinner overlay
         "bg-white dark:bg-gray-900",
+        // Add opacity transition for smooth appearance
+        "transition-opacity duration-500 ease-in-out",
+        "opacity-100"
       )}
       style={{
         width: '100%',
@@ -351,7 +381,8 @@ export function ChatInterface({
         boxSizing: 'border-box',
         position: 'fixed',
         bottom: `${window.innerWidth > 768 ? '1rem' : '0'}`,
-        right: `${window.innerWidth > 768 ? '1rem' : '0'}`,
+        right: `${window.innerWidth > 768 ? '1rem' : '50%'}`,
+        transform: `${window.innerWidth > 768 ? 'none' : 'translateX(50%)'}`,
         zIndex: 50,
       }}
     >

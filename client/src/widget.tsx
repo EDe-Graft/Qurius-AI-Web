@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { ChatInterface } from '@/components/custom/ChatInterface'
 import { ThemeProvider, useTheme } from '@/context/useThemeContext'
+import { LanguageProvider } from '@/context/LanguageContext'
 import './global.css'
 
 // Widget interface
@@ -31,9 +32,11 @@ function initWidget(container: HTMLElement, config: WidgetConfig) {
   // Render widget
   widgetRoot.render(
     <React.StrictMode>
-      <ThemeProvider>
-        <WidgetApp config={config} />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <WidgetApp config={config} />
+        </ThemeProvider>
+      </LanguageProvider>
     </React.StrictMode>
   )
 }

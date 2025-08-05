@@ -47,21 +47,21 @@ export function Onboarding() {
       id: "company-info",
       title: t('onboarding.companyInfo'),
       description: "Tell us about your business",
-      icon: <Settings className="h-6 w-6" />,
+      icon: <Settings className="h-5 w-5 md:h-6 md:w-6" />,
       completed: false
     },
     {
       id: "customization",
       title: t('onboarding.customization'),
       description: "Customize your chat widget",
-      icon: <Palette className="h-6 w-6" />,
+      icon: <Palette className="h-5 w-5 md:h-6 md:w-6" />,
       completed: false
     },
     {
       id: "payment",
       title: t('onboarding.payment'),
       description: "Choose your billing plan",
-      icon: <CreditCard className="h-6 w-6" />,
+      icon: <CreditCard className="h-5 w-5 md:h-6 md:w-6" />,
       completed: false
     }
   ]
@@ -127,33 +127,33 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pt-15">
+      <div className="max-w-4xl mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-8 pt-15">
         {/* Header */}
-        <div className="text-center mb-8 mt-3">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+        <div className="text-center mb-6 md:mb-8 mt-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {t('onboarding.welcome')}
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 px-4 md:px-0">
             Set up your AI chat widget in just a few steps
           </p>
         </div>
 
         {/* Progress Steps */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           {/* Step Icons with Connecting Lines */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${
+                  <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border-2 ${
                     index <= currentStep 
                       ? "border-blue-600 bg-blue-600 text-white" 
                       : "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
                   }`}>
                     {index < currentStep ? (
-                      <CheckCircle className="h-6 w-6" />
+                      <CheckCircle className="h-5 w-5 md:h-6 md:w-6" />
                     ) : (
-                      <div className="flex items-center justify-center h-6 w-6">
+                      <div className="flex items-center justify-center h-5 w-5 md:h-6 md:w-6">
                         {step.icon}
                       </div>
                     )}
@@ -161,7 +161,7 @@ export function Onboarding() {
                   
                   {/* Connecting line to next step */}
                   {index < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 mt-2 ${
+                    <div className={`flex-1 h-0.5 mx-1 md:mx-2 mt-2 ${
                       index < currentStep ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
                     }`} />
                   )}
@@ -173,8 +173,8 @@ export function Onboarding() {
           {/* Step Titles and Descriptions */}
           <div className="flex justify-between">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex-1 text-center px-2">
-                <h3 className={`text-sm font-medium mb-1 ${
+              <div key={step.id} className="flex-1 text-center px-1 md:px-2">
+                <h3 className={`text-xs md:text-sm font-medium mb-1 ${
                   index <= currentStep 
                     ? "text-blue-600 dark:text-blue-400" 
                     : "text-gray-500 dark:text-gray-400"
@@ -190,21 +190,21 @@ export function Onboarding() {
         </div>
 
         {/* Step Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-8">
           {renderStepContent()}
           
           {/* Navigation Buttons */}
           {currentStep < steps.length && (
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={goToPreviousStep}
                 disabled={currentStep === 0}
-                className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-3 md:px-4 py-2 text-sm md:text-base text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] md:min-h-[40px]"
               >
                 ← {t('common.previous')}
               </button>
               
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                 {t('common.step')} {currentStep + 1} of {steps.length}
               </div>
             </div>
@@ -221,18 +221,18 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
   
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.companyInfo')}
       </h2>
       
       {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+        <div className="mb-4 p-3 md:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm md:text-base text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('onboarding.companyName')} *
@@ -242,7 +242,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
               required
               value={companyData.name}
               onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
               placeholder="Enter your company name"
             />
           </div>
@@ -254,7 +254,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             <select
               value={companyData.industry}
               onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             >
               <option value="">Select industry</option>
               <option value="Technology">Technology</option>
@@ -276,7 +276,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             type="url"
             value={companyData.website}
             onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             placeholder="https://yourcompany.com"
           />
         </div>
@@ -290,7 +290,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             required
             value={companyData.email}
             onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             placeholder="contact@yourcompany.com"
           />
         </div>
@@ -303,7 +303,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             type="text"
             value={companyData.location}
             onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             placeholder="e.g., New York, NY"
           />
         </div>
@@ -316,18 +316,16 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
             value={companyData.description}
             onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base"
             placeholder="Tell us about your business..."
           />
         </div>
-
-
 
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base min-h-[44px] md:min-h-[40px]"
           >
             {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -370,11 +368,11 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.customization')}
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
         {/* Default Theme Options */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -386,14 +384,14 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
                 key={index}
                 type="button"
                 onClick={() => applyDefaultTheme(defaultTheme)}
-                className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors min-h-[44px] md:min-h-[40px]"
               >
                 <div className="flex items-center space-x-2">
                   <div 
                     className="w-4 h-4 rounded-full border-2 border-gray-300"
                     style={{ backgroundColor: defaultTheme.primaryColor }}
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
                     {defaultTheme.name}
                   </span>
                 </div>
@@ -402,7 +400,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('onboarding.primaryColor')}
@@ -446,15 +444,15 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
             {t('onboarding.preview')}
           </h3>
           <div 
-            className="w-full h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
+            className="w-full h-24 md:h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
             style={{ backgroundColor: theme.backgroundColor }}
           >
             <div className="text-center">
               <MessageCircle 
-                className="h-8 w-8 mx-auto mb-2" 
+                className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2" 
                 style={{ color: theme.primaryColor }}
               />
-              <p style={{ color: theme.textColor }} className="text-sm">
+              <p style={{ color: theme.textColor }} className="text-xs md:text-sm">
                 Chat Widget Preview
               </p>
             </div>
@@ -465,7 +463,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base min-h-[44px] md:min-h-[40px]"
           >
             {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -547,17 +545,17 @@ function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeData, on
 
   return (
     <div>
-      <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-6">
+      <h2 className="text-xl md:text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.choosePlan')}
       </h2>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+        <div className="mb-4 p-3 md:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm md:text-base text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {/* Free Plan */}
         <PricingCard
           plan="free"

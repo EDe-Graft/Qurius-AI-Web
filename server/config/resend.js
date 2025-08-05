@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: './.env' });
 
 // Initialize Resend with API key - delay initialization
 let resend = null;
@@ -24,7 +24,6 @@ function initializeResend() {
 
 // Initialize immediately
 initializeResend();
-
 // Email configuration
 export const emailConfig = {
   from: 'Qurius AI <hello@qurius.app>', // Professional from address

@@ -11,8 +11,7 @@ export function PublicNavigation() {
   console.log('authFlow', authFlow)
 
   return (
-    // if window.innerWidth is less than 768, then the navigation should be centered according to the screen width
-    <nav className={`fixed top-3 left-3 z-50 ${window.innerWidth < 768 ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}`}>
+    <nav className="fixed z-50 top-3 left-1/2 md:left-3 -translate-x-1/2 md:translate-x-0">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1">
         <div className="flex space-x-1">
           <Link
@@ -75,7 +74,7 @@ export function AdminNavigation() {
   const { isAuthenticated, signOut, authFlow } = useAuth()
 
   return (
-    <nav className={`fixed top-4 left-4 z-50 ${window.innerWidth < 768 ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''}`}>
+    <nav className="fixed z-50 top-3 left-1/2 md:left-3 -translate-x-1/2 md:translate-x-0">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1">
         <div className="flex space-x-1">
           <Link
