@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ThumbsUp, ThumbsDown, Target, Brain, MessageCircle, TrendingUp, TrendingDown } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Target, Brain, MessageCircle, TrendingUp, TrendingDown, Star } from "lucide-react"
 
 interface StatCardProps {
   title: string
@@ -137,9 +137,17 @@ export function RatingStatCard({
   negativeRatings?: number
   totalRatings?: number
 }) {
-  const satisfactionRate = totalRatings && totalRatings > 0 
-    ? (positiveRatings || 0) / totalRatings * 100 
-    : 0
+  // Convert percentage to 5-star rating (round up)
+  const getStarRating = (percentage: number) => {
+    if (percentage <= 0) return 0
+    if (percentage >= 100) return 5
+    
+    // Convert percentage to stars (20% = 1 star, 40% = 2 stars, etc.)
+    const stars = Math.ceil(percentage / 20)
+    return Math.min(stars, 5) // Ensure max 5 stars
+  }
+
+  const starRating = typeof value === 'number' ? getStarRating(value) : 0
 
   return (
     <div className={cn(
@@ -151,10 +159,24 @@ export function RatingStatCard({
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-            {/* show rating as a percentage */}
-            {typeof value === 'number' ? `${value.toFixed(1)}%` : value}
-          </p>
+          <div className="flex items-center mt-2">
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 mr-2">
+              {starRating.toFixed(1)}
+            </span>
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star 
+                  key={star}
+                  className={cn(
+                    "w-5 h-5",
+                    star <= starRating 
+                      ? "text-yellow-500 fill-current" 
+                      : "text-gray-300 dark:text-gray-600"
+                  )} 
+                />
+              ))}
+            </div>
+          </div>
           {totalRatings && totalRatings > 0 && (
             <div className="flex items-center mt-2 space-x-4">
               <div className="flex items-center text-green-600 dark:text-green-400">
@@ -166,7 +188,7 @@ export function RatingStatCard({
                 <span className="text-xs">{negativeRatings || 0}</span>
               </div>
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {satisfactionRate.toFixed(1)}% satisfied
+                {typeof value === 'number' ? `${value.toFixed(1)}%` : value} satisfied
               </span>
             </div>
           )}
