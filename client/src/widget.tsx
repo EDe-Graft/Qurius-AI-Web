@@ -32,11 +32,11 @@ function initWidget(container: HTMLElement, config: WidgetConfig) {
   // Render widget
   widgetRoot.render(
     <React.StrictMode>
-      <LanguageProvider>
-        <ThemeProvider>
+      <ThemeProvider>
+        <LanguageProvider>
           <WidgetApp config={config} />
-        </ThemeProvider>
-      </LanguageProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </React.StrictMode>
   )
 }

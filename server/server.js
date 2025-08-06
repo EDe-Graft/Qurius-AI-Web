@@ -985,6 +985,8 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       confidenceScore
     } = req.body;
     
+    console.log('📊 Widget interaction received:', { companyName, eventType, rating });
+    
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
@@ -1005,10 +1007,12 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
     );
 
     if (!companyResponse.data || companyResponse.data.length === 0) {
+      console.error('❌ Company not found:', companyName);
       return res.status(404).json({ error: 'Company not found' });
     }
 
     const companyId = companyResponse.data[0].id;
+    console.log('✅ Company ID found:', companyId);
 
     // Record widget interaction with enhanced data
     const interactionData = {
@@ -1028,6 +1032,8 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       confidence_score: confidenceScore || null
     };
 
+    console.log('📝 Inserting widget analytics:', interactionData);
+
     await axios.post(
       `${supabaseUrl}/rest/v1/widget_analytics`,
       interactionData,
@@ -1040,36 +1046,51 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       }
     );
 
-    // If this is a rating event, also record in user_ratings table
-    if (eventType === 'rating_given' && rating) {
-      const ratingData = {
-        company_id: companyId,
-        session_id: sessionId,
-        message_id: `${sessionId}_${Date.now()}`, // Generate unique message ID
-        rating: rating,
-        feedback_text: feedbackText,
-        response_text: response,
-        response_source: responseSource,
-        faq_id: faqId,
-        confidence_score: confidenceScore
-      };
+    console.log('✅ Widget analytics inserted successfully');
 
-      await axios.post(
-        `${supabaseUrl}/rest/v1/user_ratings`,
-        ratingData,
-        {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
+    // If this is a rating event, also record in user_ratings table
+    // if (eventType === 'rating_given' && rating) {
+    //   console.log('⭐ Processing rating event:', { rating, feedbackText, responseSource });
+      
+    //   try {
+    //     const ratingData = {
+    //       company_id: companyId,
+    //       session_id: sessionId,
+    //       message_id: `${sessionId}_${Date.now()}`, // Generate unique message ID
+    //       rating: rating,
+    //       feedback_text: feedbackText,
+    //       response_text: response,
+    //       response_source: responseSource,
+    //       faq_id: faqId,
+    //       confidence_score: confidenceScore
+    //     };
+
+    //     console.log('📝 Inserting user rating:', ratingData);
+
+    //     await axios.post(
+    //       `${supabaseUrl}/rest/v1/user_ratings`,
+    //       ratingData,
+    //       {
+    //         headers: {
+    //           'apikey': supabaseKey,
+    //           'Authorization': `Bearer ${supabaseKey}`,
+    //           'Content-Type': 'application/json'
+    //         }
+    //       }
+    //     );
+
+      //   console.log('✅ User rating inserted successfully');
+      // } catch (ratingError) {
+      //   console.error('❌ Failed to insert user rating:', ratingError.response?.data || ratingError.message);
+      //   // Don't fail the entire request if rating insertion fails
+      //   // Just log the error and continue
+      // }
+    // }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Widget interaction tracking error:', error.response?.data || error.message);
+    console.error('❌ Widget interaction tracking error:', error.response?.data || error.message);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to track widget interaction' });
   }
 });

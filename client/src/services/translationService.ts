@@ -115,22 +115,15 @@ export class TranslationService {
     }
 
     try {
-      const response = await fetch(`${GOOGLE_TRANSLATE_API}/detect?key=${apiKey}`, {
-        method: 'POST',
+      const response = await axios.post(`${GOOGLE_TRANSLATE_API}/detect?key=${apiKey}`, {
+        q: text
+      }, {
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: text
-        })
+        }
       })
 
-      if (!response.ok) {
-        throw new Error(`Translation API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-      return data.data.detections[0][0].language
+      return response.data.data.detections[0][0].language
     } catch (error) {
       console.error('Error detecting language:', error)
       return 'en' // Fallback to English
@@ -156,24 +149,17 @@ export class TranslationService {
     }
 
     try {
-      const response = await fetch(`${GOOGLE_TRANSLATE_API}?key=${apiKey}`, {
-        method: 'POST',
+      const response = await axios.post(`${GOOGLE_TRANSLATE_API}?key=${apiKey}`, {
+        q: text,
+        target: LANGUAGE_CODES[targetLang],
+        source: sourceLang || 'en'
+      }, {
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: text,
-          target: LANGUAGE_CODES[targetLang],
-          source: sourceLang || 'en'
-        })
+        }
       })
 
-      if (!response.ok) {
-        throw new Error(`Translation API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-      return data.data.translations[0].translatedText
+      return response.data.data.translations[0].translatedText
     } catch (error) {
       console.error('Error translating text:', error)
       // Fallback to fallback translations

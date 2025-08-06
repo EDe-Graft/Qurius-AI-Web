@@ -5,7 +5,7 @@ import type { MessageBubbleProps } from "types/interfaces"
 import { MarkdownRenderer } from "./MarkdownRenderer"
 import { AnalyticsService } from "@/services/analyticsService"
 
-export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange }: MessageBubbleProps) {
+export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, wasMinimized }: MessageBubbleProps) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -50,7 +50,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
       // Give time for components to initialize before streaming starts
       setTimeout(() => {
         simulateStream(message)
-      }, 1500)
+      }, 1000)
     } else if (!isUser && !skipStreaming && !isInitialized && isLastAiMessage) {
       // Set streaming state but don't start yet
       setIsStreaming(true)
@@ -135,86 +135,88 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
         </div>
 
         {/* Message Content */}
-        <div className={cn("flex-1 space-y-2", isUser ? "text-right" : "text-left")}>
-          <div
-            className={cn(
-              "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
-              isUser
-                ? "text-white rounded-br-md"
-                : "text-gray-900 dark:text-gray-100 rounded-bl-md",
-            )}
-            style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
-          >
-            <MarkdownRenderer 
-              content={!isUser && isStreaming && !skipStreaming && isLastAiMessage ? streamText : message}
-            />
-          </div>
-          
-          {/* Feedback buttons for AI messages */}
-          {!isUser && !isStreaming && (
-            <div className="flex items-center gap-2 mt-1">
-              {messageIndex !== 0 && (
-                <>
-              <button
-                onClick={
-                  () => {
-                    console.log('Current liked status:', liked)
-                    const newRating = liked !== "like" ? "like" : null
-                    console.log('New rating:', newRating)
-                    onRatingChange?.(newRating)
-                    handleRating(newRating === "like" ? 1 : 0)
-                  }
-                }
-                className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title="Like this response"
-              >
-                <ThumbsUp className={cn('w-3 h-3 text-gray-500 hover:text-green-500', liked === "like" ? "text-green-500" : "text-gray-500")} />
-              </button>
-              
-              <button
-                onClick={
-                  () => {
-                    console.log('Current liked status:', liked)
-                    const newRating = liked !== "dislike" ? "dislike" : null
-                    console.log('New rating:', newRating)
-                    onRatingChange?.(newRating)
-                    handleRating(newRating === "dislike" ? -1 : 0)
-                  }
-                }
-                className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title="Dislike this response"
-              >
-                <ThumbsDown className={cn('w-3 h-3 text-gray-500 hover:text-red-500', liked === "dislike" ? "text-red-500" : "text-gray-500")} />
-              </button>
-              
-              <button
-                onClick={handleCopyMessage}
-                className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title="Copy message"
-              >
-                <Copy className="w-3 h-3 text-gray-500 hover:text-blue-500" />
-              </button>
-              </>
+        {(wasMinimized || isInitialized) && (
+          <div className={cn("flex-1 space-y-2", isUser ? "text-right" : "text-left")}>
+            <div
+              className={cn(
+                "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                isUser
+                  ? "text-white rounded-br-md"
+                  : "text-gray-900 dark:text-gray-100 rounded-bl-md",
               )}
-              
-              {copySuccess && (
-                <span className="text-xs text-green-500 ml-1">Copied!</span>
-              )}
-
-              {/* timestamp */}
-              {timestamp && (
-                <div 
-                  className={cn("text-xs text-gray-500 dark:text-gray-400 px-2", "text-right")}
-                >
-                  {timestamp}
-                </div>
-              )}
-              
+              style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
+            >
+              <MarkdownRenderer 
+                content={!isUser && isStreaming && !skipStreaming && isLastAiMessage ? streamText : message}
+              />
             </div>
-          )}
-          
-          
-        </div>
+            
+            {/* Feedback buttons for AI messages */}
+            {!isUser && !isStreaming && (
+              <div className="flex items-center gap-2 mt-1">
+                {messageIndex !== 0 && (
+                  <>
+                <button
+                  onClick={
+                    () => {
+                      console.log('Current liked status:', liked)
+                      const newRating = liked !== "like" ? "like" : null
+                      console.log('New rating:', newRating)
+                      onRatingChange?.(newRating)
+                      handleRating(newRating === "like" ? 1 : 0)
+                    }
+                  }
+                  className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Like this response"
+                >
+                  <ThumbsUp className={cn('w-3 h-3 text-gray-500 hover:text-green-500', liked === "like" ? "text-green-500" : "text-gray-500")} />
+                </button>
+                
+                <button
+                  onClick={
+                    () => {
+                      console.log('Current liked status:', liked)
+                      const newRating = liked !== "dislike" ? "dislike" : null
+                      console.log('New rating:', newRating)
+                      onRatingChange?.(newRating)
+                      handleRating(newRating === "dislike" ? -1 : 0)
+                    }
+                  }
+                  className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Dislike this response"
+                >
+                  <ThumbsDown className={cn('w-3 h-3 text-gray-500 hover:text-red-500', liked === "dislike" ? "text-red-500" : "text-gray-500")} />
+                </button>
+                
+                <button
+                  onClick={handleCopyMessage}
+                  className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Copy message"
+                >
+                  <Copy className="w-3 h-3 text-gray-500 hover:text-blue-500" />
+                </button>
+                </>
+                )}
+                
+                {copySuccess && (
+                  <span className="text-xs text-green-500 ml-1">Copied!</span>
+                )}
+
+                {/* timestamp */}
+                {timestamp && (
+                  <div 
+                    className={cn("text-xs text-gray-500 dark:text-gray-400 px-2", "text-right")}
+                  >
+                    {timestamp}
+                  </div>
+                )}
+                
+              </div>
+            )}
+            
+            
+          </div>
+        )}
       </div>
 
       {/* Feedback Modal */}

@@ -72,6 +72,7 @@ export interface MessageBubbleProps {
     companyTheme?: CompanyTheme
     companyName?: string // For analytics tracking
     onRatingChange?: (rating: 'like' | 'dislike' | null) => void // Add callback for rating changes
+    wasMinimized?: boolean // Add visibility state for conditional rendering
   }
   
 

@@ -33,6 +33,9 @@ export function ChatInterface({
   const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
   const isDark = defaultTheme === 'dark'
 
+  // Loading state for theme and company data
+  const [isLoading, setIsLoading] = useState(true)
+
   // Animation state for smooth transition
   const [isVisible, setIsVisible] = useState(false)
 
@@ -40,18 +43,11 @@ export function ChatInterface({
   const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { companyName: companyName || 'AI' })
 
   // Initialize messages with computed welcome message
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      content: getWelcomeMessage(),
-      isUser: false,
-      liked: null,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
 
   // Update welcome message when language or company name changes
   useEffect(() => {
-    if (!messages[0].isUser) {
+    if (!messages[0]?.isUser) {
       setMessages([
         {
           content: getWelcomeMessage(),
@@ -69,70 +65,6 @@ export function ChatInterface({
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [wasMinimized, setWasMinimized] = useState(false) // Add this state
  
- 
-  // Test translation service on mount
-  useEffect(() => {
-    const testServices = async () => {
-      try {
-        // console.log('🧪 Testing translation service...')
-        const testResult = await TranslationService.translateToEnglish('Hello world')
-        console.log('✅ Translation service test result:', testResult)
-        
-        // console.log('🧪 Testing FAQ service...')
-        // const faqResult = await faqService.getFAQAnswer('test-company', 'test question')
-        // console.log('✅ FAQ service test result:', faqResult)
-      } catch (error) {
-        console.error('❌ Service test failed:', error)
-      }
-    }
-    
-    testServices()
-  }, [])
-
-  // Get company theme
-  useEffect(() => {
-    if (companyName) {
-      ThemeService.getCompanyTheme(companyName, isDark)
-        .then(setCompanyTheme);
-    }
-  }, [companyName, isDark])
-
-  // Track widget view when component mounts
-  useEffect(() => {
-    if (companyName) {
-      AnalyticsService.trackWidgetView(companyName)
-    }
-  }, [companyName])
-
-  // Track widget open/close
-  useEffect(() => {
-    if (companyName) {
-      if (isMinimized) {
-        AnalyticsService.trackWidgetClose(companyName)
-      } else {
-        AnalyticsService.trackWidgetOpen(companyName)
-      }
-    }
-  }, [isMinimized, companyName])
-
-  // Handle visibility animation when chat is opened
-  useEffect(() => {
-    if (!isMinimized) {
-      // Start invisible
-      setIsVisible(false)
-      
-      // After 1 second, make it visible with smooth transition
-      const timer = setTimeout(() => {
-        setIsVisible(true)
-      }, 500)
-      
-      return () => clearTimeout(timer)
-    } else {
-      // When minimized, hide immediately
-      setIsVisible(false)
-    }
-  }, [isMinimized])
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -185,12 +117,102 @@ export function ChatInterface({
   // }
 
 
+  //Auto scroll to bottom when chat is opened
+  // useEffect(() => {
+  //   if (!isMinimized) {
+  //     // Don't scroll immediately - wait for chat to be visible
+  //     // scrollToBottom() will be called after chat becomes visible
+  //   }
+  // }, [isMinimized])
+
+  // Test translation service on mount (DISABLED to avoid API errors)
+  // useEffect(() => {
+  //   const testServices = async () => {
+  //     try {
+  //       console.log('🧪 Testing translation service...')
+  //       const testResult = await TranslationService.translateToEnglish('Hello world')
+  //       console.log('✅ Translation service test result:', testResult)
+  //     } catch (error) {
+  //       console.error('❌ Service test failed:', error)
+  //     }
+  //   }
+  //   
+  //   testServices()
+  // }, [])
+
+  // Get company theme
+  useEffect(() => {
+    if (companyName) {
+      setIsLoading(true)
+      ThemeService.getCompanyTheme(companyName, isDark)
+        .then((theme) => {
+          setCompanyTheme(theme)
+          // Add 1-second delay for spinning animation
+          setTimeout(() => {
+            setIsLoading(false)
+          }, 1000)
+        })
+        .catch((error) => {
+          console.error('Failed to load company theme:', error)
+          // Still set loading to false after delay even if theme fails
+          setTimeout(() => {
+            setIsLoading(false)
+          }, 1000)
+        })
+    } else {
+      // If no company name, still show loading animation
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 1000)
+    }
+  }, [companyName, isDark])
+
+  // Track widget view when component mounts
+  useEffect(() => {
+    if (companyName) {
+      AnalyticsService.trackWidgetView(companyName)
+    }
+  }, [companyName])
+
+  // Track widget open/close
+  useEffect(() => {
+    if (companyName) {
+      if (isMinimized) {
+        AnalyticsService.trackWidgetClose(companyName)
+      } else {
+        AnalyticsService.trackWidgetOpen(companyName)
+      }
+    }
+  }, [isMinimized, companyName])
+
+  // Handle visibility animation when chat is opened
+  useEffect(() => {
+    if (!isMinimized) {
+      // Start invisible
+      setIsVisible(false)
+      
+      // After 500ms, make it visible with smooth transition and scroll to bottom
+      const timer = setTimeout(() => {
+        setIsVisible(true)
+        // Scroll to bottom after chat is visible and ready
+        setTimeout(() => {
+          scrollToBottom()
+        }, 100) // Small delay to ensure DOM is ready
+      }, 500)
+      return () => clearTimeout(timer)
+    } else {
+      // When minimized, hide immediately
+      setIsVisible(false)
+    }
+  }, [isMinimized])
+
+
   // Auto-scroll during streaming if user hasn't scrolled
   useEffect(() => {
     if (isStreaming && !userScrolled) {
       const interval = setInterval(() => {
         scrollToBottom()
-      }, 100) // Scroll every 100ms during streaming
+      }, 25) // Scroll every 25ms during streaming
       
       return () => clearInterval(interval)
     }
@@ -215,15 +237,6 @@ export function ChatInterface({
   //   // const updatedMessages = [...messages, userMessage]
   //   // const apiMessages = buildMessagesForAPI(updatedMessages) //build message history for api. exclude first message
   // }
-
-  // Track minimization changes
-  useEffect(() => {
-    if (isMinimized) {
-      setWasMinimized(true)
-    } else {
-      scrollToBottom()
-    }
-  }, [isMinimized])
 
   const handleSendMessage = async (content: string) => {
     console.log('🚀 Starting message processing:', content)
@@ -325,7 +338,7 @@ export function ChatInterface({
   if (isMinimized) {
     return (
       <div
-        className="animate-bounce"
+        className={isLoading ? "animate-spin" : "animate-bounce"}
         style={{
           position: 'fixed',
           bottom: '1rem',
@@ -350,7 +363,11 @@ export function ChatInterface({
             e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
           }}
         >
-          <MessageCircle className="h-6 w-6" />
+          {isLoading ? (
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <MessageCircle className="h-6 w-6" />
+          )}
         </button>
       </div>
     )
@@ -457,7 +474,10 @@ export function ChatInterface({
             {defaultTheme === "dark" ? <Sun className="h-4 w-4 text-gray-600 dark:text-gray-400" /> : <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
           </button>
           <button
-            onClick={onToggleMinimize}
+            onClick={() => {
+              onToggleMinimize?.()
+              setWasMinimized(true)
+            }}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             <Minimize2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -486,10 +506,11 @@ export function ChatInterface({
                 timestamp={message.timestamp}
                 onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
                 skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
-                isLastAiMessage={isLastAiMessage} // Only stream the last AI message
+                isLastAiMessage={isLastAiMessage} // Stream last AI messages
                 companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
                 companyName={companyName} // Pass company name for analytics
                 onRatingChange={(rating) => handleRatingChange(index, rating)} // Pass the new handler with message index
+                wasMinimized={wasMinimized} // Pass visibility state to MessageBubble
               />
             );
           })}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/context/useThemeContext"
 import { useLanguage } from "@/context/LanguageContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
-import { Settings } from "lucide-react"
+import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function Demo() {
@@ -67,7 +67,7 @@ export function Demo() {
                 onClick={() => navigate('/admin')}
                 className="bg-purple-600 hover:bg-purple-700 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
               >
-                <Settings className="h-4 w-4 mr-2" />
+                <User className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">{t('demo.viewAdminButton') || 'View Admin Dashboard'}</span>
                 <span className="sm:hidden">Admin</span>
               </Button>
