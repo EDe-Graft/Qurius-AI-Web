@@ -10,13 +10,13 @@ let resendApiKey = null;
 // Function to initialize Resend
 function initializeResend() {
   resendApiKey = process.env.RESEND_API_KEY;
-  console.log('🔑 Resend API Key:', resendApiKey);
+  // console.log('🔑 Resend API Key:', resendApiKey);
 //   console.log('📁 Current directory:', process.cwd());
 //   console.log('🔧 All env vars:', Object.keys(process.env).filter(key => key.includes('RESEND')));
   
   if (resendApiKey) {
     resend = new Resend(resendApiKey );
-    console.log('✅ Resend initialized successfully');
+    // console.log('✅ Resend initialized successfully');
   } else {
     console.warn('⚠️ RESEND_API_KEY not found. Email sending will be disabled.');
   }

@@ -222,7 +222,7 @@ export function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-20 bg-blue-600">
+      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
             {t('landing.ctaTitle')}
@@ -234,7 +234,7 @@ export function Landing() {
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
             <button
               onClick={handleGetStarted}
-              className="bg-white text-blue-600 px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold hover:bg-gray-50 transition-colors min-h-[48px] md:min-h-[44px] w-full sm:w-auto"
+              className="bg-white text-blue-600 px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold hover:bg-gray-50 hover:shadow-lg transform hover:scale-105 transition-all duration-200 min-h-[48px] md:min-h-[44px] w-full sm:w-auto"
             >
               {t('landing.startFreeTrial')}
             </button>
@@ -245,12 +245,12 @@ export function Landing() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('landing.emailPlaceholder')}
-                className="px-4 py-3 rounded-lg border-2 border-white text-gray-900 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base"
+                className="px-4 py-3 rounded-lg border-2 border-white text-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base"
                 required
               />
               <button
                 type="submit"
-                className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors min-h-[48px] md:min-h-[44px] text-sm md:text-base"
+                className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors min-h-[48px] md:min-h-[44px] text-sm md:text-base transform hover:scale-105"
               >
                 {t('landing.getUpdates')}
               </button>
