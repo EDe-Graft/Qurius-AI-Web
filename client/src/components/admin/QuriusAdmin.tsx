@@ -101,9 +101,13 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const [integrationModal, setIntegrationModal] = useState<{
     isOpen: boolean
     companyName: string
+    plan: string
+    companyId: string
   }>({
     isOpen: false,
-    companyName: ''
+    companyName: '',
+    plan: '',
+    companyId: ''
   })
 
   const [widgetSettingsModal, setWidgetSettingsModal] = useState<{
@@ -308,12 +312,14 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const handleViewIntegrationCode = (company: Company) => {
     setIntegrationModal({
       isOpen: true,
-      companyName: company.name
+      companyName: company.name,
+      plan: company.widget_key_plan || '',
+      companyId: company.id || ''
     })
   }
 
   const closeIntegrationModal = () => {
-    setIntegrationModal({ isOpen: false, companyName: '' })
+    setIntegrationModal({ isOpen: false, companyName: '', plan: '', companyId: '' })
   }
 
   // Widget settings handlers
@@ -675,6 +681,8 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         isOpen={integrationModal.isOpen}
         onClose={closeIntegrationModal}
         company={integrationModal.companyName}
+        companyId={integrationModal.companyId}
+        plan={integrationModal.plan}
       />
 
       {/* Widget Settings Modal */}
