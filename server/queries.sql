@@ -21,8 +21,14 @@ CREATE TABLE public.companies (
     embedding extensions.vector(768), -- Use fully qualified vector type
     last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT
+    updated_at TEXT,
+    -- Widget key fields (simplified approach)
+    widget_key_hash TEXT, -- Bcrypt hashed widget key
+    widget_key_plan TEXT DEFAULT 'free' -- Plan type for widget key
 );
+
+-- Note: Widget keys are now stored directly in the companies table
+-- This simplifies the architecture and reduces API calls
 
 -- FAQs table
 CREATE TABLE public.faqs (
@@ -105,6 +111,10 @@ CREATE INDEX idx_companies_name ON public.companies(name);
 CREATE INDEX idx_companies_domain ON public.companies(domain);
 CREATE INDEX idx_companies_status ON public.companies(status);
 
+-- Widget key indexes (in companies table)
+CREATE INDEX IF NOT EXISTS idx_companies_widget_key_hash ON companies(widget_key_hash);
+CREATE INDEX IF NOT EXISTS idx_companies_widget_key_plan ON companies(widget_key_plan);
+
 -- Enhanced indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON widget_analytics(company_id);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON widget_analytics(event_type);
@@ -125,6 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_user_ratings_created_at ON user_ratings(created_a
 -- Enable RLS
 ALTER TABLE widget_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE widget_keys ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for widget_analytics
 CREATE POLICY "Companies can view their own analytics" ON widget_analytics
@@ -157,6 +168,11 @@ CREATE POLICY "Service role can insert ratings" ON user_ratings
 
 CREATE POLICY "Service role can read all ratings" ON user_ratings
   FOR SELECT USING (true);
+
+-- Note: Widget key policies are handled through the companies table policies
+
+-- Note: Widget key generation and validation is now handled in server.js using bcrypt
+-- This provides better security and simpler implementation
 
 -- Updated find_relevant_faqs function
 CREATE OR REPLACE FUNCTION find_relevant_faqs(
@@ -257,6 +273,11 @@ EXECUTE FUNCTION update_modified_column();
 
 CREATE TRIGGER update_faqs_modtime
 BEFORE UPDATE ON public.faqs
+FOR EACH ROW
+EXECUTE FUNCTION update_modified_column();
+
+CREATE TRIGGER update_widget_keys_modtime
+BEFORE UPDATE ON public.widget_keys
 FOR EACH ROW
 EXECUTE FUNCTION update_modified_column();
 

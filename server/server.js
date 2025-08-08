@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 
@@ -97,22 +97,22 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         };
 
         try {
-          //Create auth user first to avoid duplicate users
-          const userId = await createAuthUser(customerEmail)
+        //Create auth user first to avoid duplicate users
+        const userId = await createAuthUser(customerEmail)
 
-          //if success, create company
-          if (userId) {
-            const { companyId, companyName, email: companyEmail } = await createCompany(companyData);
-            console.log('✅ Company created successfully:', companyId);
+        //if success, create company
+        if (userId) {
+          const { companyId, companyName, email: companyEmail, widgetKey } = await createCompany(companyData);
+          console.log('✅ Company created successfully:', companyId);
 
-            // Update auth user with company id
-            await updateAuthUser(companyId, userId)
-            console.log('✅ Auth user updated successfully:', userId);
+          // Update auth user with company id
+          await updateAuthUser(companyId, userId)
+          console.log('✅ Auth user updated successfully:', userId);
 
-            // Send welcome email with password reset
-            await sendWelcomeEmail(companyEmail, companyName, planId);
-            console.log('✅ Welcome email sent successfully');
-          }
+          // Send welcome email with password reset and widget key
+          await sendWelcomeEmail(companyEmail, companyName, planId, widgetKey);
+          console.log('✅ Welcome email sent successfully with widget key');
+        }
 
         } catch (error) {
           console.error('❌ Error creating company:', error.response?.data || error.message);
@@ -544,38 +544,38 @@ app.post('/api/companies/admin-check', async (req, res) => {
 });
 
 // Create company and profile
-app.post('/api/companies', async (req, res) => {
-  try {
-    const companyData = req.body;
+// app.post('/api/companies', async (req, res) => {
+//   try {
+//     const companyData = req.body;
 
-    //Create auth user first to avoid duplicate users
-    const userId = await createAuthUser(email)
+//     //Create auth user first to avoid duplicate users
+//     const userId = await createAuthUser(email)
 
-    //if success, create company
-    if (userId) {
-      const { companyId, companyName, email: companyEmail, plan } = await createCompany(companyData)
+//     //if success, create company
+//     if (userId) {
+//       const { companyId, companyName, email: companyEmail, plan } = await createCompany(companyData)
 
-      // Update auth user with company id
-      await updateAuthUser(companyId, userId)
+//       // Update auth user with company id
+//       await updateAuthUser(companyId, userId)
 
-      //Send Welcome Email
-      await sendWelcomeEmail(companyEmail, companyName, plan)
-    }
+//       //Send Welcome Email
+//       await sendWelcomeEmail(companyEmail, companyName, plan)
+//     }
 
 
-    res.json({
-      success: true,
-      id: companyId,
-      company: { ...companyData, id: companyId }
-    });
-  } catch (error) {
-    console.error('Create company error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to create company' 
-    });
-  }
-});
+//     res.json({
+//       success: true,
+//       id: companyId,
+//       company: { ...companyData, id: companyId }
+//     });
+//   } catch (error) {
+//     console.error('Create company error:', error.response?.data || error.message);
+//     res.status(500).json({ 
+//       success: false,
+//       error: 'Failed to create company' 
+//     });
+//   }
+// });
 
 // Update company
 app.patch('/api/companies/:id', async (req, res) => {
@@ -1232,7 +1232,7 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
       lastActivity: summary.last_activity || null
     };
 
-    console.log('Analytics data:', stats);
+    // console.log('Analytics data:', stats);
     res.json(stats);
   } catch (error) {
     console.error('❌ Analytics fetch error:', error.response?.data || error.message);
@@ -1587,6 +1587,85 @@ async function getCompanyAnalytics(companyId, period = 'all') {
   return response.data || [];
 }
 
+
+
+// Widget key validation middleware
+app.get('/api/validate-key', async (req, res) => {
+  const { key, company } = req.query;
+  console.log('🔑 Validating key:', key, 'for company:', company);
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ valid: false, error: 'Server configuration missing' });
+    }
+
+    // Get company with widget key
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?name=eq.${encodeURIComponent(company)}&select=id,name,widget_key_hash,widget_key_plan,status`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.json({ valid: false, error: 'Company not found' });
+    }
+
+    const companyData = companyResponse.data[0];
+    console.log('🔑 Company data:', companyData);
+
+    // Check if company is active
+    if (companyData.status !== 'active') {
+      return res.json({ valid: false, error: 'Company account is not active' });
+    }
+
+    // Check if widget key exists
+    if (!companyData.widget_key_hash) {
+      return res.json({ valid: false, error: 'No widget key found for company' });
+    }
+
+    // Validate the key
+    const isValid = await validateWidgetKey(key, companyData.widget_key_hash);
+    
+    if (isValid) {
+      return res.json({
+        valid: true,
+        company: companyData.name,
+        plan: companyData.widget_key_plan,
+        features: ['chat', 'faq', 'analytics']
+      });
+    } else {
+      return res.json({ valid: false, error: 'Invalid key' });
+    }
+  } catch (error) {
+    console.error('❌ Key validation error:', error);
+    res.status(500).json({ valid: false, error: 'Validation failed' });
+  }
+});
+
+// Demo key validation (always returns true for demo purposes)
+app.get('/api/validate-demo-key', async (req, res) => {
+  const { key } = req.query;
+  
+  if (key === 'demo-2025-healthplus') {
+    res.json({ 
+      valid: true, 
+      company: 'HealthPlus Medical',
+      plan: 'demo',
+      features: ['chat', 'faq', 'analytics'],
+      demo: true
+    });
+  } else {
+    res.json({ valid: false, error: 'Invalid demo key' });
+  }
+});
+
 // Stripe Payment Endpoints
 
 // Create checkout session
@@ -1821,69 +1900,129 @@ app.post('/api/auth/super-admin', async (req, res) => {
 // ========================================
 
 // Create test company (bypasses Stripe payment)
-// app.post('/api/test/create-company', async (req, res) => {
-//   try {
-//     const { 
-//       companyName, 
-//       email: companyEmail, 
-//       plan, 
-//       industry, 
-//       website, 
-//       description, 
-//       theme 
-//     } = req.body;
+app.post('/api/test/create-company', async (req, res) => {
+  try {
+    const { 
+      companyName, 
+      email: companyEmail, 
+      plan, 
+      industry, 
+      website, 
+      description, 
+      theme 
+    } = req.body;
     
-//     console.log('🧪 Creating test company:', companyName);
+    console.log('🧪 Creating test company:', companyName);
     
 
-//     // Create company data
-//     const companyData = {
-//       name: companyName,
-//       email: companyEmail,
-//       industry: industry,
-//       website: website,
-//       description: description,
-//       theme: theme,
-//       plan: plan,
-//       status: 'active',
-//       enrollment_date: formatReadableDateTime(new Date())
-//     };
+    // Create company data
+    const companyData = {
+      name: companyName,
+      email: companyEmail,
+      industry: industry,
+      website: website,
+      description: description,
+      theme: theme,
+      plan: plan,
+      status: 'active',
+      // enrollment_date: formatReadableDateTime(new Date())
+    };
 
-//     // Create auth user first to avoid duplicate users
-//     const userId = await createAuthUser(companyEmail)
+    // Create auth user first to avoid duplicate users
+    const userId = await createAuthUser(companyEmail)
 
-//     //if success, create company
-//     if (userId) {
-//       const { companyId } = await createCompany(companyData)
-//       console.log('✅ Test company created successfully:', companyId);
+    //if success, create company
+    if (userId) {
+      const { companyId } = await createCompany(companyData)
+      console.log('✅ Test company created successfully:', companyId);
 
-//       // Update auth user with company id
-//       await updateAuthUser(companyId, userId)
+      // Update auth user with company id
+      await updateAuthUser(companyId, userId)
 
-//       // Send Welcome Email
-//       await sendWelcomeEmail(companyEmail, companyName, plan)
-//       console.log('✅ Welcome email sent successfully');
+      // Send Welcome Email
+      await sendWelcomeEmail(companyEmail, companyName, plan)
+      console.log('✅ Welcome email sent successfully');
 
-//       res.json({
-//         success: true,
-//         company: { ...companyData, id: companyId }
-//       });
-//     } else {
-//       res.status(500).json({ 
-//         success: false,
-//         error: 'Failed to create auth user' 
-//       });
-//     }
-//   } catch (error) {
-//     console.error('❌ Test company creation error:', error.response?.data || error.message);
-//     res.status(500).json({ 
-//       success: false,
-//       error: 'Failed to create test company' 
-//     });
-//   }
-// });
+      res.json({
+        success: true,
+        company: { ...companyData, id: companyId }
+      });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to create auth user' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Test company creation error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create test company' 
+    });
+  }
+});
 
+// Regenerate widget key for existing company
+app.post('/api/companies/:companyId/regenerate-widget-key', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { planType = 'free' } = req.body;
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
 
+    // Get company details
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const company = companyResponse.data[0];
+    
+    // Generate new widget key
+    const { newKey, hashedKey } = await generateWidgetKeyForCompany();
+    
+    // Update company with new widget key
+    await axios.patch(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+      {
+        widget_key_hash: hashedKey,
+        widget_key_plan: planType
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    res.json({
+      success: true,
+      widgetKey: newKey,
+      company: company.name,
+      plan: planType
+    });
+  } catch (error) {
+    console.error('❌ Widget key regeneration error:', error);
+    res.status(500).json({ error: 'Failed to regenerate widget key' });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {

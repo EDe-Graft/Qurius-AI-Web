@@ -1,4 +1,6 @@
 import axios from 'axios';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { toTitleCase } from './helper.js';
 import { WelcomeEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
@@ -146,6 +148,9 @@ export async function createCompany(companyData) {
       throw new Error('Supabase configuration missing');
     }
 
+    // Generate widget key for the company
+    const { newKey, hashedKey } = await generateWidgetKeyForCompany();
+
     // Prepare company data for database
     const companyDataForDB = {
       name: toTitleCase(name),
@@ -160,6 +165,8 @@ export async function createCompany(companyData) {
       logo_url: logo_url || '',
       status: status || 'active',
       plan: plan || 'free', // Default to free plan
+      widget_key_hash: hashedKey, // Store hashed widget key
+      widget_key_plan: plan || 'free' // Store widget key plan
       // enrollment_date: formatReadableDateTime(new Date())
     };
 
@@ -179,7 +186,7 @@ export async function createCompany(companyData) {
     console.log("Company created:", companyResponse.data)
 
     const companyId = companyResponse.data[0].id;
-    return { companyId, name, email, plan };
+    return { companyId, name, email, plan, widgetKey: newKey };
 
     } catch (error) {
       console.error('❌ Error creating company:', error.response?.data || error.message);
@@ -251,8 +258,40 @@ export async function updateAuthUser(companyId, userId) {
   }
 }
 
+// Widget key generation and validation functions
+export const generateWidgetKey = () => {
+  // Generate a secure random key (32 bytes = 256 bits)
+  return crypto.randomBytes(32).toString('hex');
+};
+
+export const hashWidgetKey = async (key) => {
+  // Hash the key with bcrypt (salt rounds = 12)
+  const saltRounds = 12;
+  return await bcrypt.hash(key, saltRounds);
+};
+
+export const validateWidgetKey = async (providedKey, hashedKey) => {
+  // Compare the provided key with the hashed key
+  return await bcrypt.compare(providedKey, hashedKey);
+};
+
+// Generate widget key for a company (simplified - no separate table)
+export const generateWidgetKeyForCompany = async () => {
+  try {
+    // Generate new key
+    const newKey = generateWidgetKey();
+    const hashedKey = await hashWidgetKey(newKey);
+
+    console.log('✅ Widget key generated');
+    return { newKey, hashedKey };
+  } catch (error) {
+    console.error('❌ Error generating widget key:', error);
+    throw error;
+  }
+};
+
 // Send welcome email
-export async function sendWelcomeEmail(companyEmail, companyName, planId) {
+export async function sendWelcomeEmail(companyEmail, companyName, planId, widgetKey = null) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -264,7 +303,8 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId) {
     const emailHtml = WelcomeEmailTemplate({
       companyName,
       planName,
-      adminLink: `${process.env.FRONTEND_URL}/admin`
+      adminLink: `${process.env.FRONTEND_URL}/admin`,
+      widgetKey: widgetKey // Pass widget key to template
     });
 
     // Send welcome email via Resend
@@ -300,6 +340,9 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId) {
     console.log('📧 To:', companyEmail);
     console.log('🏢 Company:', companyName);
     console.log('📦 Plan:', planName);
+    if (widgetKey) {
+      console.log('🔑 Widget Key:', widgetKey);
+    }
     
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);

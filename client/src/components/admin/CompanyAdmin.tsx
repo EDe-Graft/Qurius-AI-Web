@@ -68,7 +68,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           throw new Error('Company ID not found. Please contact support.')
         }
 
-        const companyData = await CompanyService.getCompanyById('18c69d1d-89c3-432f-b7e6-cb69c67de342')
+        const companyData = await CompanyService.getCompanyById(companyId)
         setCompany(companyData)
         // console.log("company data", companyData)
       } catch (err: any) {
@@ -563,7 +563,9 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       <IntegrationCodeModal
         isOpen={showIntegrationCode}
         onClose={() => setShowIntegrationCode(false)}
-        companyName={company?.name || ''}
+        company={company?.name || ''}
+        companyId={company?.id || ''}
+        plan={company?.plan || ''}
       />
 
       {/* Widget Settings Modal */}

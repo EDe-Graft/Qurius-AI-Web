@@ -674,7 +674,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       <IntegrationCodeModal
         isOpen={integrationModal.isOpen}
         onClose={closeIntegrationModal}
-        companyName={integrationModal.companyName}
+        company={integrationModal.companyName}
       />
 
       {/* Widget Settings Modal */}

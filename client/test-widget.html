@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthPlus Medical - Test Website</title>
+    <title>HealthPlus Medical - AI-Powered Patient Support</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -30,9 +30,24 @@
         }
         
         .logo {
+            display: flex;
+            align-items: center;
             font-size: 1.5rem;
             font-weight: bold;
             color: #333;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: white;
+            font-size: 20px;
         }
         
         .nav-links {
@@ -44,16 +59,35 @@
             text-decoration: none;
             color: #666;
             transition: color 0.3s;
+            font-weight: 500;
         }
         
         .nav-links a:hover {
-            color: #333;
+            color: #667eea;
         }
         
         .hero {
             text-align: center;
             padding: 4rem 2rem;
             color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
         }
         
         .hero h1 {
@@ -104,6 +138,25 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
         }
         
         .feature h3 {
@@ -114,6 +167,96 @@
         .feature p {
             color: #666;
             line-height: 1.6;
+        }
+        
+        .services-section {
+            background: white;
+            margin: 4rem 0;
+            padding: 4rem 2rem;
+            border-radius: 12px;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .service-item {
+            padding: 1.5rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .service-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .service-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .service-item h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .service-item p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .pricing-section {
+            background: #f8f9fa;
+            padding: 4rem 2rem;
+            margin: 4rem 0;
+            border-radius: 12px;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .pricing-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .pricing-card h4 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 1rem;
         }
         
         .footer {
@@ -127,64 +270,259 @@
             color: #666;
             margin: 0;
         }
+        
+        .contact-info {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+        
+        .contact-info h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .contact-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .contact-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: transform 0.3s;
+        }
+        
+        .contact-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .contact-item strong {
+            color: #333;
+        }
+        
+        .contact-item p {
+            color: #666;
+            margin: 0.5rem 0 0 0;
+        }
+        
+        .stats-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 3rem 2rem;
+            margin: 4rem 0;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header class="header">
         <nav class="nav">
-            <div class="logo">HealthPlus Medical</div>
+            <div class="logo">
+                <div class="logo-icon">🏥</div>
+                <span>HealthPlus Medical</span>
+            </div>
             <div class="nav-links">
                 <a href="#services">Services</a>
-                <a href="#about">About</a>
+                <a href="#pricing">Pricing</a>
                 <a href="#contact">Contact</a>
+                <a href="#appointments">Book Appointment</a>
             </div>
         </nav>
     </header>
 
     <!-- Hero Section -->
     <section class="hero">
-        <h1>Your Health, Our Priority</h1>
-        <p>Comprehensive healthcare solutions for you and your family</p>
-        <button class="cta-button">Book Appointment</button>
+        <div class="hero-content">
+            <h1>Your Health, Our Priority</h1>
+            <p>Comprehensive healthcare solutions with 24/7 AI-powered patient support</p>
+            <button class="cta-button">Book Appointment</button>
+        </div>
     </section>
 
     <!-- Content -->
     <div class="content">
         <div class="features">
             <div class="feature">
+                <div class="feature-icon">👨‍⚕️</div>
                 <h3>Primary Care</h3>
-                <p>Comprehensive health checkups and preventive care for all ages.</p>
+                <p>Comprehensive health checkups and preventive care for all ages. Annual physicals, vaccinations, and wellness consultations.</p>
             </div>
             <div class="feature">
+                <div class="feature-icon">🩺</div>
                 <h3>Specialized Treatment</h3>
-                <p>Expert care in cardiology, orthopedics, and more.</p>
+                <p>Expert care in cardiology, orthopedics, dermatology, and more. State-of-the-art diagnostic equipment and treatment facilities.</p>
             </div>
             <div class="feature">
+                <div class="feature-icon">🚑</div>
                 <h3>Emergency Care</h3>
-                <p>24/7 emergency services when you need them most.</p>
+                <p>24/7 emergency services when you need them most. Quick response times and experienced emergency medical team.</p>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <h2 style="margin-bottom: 2rem;">Why Choose HealthPlus Medical?</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Years of Experience</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50K+</div>
+                    <div class="stat-label">Patients Served</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">AI Support Available</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">98%</div>
+                    <div class="stat-label">Patient Satisfaction</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Section -->
+        <div class="services-section">
+            <h2 style="text-align: center; color: #333; margin-bottom: 2rem;">Our Services</h2>
+            <div class="services-grid">
+                <div class="service-item">
+                    <div class="service-icon">💻</div>
+                    <h4>Telemedicine</h4>
+                    <p>Virtual consultations with our healthcare providers from the comfort of your home.</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🧪</div>
+                    <h4>Lab Testing</h4>
+                    <p>Comprehensive blood work, imaging, and diagnostic testing with quick results.</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🧠</div>
+                    <h4>Mental Health</h4>
+                    <p>Professional counseling and psychiatric services for comprehensive mental health care.</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🦴</div>
+                    <h4>Physical Therapy</h4>
+                    <p>Rehabilitation services and physical therapy for injury recovery and mobility improvement.</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">👩‍⚕️</div>
+                    <h4>Women's Health</h4>
+                    <p>Specialized care for women including gynecology, obstetrics, and reproductive health.</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">👶</div>
+                    <h4>Pediatric Care</h4>
+                    <p>Comprehensive healthcare for children from infancy through adolescence.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Section -->
+        <div class="pricing-section">
+            <h2 style="text-align: center; color: #333; margin-bottom: 2rem;">Insurance & Pricing</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h4>Primary Care Visit</h4>
+                    <div class="price">$150</div>
+                    <p>Comprehensive health checkup and consultation</p>
+                </div>
+                <div class="pricing-card">
+                    <h4>Specialist Consultation</h4>
+                    <div class="price">$250</div>
+                    <p>Expert consultation with specialized physicians</p>
+                </div>
+                <div class="pricing-card">
+                    <h4>Emergency Visit</h4>
+                    <div class="price">$500</div>
+                    <p>24/7 emergency care and treatment</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="contact-info">
+            <h3>Contact Information</h3>
+            <div class="contact-details">
+                <div class="contact-item">
+                    <strong>Address:</strong>
+                    <p>123 Medical Center Dr, Healthcare City, HC 12345</p>
+                </div>
+                <div class="contact-item">
+                    <strong>Phone:</strong>
+                    <p>(555) 123-4567</p>
+                </div>
+                <div class="contact-item">
+                    <strong>Email:</strong>
+                    <p>info@healthplusmedical.com</p>
+                </div>
+                <div class="contact-item">
+                    <strong>Hours:</strong>
+                    <p>Mon-Fri: 8AM-8PM<br>Sat: 9AM-5PM<br>Sun: 10AM-4PM</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2024 HealthPlus Medical. All rights reserved.</p>
+        <p>&copy; 2025 HealthPlus Medical. All rights reserved.</p>
     </footer>
 
-    <!-- Your Widget Embed Script -->
-    <!-- <script src="https://qurius-ai.vercel.app/embed.js" data-company="Acme University" data-theme="light"></script> -->
-
-    <script src="public/embed.js" data-company="Qurius AI" data-theme="light"></script>
+    <!-- Widget Embed Script -->
+    <!-- Demo Version - Shows secure implementation -->
+    <script 
+        src="public/embed.js" 
+        data-company="HealthPlus Medical" 
+        data-key="demo-2025-healthplus"
+        data-plan="free"
+        data-theme="light">
+    </script>
+    
+    <!-- <script src="public/embed.js" data-company="PurpleSoft Inc" data-key="6ea236ec802ca1de24905171b80209486a6df53fddd1e65b14298b8f3bd85043" data-plan="free" data-theme="light"></script> -->
 
     
     <script>
-        console.log('🎉 Demo Website Loaded!');
+        console.log('🎉 HealthPlus Medical Demo Website Loaded!');
         console.log('Look for the chat widget in the bottom-right corner');
-        console.log('Try asking questions like:');
+        console.log('Demo Questions to Try:');
         console.log('- "What are your business hours?"');
-        console.log('- "How can I contact support?"');
-        console.log('- "What services do you offer?"');
+        console.log('- "Do you accept Blue Cross insurance?"');
+        console.log('- "How much does a primary care visit cost?"');
+        console.log('- "Can I book an appointment online?"');
+        console.log('- "What services do you offer for children?"');
+        console.log('- "Do you have telemedicine appointments?"');
+        console.log('- "What is your cancellation policy?"');
+        console.log('- "Do you offer lab testing on weekends?"');
     </script>
 </body>
 </html> 

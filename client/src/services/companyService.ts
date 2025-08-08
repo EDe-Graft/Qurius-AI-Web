@@ -3,6 +3,8 @@ import axios from 'axios'
 export interface Company {
   id?: string
   name: string
+  widget_key_hash?: string
+  widget_key_plan?: string
   domain?: string
   location?: string
   description: string

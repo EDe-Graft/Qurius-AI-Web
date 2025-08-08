@@ -6,7 +6,7 @@
   const CONFIG = {
     scriptUrl: 'dist/widget/chat-widget.umd.cjs', // Points to React widget
     cssUrl: 'dist/widget/chat-widget.css', // CSS file for styling
-    apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com',
+    apiUrl: window.location.hostname === 'qurius.app' ? 'https://qurius-ai.onrender.com' : 'http://localhost:3000',
     defaultTheme: 'light'
   };
   
@@ -113,7 +113,7 @@
   }
   
   // Initialize widget
-  async function initWidget(companyName, options = {}) {
+  async function initWidget(company, options = {}) {
     try {
       console.log('Initializing React widget...');
       
@@ -134,9 +134,11 @@
       if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
         console.log('Creating React widget...');
         window.QuriusChatWidget.init(widgetContainer, {
-          companyName: companyName,
+          company: company,
           theme: options.theme || CONFIG.defaultTheme,
-          apiUrl: options.apiUrl || CONFIG.apiUrl
+          apiUrl: options.apiUrl || CONFIG.apiUrl,
+          key: options.key,
+          plan: options.plan
         });
         widgetLoaded = true;
         console.log('✅ React widget initialized successfully');
@@ -176,10 +178,12 @@
   document.addEventListener('DOMContentLoaded', function() {
     const script = document.currentScript || document.querySelector('script[src*="embed.js"]');
     if (script) {
-      const companyName = script.getAttribute('data-company');
+      const company = script.getAttribute('data-company');
+      const key = script.getAttribute('data-key');
+      const plan = script.getAttribute('data-plan');
       const theme = script.getAttribute('data-theme') || CONFIG.defaultTheme;
-      if (companyName) {
-        initWidget(companyName, { theme });
+      if (company) {
+        initWidget(company, { theme, key, plan });
       }
     }
   });
