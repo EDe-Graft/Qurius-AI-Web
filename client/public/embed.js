@@ -113,7 +113,7 @@
   }
   
   // Initialize widget
-  async function initWidget(company, options = {}) {
+  async function initWidget(companyName, options = {}) {
     try {
       console.log('Initializing React widget...');
       
@@ -134,7 +134,7 @@
       if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
         console.log('Creating React widget...');
         window.QuriusChatWidget.init(widgetContainer, {
-          company: company,
+          companyName: companyName,
           theme: options.theme || CONFIG.defaultTheme,
           apiUrl: options.apiUrl || CONFIG.apiUrl,
           key: options.key,
@@ -178,12 +178,12 @@
   document.addEventListener('DOMContentLoaded', function() {
     const script = document.currentScript || document.querySelector('script[src*="embed.js"]');
     if (script) {
-      const company = script.getAttribute('data-company');
+      const companyName = script.getAttribute('data-company');
       const key = script.getAttribute('data-key');
       const plan = script.getAttribute('data-plan');
       const theme = script.getAttribute('data-theme') || CONFIG.defaultTheme;
-      if (company) {
-        initWidget(company, { theme, key, plan });
+      if (companyName) {
+        initWidget(companyName, { theme, key, plan });
       }
     }
   });

@@ -99,9 +99,9 @@ export class AnalyticsService {
 
 
   // Get analytics for a company
-  static async getCompanyAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
+  static async getCompanyAnalytics(companyName: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
     try {
-      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/company/${companyId}?period=${period}`)
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/company/${companyName}?period=${period}`)
       // console.log('Analytics data:', response.data)
       return response.data
     } catch (error) {
@@ -113,9 +113,9 @@ export class AnalyticsService {
 
 
   // Get FAQ performance analytics
-  static async getFAQPerformance(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
+  static async getFAQPerformance(companyName: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
     try {
-      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/faq-performance/${companyId}?period=${period}`)
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/faq-performance/${companyName}?period=${period}`)
       // console.log('FAQ performance for company:', companyId, response.data)
       return response.data
     } catch (error) {

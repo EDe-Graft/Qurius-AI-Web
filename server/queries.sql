@@ -70,6 +70,7 @@ CREATE POLICY "Service role can delete FAQs" ON faqs
 CREATE TABLE IF NOT EXISTS widget_analytics (
   id SERIAL PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  company_name TEXT,
   event_type VARCHAR(50) NOT NULL, -- 'widget_view', 'message_sent', 'message_received', 'widget_opened', 'widget_closed', 'rating_given', 'language_changed', 'theme_changed', 'faq_matched', 'ai_fallback'
   page_url TEXT,
   user_agent TEXT,

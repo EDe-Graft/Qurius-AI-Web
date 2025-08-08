@@ -40,7 +40,7 @@ export function ChatInterface({
   const [isVisible, setIsVisible] = useState(false)
 
   // Compute the translated welcome message
-  const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { companyName: companyName || 'AI' })
+  const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { company: companyName || 'AI' })
 
   // Initialize messages with computed welcome message
   const [messages, setMessages] = useState<Message[]>([])

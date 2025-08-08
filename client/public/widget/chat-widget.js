@@ -24011,7 +24011,7 @@ function t2({
   companyName: s,
   isThemeChanging: f
 }) {
-  const d = de.useRef(null), m = de.useRef(null), { t: g, currentLanguage: p } = Vy(), [h, S] = de.useState(null), E = n === "dark", [w, k] = de.useState(!0), [D, U] = de.useState(!1), B = () => QT(g("chat.welcomeWithCompany"), { companyName: s || "AI" }), [W, Y] = de.useState([]);
+  const d = de.useRef(null), m = de.useRef(null), { t: g, currentLanguage: p } = Vy(), [h, S] = de.useState(null), E = n === "dark", [w, k] = de.useState(!0), [D, U] = de.useState(!1), B = () => QT(g("chat.welcomeWithCompany"), { company: s || "AI" }), [W, Y] = de.useState([]);
   de.useEffect(() => {
     W[0]?.isUser || Y([
       {
@@ -24410,7 +24410,7 @@ let mo = null;
 const r2 = async (n, i, r) => {
   try {
     return console.log("🔑 Validating widget key:", n, "for company with name:", i), (await Me.get(`${r}/api/validate-key`, {
-      params: { key: n, company: i }
+      params: { key: n, companyName: i }
     })).data;
   } catch (o) {
     const s = o;
@@ -24426,7 +24426,7 @@ const r2 = async (n, i, r) => {
     return console.error("Demo key validation failed:", o.response?.data || o.message), { valid: !1, error: "Demo validation failed" };
   }
 }, u2 = async (n) => {
-  const i = n.key, r = n.company, o = "https://qurius-ai.onrender.com";
+  const i = n.key, r = n.companyName, o = "https://qurius-ai.onrender.com";
   let s;
   return i === "demo-2025-healthplus" ? s = await o2(i, o) : s = await r2(i, r, o), s.valid ? (console.log("✅ Widget key validated successfully"), !0) : (console.error("Widget key validation failed:", s.error), !1);
 };
@@ -24452,7 +24452,7 @@ function c2({ config: n }) {
       toggleTheme: r,
       isMinimized: s,
       onToggleMinimize: g,
-      companyName: n.company,
+      companyName: n.companyName,
       isThemeChanging: o
     }
   );

@@ -985,7 +985,7 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       confidenceScore
     } = req.body;
     
-    console.log('📊 Widget interaction received:', { companyName, eventType, rating });
+    console.log('📊 Widget interaction received:', { companyName, eventType });
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1016,6 +1016,7 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
 
     // Record widget interaction with enhanced data
     const interactionData = {
+      company_name: companyName,
       company_id: companyId,
       event_type: eventType,
       message: message || null,

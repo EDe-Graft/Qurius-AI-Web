@@ -8,7 +8,7 @@ import './global.css'
 
 // Widget interface
 interface WidgetConfig {
-  company: string
+  companyName: string
   key: string
   plan: string
   theme?: 'light' | 'dark'
@@ -23,11 +23,11 @@ interface WidgetConfig {
 let widgetRoot: any = null
 
 // Key validation functions
-const validateWidgetKey = async (key: string, company: string, backendUrl: string) => {
+const validateWidgetKey = async (key: string, companyName: string, backendUrl: string) => {
   try {
-    console.log('🔑 Validating widget key:', key, 'for company with name:', company);
+    console.log('🔑 Validating widget key:', key, 'for company with name:', companyName);
     const response = await axios.get(`${backendUrl}/api/validate-key`, {
-      params: { key, company }
+      params: { key, companyName }
     })
     return response.data
   } catch (error) {
@@ -54,7 +54,7 @@ const validateDemoKey = async (key: string, backendUrl: string) => {
 // Widget initialization with validation
 const initializeWidget = async (config: WidgetConfig) => {
   const key = config.key
-  const company = config.company
+  const companyName = config.companyName
   const backendUrl = import.meta.env.VITE_BACKEND_URL
   
   // Validate key before initializing widget
@@ -62,7 +62,7 @@ const initializeWidget = async (config: WidgetConfig) => {
   if (key === 'demo-2025-healthplus') {
     validationResult = await validateDemoKey(key, backendUrl)
   } else {
-    validationResult = await validateWidgetKey(key, company, backendUrl)
+    validationResult = await validateWidgetKey(key, companyName, backendUrl)
   }
   
   if (!validationResult.valid) {
@@ -133,7 +133,7 @@ function WidgetApp({ config }: { config: WidgetConfig }) {
       toggleTheme={toggleTheme}
       isMinimized={isChatMinimized}
       onToggleMinimize={handleToggleMinimize}
-      companyName={config.company}
+      companyName={config.companyName}
       isThemeChanging={isThemeChanging}
     />
   )
