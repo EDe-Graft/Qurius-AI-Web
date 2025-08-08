@@ -23,6 +23,7 @@ export function ChatInterface({
   isMinimized,
   onToggleMinimize,
   companyName,
+  plan,
   isThemeChanging
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -453,11 +454,14 @@ export function ChatInterface({
               <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-red-500 transition-colors" />
             </button>
           )} */}
-          <LanguageSelector 
-            variant="dropdown" 
-            className="scale-65" 
-            companyName={companyName}
-          />
+          {plan === 'pro' && (
+            <LanguageSelector 
+              variant="dropdown" 
+              className="scale-65" 
+              companyName={companyName}
+            />
+          )}
+          {plan !== 'free' && (
           <button
             onClick={
               () => {
@@ -473,6 +477,7 @@ export function ChatInterface({
           >
             {defaultTheme === "dark" ? <Sun className="h-4 w-4 text-gray-600 dark:text-gray-400" /> : <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
           </button>
+          )}
           <button
             onClick={() => {
               onToggleMinimize?.()

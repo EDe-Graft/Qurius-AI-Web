@@ -88,7 +88,7 @@ function initWidget(container: HTMLElement, config: WidgetConfig) {
   // Render widget
   widgetRoot.render(
     <React.StrictMode>
-      <ThemeProvider>
+      <ThemeProvider initialTheme={config.theme}>
         <LanguageProvider>
           <WidgetApp config={config} />
         </LanguageProvider>
@@ -134,6 +134,7 @@ function WidgetApp({ config }: { config: WidgetConfig }) {
       isMinimized={isChatMinimized}
       onToggleMinimize={handleToggleMinimize}
       companyName={config.companyName}
+      plan={config.plan}
       isThemeChanging={isThemeChanging}
     />
   )

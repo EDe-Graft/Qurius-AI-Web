@@ -12,6 +12,7 @@ export function Demo() {
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const navigate = useNavigate()
   let companyName = 'PurpleSoft Inc';
+  let plan = 'pro';
 
   return (
     <div
@@ -83,6 +84,7 @@ export function Demo() {
         isMinimized={isChatMinimized}
         onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
         companyName={companyName}
+        plan={plan}
         isThemeChanging={isThemeChanging}
       />
     </div>

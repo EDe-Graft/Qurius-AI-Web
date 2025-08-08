@@ -70,12 +70,18 @@ export const ThemeContext = createContext<ThemeContextType>({
 // 5. Define props for ThemeProvider
 interface ThemeProviderProps {
   children: ReactNode;
+  initialTheme?: 'light' | 'dark'; // Add initialTheme prop
 }
 
 // 6. Implement the provider component
-export const ThemeProvider = ({ children}: ThemeProviderProps) => {
+export const ThemeProvider = ({ children, initialTheme }: ThemeProviderProps) => {
   // Check for saved theme preference or use system preference
   const getInitialTheme = (): 'light' | 'dark' => {
+    // If initialTheme is provided, use it
+    if (initialTheme) {
+      return initialTheme;
+    }
+    
     if (typeof window !== 'undefined') {
       // Check localStorage for saved theme
       const savedTheme = localStorage.getItem('theme');
@@ -121,15 +127,15 @@ export const ThemeProvider = ({ children}: ThemeProviderProps) => {
     // Watch for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      // Only change if there's no saved preference
-      if (!localStorage.getItem('theme')) {
+      // Only change if there's no saved preference and no initialTheme
+      if (!localStorage.getItem('theme') && !initialTheme) {
         setColorScheme(e.matches ? 'dark' : 'light');
       }
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [initialTheme]);
 
   // Apply theme to document body and HTML element
   useEffect(() => {

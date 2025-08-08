@@ -189,12 +189,12 @@ export function Landing() {
               price="$99"
               features={[
                 t('plans.unlimitedMessages'),
-                t('plans.whiteLabelOptions'),
-                t('plans.phoneSupport'),
+                t('plans.multiLanguageSupport'),
                 t('plans.advancedAnalytics'),
                 t('plans.apiAccess'),
                 t('plans.customIntegrations'),
-                t('plans.multiLanguageSupport'),
+                t('plans.whiteLabelOptions'),
+                t('plans.phoneSupport'),
                 t('plans.autoLanguageDetection'),
                 t('plans.translatedFaqTemplates')
               ]}

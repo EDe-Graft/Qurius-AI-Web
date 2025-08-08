@@ -46,6 +46,7 @@ export interface ChatInterfaceProps {
     isMinimized?: boolean
     onToggleMinimize?: () => void
     companyName: string
+    plan: string
     isThemeChanging?: boolean
 }
 

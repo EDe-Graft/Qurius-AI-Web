@@ -18,13 +18,12 @@ CREATE TABLE public.companies (
     stripe_subscription_id TEXT, -- Stripe subscription ID
     subscription_status TEXT DEFAULT 'active', -- 'active', 'canceled', 'past_due', 'unpaid'
     subscription_end_date TIMESTAMP WITH TIME ZONE, -- When subscription expires
+    widget_key_hash TEXT, -- Bcrypt hashed widget key
     embedding extensions.vector(768), -- Use fully qualified vector type
     last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT,
-    -- Widget key fields (simplified approach)
-    widget_key_hash TEXT, -- Bcrypt hashed widget key
-    widget_key_plan TEXT DEFAULT 'free' -- Plan type for widget key
+    -- widget_key_plan TEXT DEFAULT 'free' -- Plan type for widget key
 );
 
 -- Note: Widget keys are now stored directly in the companies table
