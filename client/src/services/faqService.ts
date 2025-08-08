@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { config } from '@/lib/config';
+import type { FAQResponse } from '../../types/interfaces';
 
 export interface FAQ {
   id?: string;
@@ -18,9 +19,10 @@ class FAQService {
   private BACKEND_URL = config.backendUrl;
 
   // Get FAQ answer using semantic search
-  async getFAQAnswer(companyName: string, userQuestion: string): Promise<{ answer: string; source: 'faq' | 'ai' } | null> {
+  async getFAQAnswer(companyId: string, companyName: string, userQuestion: string): Promise<FAQResponse | null> {
     try {
       const response = await axios.post(`${this.BACKEND_URL}/api/faqs/search`, {
+        companyId,
         companyName,
         question: userQuestion
       });
@@ -30,20 +32,56 @@ class FAQService {
       // Handle array of FAQ results
       if (Array.isArray(response.data) && response.data.length > 0) {
         const firstResult = response.data[0];
-        // Return both answer and source
+        
+        // Check for limit reached response first
+        if (firstResult.source === 'limit_reached' || firstResult.limitReached) {
+          console.log('⚠️ Limit reached response detected');
+          return {
+            question: userQuestion,
+            answer: firstResult.answer || 'Message limit reached for this month. Please upgrade your plan or wait until next month.',
+            source: 'limit_reached',
+            limitReached: true,
+            messagesLeft: firstResult.messagesLeft || 0
+          };
+        }
+        
+        // Return the full result object for normal responses
         if (firstResult.answer) {
           return {
+            question: userQuestion,
             answer: firstResult.answer,
-            source: firstResult.source || 'ai'
+            source: firstResult.source || 'ai',
+            faqId: firstResult.faqId,
+            confidence: firstResult.confidence,
+            fallbackReason: firstResult.fallbackReason,
+            limitReached: firstResult.limitReached || false,
+            messagesLeft: firstResult.messagesLeft
           };
         }
       }
       
       // Handle single FAQ object
       if (response.data && response.data.answer) {
+        // Check for limit reached response
+        if (response.data.source === 'limit_reached' || response.data.limitReached) {
+          return {
+            question: userQuestion,
+            answer: response.data.answer || 'Message limit reached for this month. Please upgrade your plan or wait until next month.',
+            source: 'limit_reached',
+            limitReached: true,
+            messagesLeft: response.data.messagesLeft || 0
+          };
+        }
+        
         return {
+          question: userQuestion,
           answer: response.data.answer,
-          source: response.data.source || 'ai'
+          source: response.data.source || 'ai',
+          faqId: response.data.faqId,
+          confidence: response.data.confidence,
+          fallbackReason: response.data.fallbackReason,
+          limitReached: response.data.limitReached || false,
+          messagesLeft: response.data.messagesLeft
         };
       }
       

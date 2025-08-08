@@ -39,15 +39,43 @@ export interface FAQ {
     tags: string[];
 }
 
+// FAQ Response interface
+export interface FAQResponse {
+    question: string;
+    answer: string;
+    source: 'faq' | 'ai' | 'limit_reached';
+    faqId?: string;
+    confidence?: number;
+    fallbackReason?: string;
+    limitReached?: boolean;
+    messagesLeft?: number;
+}
+
 //Chat Interface
 export interface ChatInterfaceProps {
     defaultTheme: "light" | "dark"
     toggleTheme: () => void
     isMinimized?: boolean
     onToggleMinimize?: () => void
-    companyName: string
-    plan: string
     isThemeChanging?: boolean
+    companyData?: {
+        id: string
+        name: string
+        plan: string
+        status: string
+        theme?: any
+        contact_email?: string
+        admin_email?: string
+        logo_url?: string
+        domain?: string
+        location?: string
+        description?: string
+        industry?: string
+        website?: string
+        enrollment_date?: string
+        subscription_status?: string
+        subscription_end_date?: string
+    }
 }
 
 // Chat Input

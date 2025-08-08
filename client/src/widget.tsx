@@ -9,6 +9,7 @@ import './global.css'
 // Widget interface
 interface WidgetConfig {
   companyName: string
+  companyId: string
   key: string
   plan: string
   theme?: 'light' | 'dark'
@@ -17,6 +18,27 @@ interface WidgetConfig {
   supabaseUrl?: string
   supabaseAnonKey?: string
   backendUrl?: string // Added for backend communication
+  companyData?: CompanyData // Added for storing company data
+}
+
+// Company data interface
+interface CompanyData {
+  id: string
+  name: string
+  plan: string
+  status: string
+  theme: any
+  contact_email?: string
+  admin_email?: string
+  logo_url?: string
+  domain?: string
+  location?: string
+  description?: string
+  industry?: string
+  website?: string
+  enrollment_date?: string
+  subscription_status?: string
+  subscription_end_date?: string
 }
 
 // Global widget instance
@@ -37,17 +59,37 @@ const validateWidgetKey = async (key: string, companyName: string, backendUrl: s
   }
 }
 
-const validateDemoKey = async (key: string, backendUrl: string) => {
+
+// Get company data by ID
+const getCompanyDataById = async (companyId: string, backendUrl: string): Promise<CompanyData> => {
   try {
-    console.log('🔑 Validating demo key:', key);
-    const response = await axios.get(`${backendUrl}/api/validate-demo-key`, {
-      params: { key }
-    })
+    console.log('🏢 Fetching company data for ID:', companyId);
+    const response = await axios.get(`${backendUrl}/api/companies/${companyId}`)
     return response.data
   } catch (error) {
     const axiosError = error as AxiosError
-    console.error('Demo key validation failed:', axiosError.response?.data || axiosError.message)
-    return { valid: false, error: 'Demo validation failed' }
+    console.error('Failed to fetch company data:', axiosError.response?.data || axiosError.message)
+    throw new Error('Failed to fetch company data')
+  }
+}
+
+// Verify plan authenticity
+const verifyPlanAuthenticity = (scriptPlan: string, companyPlan: string): string => {
+  console.log('🔍 Verifying plan authenticity:', { scriptPlan, companyPlan });
+  
+  // For demo key, allow any plan
+  if (scriptPlan === 'free') {
+    return scriptPlan
+  }
+  
+  // Check if script plan matches company plan
+  if (scriptPlan === companyPlan) {
+    console.log('✅ Plan verification successful: plans match');
+    return companyPlan
+  } else {
+    console.log('⚠️ Plan mismatch detected: using company plan as source of truth');
+    console.log('Script plan:', scriptPlan, 'Company plan:', companyPlan);
+    return companyPlan // Use company plan as single source of truth
   }
 }
 
@@ -55,24 +97,38 @@ const validateDemoKey = async (key: string, backendUrl: string) => {
 const initializeWidget = async (config: WidgetConfig) => {
   const key = config.key
   const companyName = config.companyName
+  const companyId = config.companyId
+  const scriptPlan = config.plan
   const backendUrl = import.meta.env.VITE_BACKEND_URL
   
-  // Validate key before initializing widget
-  let validationResult
-  if (key === 'demo-2025-healthplus') {
-    validationResult = await validateDemoKey(key, backendUrl)
-  } else {
-    validationResult = await validateWidgetKey(key, companyName, backendUrl)
-  }
+  // Validate demo key or widget key before initializing widget
+  let validationResult = await validateWidgetKey(key, companyName, backendUrl)
   
-  if (!validationResult.valid) {
+  if (!validationResult?.valid) {
     console.error('Widget key validation failed:', validationResult.error)
     return false
   }
   
-  // Initialize widget with validated config
-  console.log('✅ Widget key validated successfully')
-  return true
+  // Get company data by ID
+  try {
+    const companyData = await getCompanyDataById(companyId, backendUrl)
+    console.log('✅ Company data fetched successfully:', companyData)
+    
+    // Verify plan authenticity and use company plan as source of truth
+    const verifiedPlan = verifyPlanAuthenticity(scriptPlan, companyData.plan)
+    
+    // Store company data in config for use in widget with verified plan
+    config.companyData = {
+      ...companyData,
+      plan: verifiedPlan // Use verified plan as single source of truth
+    }
+    
+    console.log('✅ Widget initialization completed successfully')
+    return true
+  } catch (error) {
+    console.error('❌ Failed to fetch company data:', error)
+    return false
+  }
 }
 
 // Initialize widget
@@ -133,8 +189,7 @@ function WidgetApp({ config }: { config: WidgetConfig }) {
       toggleTheme={toggleTheme}
       isMinimized={isChatMinimized}
       onToggleMinimize={handleToggleMinimize}
-      companyName={config.companyName}
-      plan={config.plan}
+      companyData={config.companyData}
       isThemeChanging={isThemeChanging}
     />
   )

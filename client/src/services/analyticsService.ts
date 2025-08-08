@@ -75,7 +75,7 @@ export class AnalyticsService {
       themeMode?: string
       faqId?: string
       aiFallbackReason?: string
-      responseSource?: 'faq' | 'ai'
+      responseSource?: 'faq' | 'ai' | 'limit_reached'
       confidenceScore?: number
     }
   ) {
@@ -153,17 +153,28 @@ export class AnalyticsService {
   static async trackMessageReceived(
     companyName: string, 
     response: string, 
-    responseSource: 'faq' | 'ai',
+    responseSource: 'faq' | 'ai' | 'limit_reached',
     faqId?: string,
     confidenceScore?: number,
     aiFallbackReason?: string
   ) {
-    await this.trackWidgetInteraction(companyName, 'message_received', undefined, response, {
-      responseSource,
-      faqId,
-      confidenceScore,
-      aiFallbackReason
-    })
+    try {
+      const sessionId = this.getSessionId()
+      
+      await axios.post(`${this.BACKEND_URL}/api/analytics/widget-interaction`, {
+        companyName,
+        eventType: 'message_received',
+        response,
+        responseSource,
+        faqId,
+        confidenceScore,
+        aiFallbackReason,
+        sessionId,
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error('Failed to track message received:', error)
+    }
   }
 
   // Track language change
@@ -211,7 +222,7 @@ export class AnalyticsService {
     companyName: string,
     rating: number,
     responseText: string,
-    responseSource: 'faq' | 'ai',
+    responseSource: 'faq' | 'ai' | 'limit_reached',
     feedbackText?: string,
     faqId?: string,
     confidenceScore?: number

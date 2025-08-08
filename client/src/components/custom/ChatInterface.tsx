@@ -9,7 +9,7 @@ import { MessageCircle } from "lucide-react"
 import { AnalyticsService } from "@/services/analyticsService"
 import { ThemeService } from "@/services/themeService"
 import { TranslationService } from "@/services/translationService"
-import type { ChatInterfaceProps, Message, CompanyTheme } from "types/interfaces"
+import type { ChatInterfaceProps, Message, CompanyTheme } from "../../../types/interfaces"
 import { faqService } from "@/services/faqService"
 import { cn, darkenColor } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -22,15 +22,14 @@ export function ChatInterface({
   toggleTheme,
   isMinimized,
   onToggleMinimize,
-  companyName,
-  plan,
-  isThemeChanging
+  isThemeChanging,
+  companyData,
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const { t, currentLanguage } = useLanguage()
 
-  // Company Theme
+  // Company Theme - use company data if available, otherwise fetch
   const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
   const isDark = defaultTheme === 'dark'
 
@@ -40,32 +39,23 @@ export function ChatInterface({
   // Animation state for smooth transition
   const [isVisible, setIsVisible] = useState(false)
 
+  // destructure company data
+  const { name: companyName, id: companyId, plan: verifiedPlan } = companyData || {}
+
   // Compute the translated welcome message
-  const getWelcomeMessage = () => interpolate(t('chat.welcomeWithCompany'), { company: companyName || 'AI' })
+  const getWelcomeMessage = () => {
+    return interpolate(t('chat.welcomeWithCompany'), { companyName: companyName || 'AI' })
+  }
 
   // Initialize messages with computed welcome message
   const [messages, setMessages] = useState<Message[]>([])
-
-  // Update welcome message when language or company name changes
-  useEffect(() => {
-    if (!messages[0]?.isUser) {
-      setMessages([
-        {
-          content: getWelcomeMessage(),
-          isUser: false,
-          liked: null,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ])
-    }
-  }, [t, companyName])
 
   const [isTyping, setIsTyping] = useState(false)
   const [userScrolled, setUserScrolled] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [wasMinimized, setWasMinimized] = useState(false) // Add this state
- 
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -141,32 +131,49 @@ export function ChatInterface({
   //   testServices()
   // }, [])
 
+  // Update welcome message when language or company name changes (ONLY on initial load)
+  useEffect(() => {
+  
+    // Only set welcome message if we have company data and no user messages yet
+    if (!messages[0]?.isUser && companyData) {
+      const welcomeMessage = {
+        content: getWelcomeMessage(),
+        isUser: false,
+        liked: null,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      
+      setMessages([welcomeMessage])
+    }
+  }, [t, companyName, companyData]) // Added companyData dependency
+
   // Get company theme
   useEffect(() => {
     if (companyName) {
       setIsLoading(true)
+      //get company theme from service
+      console.log('🔄 Fetching company theme via service...')
       ThemeService.getCompanyTheme(companyName, isDark)
         .then((theme) => {
           setCompanyTheme(theme)
-          // Add 1-second delay for spinning animation
           setTimeout(() => {
             setIsLoading(false)
           }, 1000)
         })
         .catch((error) => {
           console.error('Failed to load company theme:', error)
-          // Still set loading to false after delay even if theme fails
           setTimeout(() => {
             setIsLoading(false)
           }, 1000)
         })
+      
     } else {
       // If no company name, still show loading animation
       setTimeout(() => {
         setIsLoading(false)
       }, 1000)
     }
-  }, [companyName, isDark])
+  }, [companyName, isDark, companyData])
 
   // Track widget view when component mounts
   useEffect(() => {
@@ -270,11 +277,39 @@ export function ChatInterface({
       
       console.log('🤖 Getting FAQ answer...')
       // Get AI response in English
-      const result = await faqService.getFAQAnswer(companyName || '', translatedInput)
+      const result = await faqService.getFAQAnswer(companyId || '', companyName || '', translatedInput)
       // console.log('✅ FAQ result:', result)
       // console.log('🔍 Result type:', typeof result, 'Truthy:', !!result)
       
       if (result) {
+        // Check if this is a limit reached response
+        if (result.source === 'limit_reached' || result.limitReached) {
+          console.log('⚠️ Message limit reached, showing limit message')
+          
+          // Create a more informative limit message
+          let limitMessageContent = result.answer || `Message limit for ${companyName} reached for this month. Please contact customer support with any questions.`;
+          
+          // Add upgrade information if available
+          // if (verifiedPlan && verifiedPlan !== 'pro') {
+          //   limitMessageContent += `\n\n💡 **Upgrade your plan** to get more messages per month.`;
+          // }
+          
+          const limitMessage: Message = {
+            content: limitMessageContent,
+            isUser: false,
+            liked: null,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }
+          setMessages((prev) => [...prev, limitMessage])
+          setWasMinimized(false)
+          
+          // Track limit reached event
+          if (companyName) {
+            AnalyticsService.trackMessageReceived(companyName, limitMessage.content, 'limit_reached')
+          }
+          return
+        }
+        
         console.log('🔄 Translating response to user language...')
         // Translate response to user's language
         let translatedResponse = result.answer
@@ -298,6 +333,14 @@ export function ChatInterface({
         // Track message received with correct source
         if (companyName) {
           AnalyticsService.trackMessageReceived(companyName, translatedResponse, result.source)
+        }
+        
+        // Log remaining messages if available
+        if (result.messagesLeft !== undefined) {
+          console.log(`📊 Messages remaining: ${result.messagesLeft}`);
+          // setRemainingMessages(result.messagesLeft); // Removed as per edit hint
+        } else {
+          // setRemainingMessages(null); // Removed as per edit hint
         }
       } else {
         console.log('⚠️ No response found from server')
@@ -402,6 +445,8 @@ export function ChatInterface({
         right: `${window.innerWidth > 768 ? '1rem' : '50%'}`,
         transform: `${window.innerWidth > 768 ? 'none' : 'translateX(50%)'}`,
         zIndex: 50,
+        borderColor: companyTheme?.borderColor || '#E5E7EB',
+        backgroundColor: companyTheme?.backgroundColor || '#FFFFFF',
       }}
     >
       {/* Theme Change Spinner Overlay */}
@@ -454,14 +499,14 @@ export function ChatInterface({
               <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-red-500 transition-colors" />
             </button>
           )} */}
-          {plan === 'pro' && (
+          {verifiedPlan === 'pro' && (
             <LanguageSelector 
               variant="dropdown" 
               className="scale-65" 
               companyName={companyName}
             />
           )}
-          {plan !== 'free' && (
+          {verifiedPlan !== 'free' && (
           <button
             onClick={
               () => {

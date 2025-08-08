@@ -11,8 +11,23 @@ export function Demo() {
   const { t } = useLanguage()
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const navigate = useNavigate()
-  let companyName = 'PurpleSoft Inc';
-  let plan = 'pro';
+  // Company data for demo
+  let companyData = {
+    id: '18c69d1d-89c3-432f-b7e6-cb69c67de342',
+    name: 'PurpleSoft Inc',
+    plan: 'pro',
+    status: 'active',
+    contact_email: 'contact@purplesoft.com',
+    admin_email: 'admin@purplesoft.com',
+    domain: 'purplesoft.com',
+    location: 'New York, NY',
+    description: 'PurpleSoft Inc is a software development company that specializes in building custom software solutions for businesses.',
+    industry: 'Software Development',
+    website: 'https://purplesoft.com',
+    enrollment_date: '2021-01-01',
+    subscription_status: 'active',
+    subscription_end_date: '2025-01-01',
+  }
 
   return (
     <div
@@ -83,8 +98,7 @@ export function Demo() {
         toggleTheme={toggleTheme}
         isMinimized={isChatMinimized}
         onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-        companyName={companyName}
-        plan={plan}
+        companyData={companyData}
         isThemeChanging={isThemeChanging}
       />
     </div>

@@ -5,7 +5,68 @@ import type { MessageBubbleProps } from "types/interfaces"
 import { MarkdownRenderer } from "./MarkdownRenderer"
 import { AnalyticsService } from "@/services/analyticsService"
 
-export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, wasMinimized }: MessageBubbleProps) {
+// User Message Bubble Component
+function UserMessageBubble({ message, timestamp, companyTheme }: {
+  message: string
+  timestamp?: string
+  companyTheme?: any
+}) {
+  return (
+    <div className="flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row-reverse">
+      {/* Avatar */}
+      <div
+        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white"
+        style={{ backgroundColor: companyTheme?.primaryColor }}
+      >
+        <User className="w-4 h-4" />
+      </div>
+
+      {/* Message Content */}
+      <div className="flex-1 space-y-2 text-right">
+        <div
+          className="inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed text-white rounded-br-md"
+          style={{ backgroundColor: companyTheme?.primaryColor }}
+        >
+          <MarkdownRenderer content={message} />
+        </div>
+        
+        {/* Timestamp */}
+        {timestamp && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 px-2 text-right">
+            {timestamp}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// AI Message Bubble Component
+function AIMessageBubble({ 
+  message, 
+  messageIndex, 
+  liked, 
+  timestamp, 
+  onStreamingChange, 
+  skipStreaming, 
+  companyTheme, 
+  isLastAiMessage, 
+  companyName, 
+  onRatingChange, 
+  wasMinimized 
+}: {
+  message: string
+  messageIndex: number
+  liked: 'like' | 'dislike' | null | undefined
+  timestamp?: string
+  onStreamingChange?: (streaming: boolean) => void
+  skipStreaming?: boolean
+  companyTheme?: any
+  isLastAiMessage?: boolean
+  companyName?: string
+  onRatingChange?: (rating: 'like' | 'dislike' | null) => void
+  wasMinimized?: boolean
+}) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -46,12 +107,12 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
 
   useEffect(() => {
     // Only simulate streaming for the last AI response, when not skipping, and after initialization
-    if (!isUser && !skipStreaming && isInitialized && isLastAiMessage) {
+    if (!skipStreaming && isInitialized && isLastAiMessage) {
       // Give time for components to initialize before streaming starts
       setTimeout(() => {
         simulateStream(message)
       }, 1000)
-    } else if (!isUser && !skipStreaming && !isInitialized && isLastAiMessage) {
+    } else if (!skipStreaming && !isInitialized && isLastAiMessage) {
       // Set streaming state but don't start yet
       setIsStreaming(true)
       onStreamingChange?.(true)
@@ -61,7 +122,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
       onStreamingChange?.(false)
       setStreamText("")
     }
-  }, [message, isUser, skipStreaming, isInitialized, isLastAiMessage])
+  }, [message, skipStreaming, isInitialized, isLastAiMessage])
 
   const handleRating = async (rating: number) => {
     if (!companyName) return
@@ -122,37 +183,29 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
 
   return (
     <>
-      <div className={cn("flex gap-3 max-w-[98%] mx-auto px-4 py-6", isUser ? "flex-row-reverse" : "flex-row")}>
+      <div className="flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row">
         {/* Avatar */}
         <div
-          className={cn(
-            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-            isUser ? "text-white" :  "text-gray-600 dark:text-gray-400",
-          )}
-          style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
+          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400"
+          style={{ backgroundColor: companyTheme?.backgroundColor }}
         >
-          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+          <Bot className="w-4 h-4" />
         </div>
 
         {/* Message Content */}
         {(wasMinimized || isInitialized) && (
-          <div className={cn("flex-1 space-y-2", isUser ? "text-right" : "text-left")}>
+          <div className="flex-1 space-y-2 text-left">
             <div
-              className={cn(
-                "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
-                isUser
-                  ? "text-white rounded-br-md"
-                  : "text-gray-900 dark:text-gray-100 rounded-bl-md",
-              )}
-              style={{ backgroundColor: isUser ? companyTheme?.primaryColor : companyTheme?.backgroundColor }}
+              className="inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed text-gray-900 dark:text-gray-100 rounded-bl-md"
+              style={{ backgroundColor: companyTheme?.backgroundColor }}
             >
               <MarkdownRenderer 
-                content={!isUser && isStreaming && !skipStreaming && isLastAiMessage ? streamText : message}
+                content={isStreaming && !skipStreaming && isLastAiMessage ? streamText : message}
               />
             </div>
             
             {/* Feedback buttons for AI messages */}
-            {!isUser && !isStreaming && (
+            {!isStreaming && (
               <div className="flex items-center gap-2 mt-1">
                 {messageIndex !== 0 && (
                   <>
@@ -205,7 +258,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
                 {/* timestamp */}
                 {timestamp && (
                   <div 
-                    className={cn("text-xs text-gray-500 dark:text-gray-400 px-2", "text-right")}
+                    className="text-xs text-gray-500 dark:text-gray-400 px-2 text-right"
                   >
                     {timestamp}
                   </div>
@@ -267,4 +320,33 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
       )}
     </>
   )
+}
+
+// Main MessageBubble Component - now acts as a router
+export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, wasMinimized }: MessageBubbleProps) {
+  if (isUser) {
+    return (
+      <UserMessageBubble 
+        message={message}
+        timestamp={timestamp}
+        companyTheme={companyTheme}
+      />
+    )
+  } else {
+    return (
+      <AIMessageBubble 
+        message={message}
+        messageIndex={messageIndex}
+        liked={liked || null}
+        timestamp={timestamp}
+        onStreamingChange={onStreamingChange}
+        skipStreaming={skipStreaming}
+        companyTheme={companyTheme}
+        isLastAiMessage={isLastAiMessage}
+        companyName={companyName}
+        onRatingChange={onRatingChange}
+        wasMinimized={wasMinimized}
+      />
+    )
+  }
 }

@@ -113,7 +113,7 @@
   }
   
   // Initialize widget
-  async function initWidget(companyName, options = {}) {
+  async function initWidget(companyName, companyId, options = {}) {
     try {
       console.log('Initializing React widget...');
       
@@ -135,6 +135,7 @@
         console.log('Creating React widget...');
         window.QuriusChatWidget.init(widgetContainer, {
           companyName: companyName,
+          companyId: companyId,
           theme: options.theme || CONFIG.defaultTheme,
           apiUrl: options.apiUrl || CONFIG.apiUrl,
           key: options.key,
@@ -179,11 +180,14 @@
     const script = document.currentScript || document.querySelector('script[src*="embed.js"]');
     if (script) {
       const companyName = script.getAttribute('data-company');
+      const companyId = script.getAttribute('data-id');
       const key = script.getAttribute('data-key');
       const plan = script.getAttribute('data-plan');
       const theme = script.getAttribute('data-theme') || CONFIG.defaultTheme;
-      if (companyName) {
-        initWidget(companyName, { theme, key, plan });
+      if (companyName && companyId) {
+        initWidget(companyName, companyId, { theme, key, plan });
+      } else {
+        console.error('Company name or ID not found in data attributes');
       }
     }
   });
