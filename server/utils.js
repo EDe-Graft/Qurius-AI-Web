@@ -298,11 +298,11 @@ export function getDailyStats(analytics, days) {
 //Create company and profile and auth user and send welcome email
 export async function createCompany(companyData, userId = null) {
   try {
-    const { name, location, description, theme, industry, website, email, logo_url, status, plan, domain, enrollment_date } = companyData;
+    const { name, location, description, theme, industry, website, email, logo_url, status, plan, domain, enrollment_date, subscription_end_date } = companyData;
 
     // Extract domain from website URL if not provided
     let extractedDomain = domain;
-    if (!domain && website) {
+    if (!domain && website && website.trim() !== '') {
       try {
         const url = new URL(website.startsWith('http') ? website : `https://${website}`);
         extractedDomain = url.hostname;
@@ -314,7 +314,7 @@ export async function createCompany(companyData, userId = null) {
     }
 
     // Log the company data
-    console.log('Creating company:', companyData);
+    console.log('Creating company with data:', JSON.stringify(companyData, null, 2));
 
     // Get supabase URL and key
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -345,16 +345,21 @@ export async function createCompany(companyData, userId = null) {
       // Stripe fields
       stripe_customer_id: companyData.stripe_customer_id || null,
       stripe_subscription_id: companyData.stripe_subscription_id || null,
-      subscription_status: companyData.subscription_status || 'active'
+      subscription_status: companyData.subscription_status || 'active',
+      subscription_end_date: subscription_end_date || null
     };
 
     // Create company with the auth user ID as the company ID
+    const finalCompanyData = {
+      ...companyDataForDB,
+      id: userId // Use the auth user ID as the company ID
+    };
+    
+    console.log('Sending to database:', JSON.stringify(finalCompanyData, null, 2));
+    
     const companyResponse = await axios.post(
       `${supabaseUrl}/rest/v1/companies`,
-      {
-        ...companyDataForDB,
-        id: userId // Use the auth user ID as the company ID
-      },
+      finalCompanyData,
       {
         headers: {
           'apikey': supabaseKey,

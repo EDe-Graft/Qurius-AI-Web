@@ -78,7 +78,8 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const description = session.metadata.description;
         
         console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
-        console.log('💳 Session:', session);
+        console.log('💳 Session metadata:', session.metadata);
+        console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description });
         
         // Create company after successful payment
         const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -104,7 +105,8 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           stripe_subscription_id: session.subscription,
           subscription_status: 'active',
           status: 'active',
-
+          // Add subscription end date if subscription exists
+          subscription_end_date: session.subscription ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null // Default to 30 days from now
         };
 
         try {
@@ -1729,10 +1731,17 @@ app.get('/api/validate-key', async (req, res) => {
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
     // console.log('💳 PRICING_PLANS:', PRICING_PLANS);
-    const { companyName, customerEmail, planId, theme } = req.body;
-    console.log('💳 Plan ID:', planId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
+    const { companyName, customerEmail, planId, theme, location, industry, website, description } = req.body;
     
-    console.log('💳 Creating checkout session for:', { companyName, planId, customerEmail });
+    console.log('💳 Creating checkout session for:', { 
+      companyName, 
+      planId, 
+      customerEmail, 
+      location, 
+      industry, 
+      website, 
+      description 
+    });
     
     if (!planId || !customerEmail || !companyName) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -1762,7 +1771,11 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         name: companyName,
         metadata: {
           company_name: companyName,
-          plan_id: planId
+          plan_id: planId,
+          location: location || '',
+          industry: industry || '',
+          website: website || '',
+          description: description || ''
         }
       });
     }
@@ -1780,7 +1793,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     }
 
     const frontendUrl = process.env.FRONTEND_URL || 
-      (process.env.NODE_ENV === 'production' ? 'https://qurius-ai.vercel.app' : 'http://localhost:5173');
+      (process.env.NODE_ENV === 'production' ? 'https://qurius.app' : 'http://localhost:5173');
 
 
     const session = await stripe.checkout.sessions.create({
@@ -1798,7 +1811,11 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       metadata: {
         company_name: companyName,
         plan_id: planId,
-        customer_email: customerEmail
+        customer_email: customerEmail,
+        location: location || '',
+        industry: industry || '',
+        website: website || '',
+        description: description || ''
       }
     });
 
@@ -1955,6 +1972,93 @@ app.post('/api/auth/super-admin', async (req, res) => {
 // ========================================
 // TEST ENDPOINTS (Development Only)
 // ========================================
+
+// Test webhook simulation endpoint
+app.post('/api/test/simulate-webhook', async (req, res) => {
+  try {
+    const { companyName, customerEmail, planId, location, industry, website, description } = req.body;
+    
+    console.log('🧪 Simulating webhook for:', { companyName, customerEmail, planId, location, industry, website, description });
+    
+    // Simulate the webhook event data
+    const mockSession = {
+      metadata: {
+        company_name: companyName,
+        plan_id: planId,
+        customer_email: customerEmail,
+        location: location || 'Test Location',
+        industry: industry || 'Technology',
+        website: website || 'https://example.com',
+        description: description || 'Test company'
+      },
+      customer: 'cus_test_' + Date.now(),
+      subscription: 'sub_test_' + Date.now()
+    };
+
+    // Create company with subscription info
+    const companyData = {
+      name: companyName,
+      email: customerEmail,
+      contact_email: customerEmail,
+      admin_email: customerEmail,
+              location: location || 'Test Location',
+        industry: industry || 'Technology',
+        website: website || 'https://example.com',
+        description: description || 'Test company',
+      plan: planId,
+      stripe_customer_id: mockSession.customer,
+      stripe_subscription_id: mockSession.subscription,
+      subscription_status: 'active',
+      status: 'active'
+    };
+
+    try {
+      // Create auth user first
+      console.log('💳 Creating auth user for:', customerEmail);
+      const userId = await createAuthUser(customerEmail);
+
+      if (userId) {
+        console.log('💳 Creating company for:', companyData);
+        const { companyId, companyName, email: companyEmail, widgetKey } = await createCompany(companyData, userId);
+        console.log('✅ Company created successfully:', companyId);
+
+        // Update auth user with company id
+        await updateAuthUser(companyId, userId);
+        console.log('✅ Auth user updated successfully:', userId);
+
+        // Send welcome email
+        console.log('💳 Sending welcome email for:', companyEmail);
+        await sendWelcomeEmail(companyEmail, companyName, planId, widgetKey);
+        console.log('✅ Welcome email sent successfully with widget key');
+
+        res.json({ 
+          success: true, 
+          message: 'Test webhook processed successfully',
+          companyId,
+          widgetKey
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: 'Failed to create auth user' 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error in test webhook:', error.response?.data || error.message);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to process test webhook',
+        details: error.response?.data || error.message 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Test webhook error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Test webhook failed' 
+    });
+  }
+});
 
 // Create test company (bypasses Stripe payment)
 app.post('/api/test/create-company', async (req, res) => {
