@@ -141,11 +141,11 @@ export function Onboarding() {
         {/* Progress Steps */}
         <div className="mb-6 md:mb-8">
           {/* Step Icons with Connecting Lines */}
-          <div className="flex items-center justify-between mb-4 md:mb-6">
+          <div className="flex items-start justify-between mb-4 md:mb-6">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
-                  <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border-2 ${
+                  <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border-2 shrink-0 ${
                     index <= currentStep 
                       ? "border-blue-600 bg-blue-600 text-white" 
                       : "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400"
@@ -153,7 +153,7 @@ export function Onboarding() {
                     {index < currentStep ? (
                       <CheckCircle className="h-5 w-5 md:h-6 md:w-6" />
                     ) : (
-                      <div className="flex items-center justify-center h-5 w-5 md:h-6 md:w-6">
+                      <div className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6">
                         {step.icon}
                       </div>
                     )}
@@ -171,10 +171,10 @@ export function Onboarding() {
           </div>
           
           {/* Step Titles and Descriptions */}
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-2 md:gap-4">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex-1 text-center px-1 md:px-2">
-                <h3 className={`text-xs md:text-sm font-medium mb-1 ${
+              <div key={step.id} className="flex flex-col justify-between text-center min-h-[3rem] ">
+                <h3 className={`text-xs md:text-sm font-medium mb-2 leading-tight ${
                   index <= currentStep 
                     ? "text-blue-600 dark:text-blue-400" 
                     : "text-gray-500 dark:text-gray-400"

@@ -33,8 +33,9 @@ export function ChatInterface({
   const [companyTheme, setCompanyTheme] = useState<CompanyTheme | null>(null)
   const isDark = defaultTheme === 'dark'
 
-  // Loading state for theme and company data
-  const [isLoading, setIsLoading] = useState(true)
+  // Loading state for theme and company data (initial load only)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [hasBeenInitialized, setHasBeenInitialized] = useState(false)
 
   // Animation state for smooth transition
   const [isVisible, setIsVisible] = useState(false)
@@ -131,11 +132,10 @@ export function ChatInterface({
   //   testServices()
   // }, [])
 
-  // Update welcome message when language or company name changes (ONLY on initial load)
+  // Initialize welcome message ONLY once when component first loads
   useEffect(() => {
-  
-    // Only set welcome message if we have company data and no user messages yet
-    if (!messages[0]?.isUser && companyData) {
+    // Only set welcome message if we have company data and NO messages at all
+    if (messages.length === 0 && companyData) {
       const welcomeMessage = {
         content: getWelcomeMessage(),
         isUser: false,
@@ -145,32 +145,46 @@ export function ChatInterface({
       
       setMessages([welcomeMessage])
     }
-  }, [t, companyName, companyData]) // Added companyData dependency
+  }, [companyData]) // Only depend on companyData, not on t or companyName to prevent resets
+
+  // Update welcome message content when language changes (without resetting conversation)
+  useEffect(() => {
+    if (messages.length > 0 && !messages[0]?.isUser && companyData) {
+      setMessages(prev => prev.map((message, index) => 
+        index === 0 && !message.isUser
+          ? { ...message, content: getWelcomeMessage() }
+          : message
+      ))
+    }
+  }, [t, companyName]) // Update welcome message when language or company name changes
 
   // Get company theme
   useEffect(() => {
     if (companyName) {
-      setIsLoading(true)
+      setIsInitialLoading(true)
       //get company theme from service
       console.log('🔄 Fetching company theme via service...')
       ThemeService.getCompanyTheme(companyName, isDark)
         .then((theme) => {
           setCompanyTheme(theme)
           setTimeout(() => {
-            setIsLoading(false)
+            setIsInitialLoading(false)
+            setHasBeenInitialized(true)
           }, 1000)
         })
         .catch((error) => {
           console.error('Failed to load company theme:', error)
           setTimeout(() => {
-            setIsLoading(false)
+            setIsInitialLoading(false)
+            setHasBeenInitialized(true)
           }, 1000)
         })
       
     } else {
       // If no company name, still show loading animation
       setTimeout(() => {
-        setIsLoading(false)
+        setIsInitialLoading(false)
+        setHasBeenInitialized(true)
       }, 1000)
     }
   }, [companyName, isDark, companyData])
@@ -301,7 +315,7 @@ export function ChatInterface({
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
           setMessages((prev) => [...prev, limitMessage])
-          setWasMinimized(false)
+          // Don't reset wasMinimized here as it affects message display
           
           // Track limit reached event
           if (companyName) {
@@ -328,7 +342,7 @@ export function ChatInterface({
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, aiMessage])
-        setWasMinimized(false)
+        // Don't reset wasMinimized here as it affects message display
         
         // Track message received with correct source
         if (companyName) {
@@ -382,7 +396,7 @@ export function ChatInterface({
   if (isMinimized) {
     return (
       <div
-        className={isLoading ? "animate-spin" : "animate-bounce"}
+        className={isInitialLoading && !hasBeenInitialized ? "animate-spin" : "animate-bounce"}
         style={{
           position: 'fixed',
           bottom: '1rem',
@@ -407,7 +421,7 @@ export function ChatInterface({
             e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
           }}
         >
-          {isLoading ? (
+          {isInitialLoading && !hasBeenInitialized ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <MessageCircle className="h-6 w-6" />
@@ -526,7 +540,10 @@ export function ChatInterface({
           <button
             onClick={() => {
               onToggleMinimize?.()
-              setWasMinimized(true)
+              // Only set wasMinimized when user manually minimizes
+              if (!isMinimized) {
+                setWasMinimized(true)
+              }
             }}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
