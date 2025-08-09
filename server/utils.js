@@ -88,10 +88,11 @@ Focus on:
 - Company policies and procedures
 - Pricing and plans (if mentioned)
 - Technical support questions
+- Do not include any other text or comments in your response.
 
 Format each FAQ exactly as:
-Q: [Clear, specific question]
-A: [Comprehensive, helpful answer]
+Q: [Clear, specific question. End with a question mark.]
+A: [Comprehensive, helpful answer related to the question. End with a period.]
 
 Generate only the FAQs in the specified format, no other text.`;
 

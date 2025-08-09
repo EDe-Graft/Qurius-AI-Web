@@ -14,30 +14,10 @@ CREATE TABLE IF NOT EXISTS public.crawl_sessions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Crawled Content Table
-CREATE TABLE IF NOT EXISTS public.crawled_content (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    company_name TEXT NOT NULL,
-    crawl_session_id UUID REFERENCES crawl_sessions(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    title TEXT,
-    description TEXT,
-    content_type VARCHAR(20), -- 'main', 'paragraph', 'heading'
-    content_text TEXT NOT NULL,
-    extracted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-
-
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_crawl_sessions_company_id ON crawl_sessions(company_id);
 CREATE INDEX IF NOT EXISTS idx_crawl_sessions_status ON crawl_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_crawl_sessions_date ON crawl_sessions(crawl_date);
-
-CREATE INDEX IF NOT EXISTS idx_crawled_content_company_id ON crawled_content(company_id);
-CREATE INDEX IF NOT EXISTS idx_crawled_content_session_id ON crawled_content(crawl_session_id);
-CREATE INDEX IF NOT EXISTS idx_crawled_content_type ON crawled_content(content_type);
 
 CREATE INDEX IF NOT EXISTS idx_faqs_source ON faqs(source);
 CREATE INDEX IF NOT EXISTS idx_faqs_confidence ON faqs(confidence);
@@ -53,16 +33,7 @@ CREATE POLICY "Companies can view their own crawl sessions" ON crawl_sessions
 CREATE POLICY "Service role can manage crawl sessions" ON crawl_sessions
   FOR ALL USING (true);
 
--- RLS Policies for crawled_content
-ALTER TABLE crawled_content ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Companies can view their own crawled content" ON crawled_content
-  FOR SELECT USING (company_id IN (
-    SELECT id FROM companies WHERE id = company_id
-  ));
-
-CREATE POLICY "Service role can manage crawled content" ON crawled_content
-  FOR ALL USING (true);
 
 -- Function to update crawl session status
 CREATE OR REPLACE FUNCTION update_crawl_session_status(

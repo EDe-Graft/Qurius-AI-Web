@@ -13,7 +13,7 @@ A comprehensive web crawling system that automatically extracts content from com
 - ✅ **Real-time Monitoring**: Live status updates and progress tracking
 
 ### **Technical Features**
-- ✅ **Database Integration**: Stores crawl sessions and extracted content
+- ✅ **Database Integration**: Stores crawl sessions and generated FAQs
 - ✅ **Error Handling**: Comprehensive error handling and recovery
 - ✅ **Rate Limiting**: Configurable delays between requests
 - ✅ **Content Filtering**: Removes scripts, styles, and navigation elements
@@ -175,15 +175,7 @@ FAQs are generated through:
 - `crawl_date`: When crawl started
 - `completed_date`: When crawl finished
 
-#### **crawled_content**
-- `id`: UUID primary key
-- `company_id`: References companies table
-- `crawl_session_id`: References crawl session
-- `url`: Source URL
-- `title`: Page title
-- `description`: Page description
-- `content_type`: 'main', 'paragraph', 'heading'
-- `content_text`: Extracted text content
+
 
 #### **Enhanced FAQs Table**
 - Added `source`: 'manual', 'crawler', 'ai_generated'

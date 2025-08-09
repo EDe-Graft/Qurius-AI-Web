@@ -259,7 +259,10 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
               className="flex-1"
             />
             <Button
-              onClick={startCrawl}
+              onClick={() => {
+                startCrawl()
+                setWebsiteUrl('')
+              }}
               disabled={isCrawling || !websiteUrl.trim()}
               className="flex items-center gap-2"
             >

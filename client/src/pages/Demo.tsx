@@ -13,8 +13,8 @@ export function Demo() {
   const navigate = useNavigate()
   // Company data for demo
   let companyData = {
-    id: '3767c965-732e-474f-b104-76d1702dbbe1',
-    name: 'HealthPlus Medical',
+    id: '18c69d1d-89c3-432f-b7e6-cb69c67de342',
+    name: 'PurpleSoft Inc',
     plan: 'pro',
     status: 'active',
     contact_email: 'contact@purplesoft.com',
