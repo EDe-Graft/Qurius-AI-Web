@@ -24,7 +24,7 @@ export function AnalyticsDashboard({ companyId }: AnalyticsDashboardProps) {
     try {
       setLoading(true)
       const data = await AnalyticsService.getCompanyAnalytics(companyId!, period)
-      console.log('Analytics data for company:', companyId, data)
+      // console.log('Analytics data for company:', companyId, data)
       setAnalytics(data)
     } catch (error) {
       console.error('Failed to load analytics:', error)

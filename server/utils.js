@@ -2,7 +2,7 @@ import axios from 'axios';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { toTitleCase } from './helper.js';
-import { WelcomeEmailTemplate } from './emailTemplates.js';
+import { WelcomeEmailTemplate, MessageLimitReachedEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
 
 //getEmbedding from Jina AI
@@ -71,6 +71,181 @@ export async function getAIResponse({role, content, companyName}) {
   }
 }
 
+// Generate FAQs from crawled content using OpenRouter AI
+export async function getGeneratedFAQs(companyName, content, maxFAQs = 10) {
+  const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+  const API_KEY = process.env.OPEN_ROUTER_API_KEY;
+  const model = 'openai/gpt-4o-mini';
+  const maxTokens = 1500;
+  const temperature = 0.7;
+
+  const systemPrompt = `You are an expert FAQ generator. Based on the provided content about ${companyName}, generate ${maxFAQs} relevant, high-quality FAQ questions and answers that customers would commonly ask.
+
+Focus on:
+- Product/service information
+- Common customer inquiries
+- Support and help topics
+- Company policies and procedures
+- Pricing and plans (if mentioned)
+- Technical support questions
+
+Format each FAQ exactly as:
+Q: [Clear, specific question]
+A: [Comprehensive, helpful answer]
+
+Generate only the FAQs in the specified format, no other text.`;
+
+  const userPrompt = `Generate FAQs based on this content about ${companyName}:
+
+${content.substring(0, 4000)}
+
+Create ${maxFAQs} relevant FAQ pairs that would be most useful for customers.`;
+
+  try {
+    const response = await axios.post(
+      API_URL,
+      {
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        max_tokens: maxTokens,
+        temperature: temperature
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SOURCE_URL
+        }
+      }
+    );
+
+    const generatedText = response.data.choices[0].message.content;
+    return parseFAQsFromText(generatedText);
+  } catch (error) {
+    console.error('FAQ generation error:', error.response?.data || error.message);
+    throw new Error('Failed to generate FAQs using AI');
+  }
+}
+
+// Parse FAQs from AI-generated text
+function parseFAQsFromText(text) {
+  const faqs = [];
+  const lines = text.split('\n');
+  
+  let currentQuestion = '';
+  let currentAnswer = '';
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    if (trimmedLine.startsWith('Q:') || trimmedLine.startsWith('Question:')) {
+      // Save previous FAQ if exists
+      if (currentQuestion && currentAnswer) {
+        faqs.push({
+          question: currentQuestion,
+          answer: currentAnswer.trim(),
+          confidence: 0.9,
+          source: 'ai_generated'
+        });
+      }
+      
+      // Start new FAQ
+      currentQuestion = trimmedLine.replace(/^Q:\s*|Question:\s*/i, '').trim();
+      currentAnswer = '';
+    } else if (trimmedLine.startsWith('A:') || trimmedLine.startsWith('Answer:')) {
+      currentAnswer = trimmedLine.replace(/^A:\s*|Answer:\s*/i, '').trim();
+    } else if (currentQuestion && trimmedLine) {
+      // Continue answer
+      currentAnswer += (currentAnswer ? ' ' : '') + trimmedLine;
+    }
+  }
+  
+  // Add last FAQ
+  if (currentQuestion && currentAnswer) {
+    faqs.push({
+      question: currentQuestion,
+      answer: currentAnswer.trim(),
+      confidence: 0.9,
+      source: 'ai_generated'
+    });
+  }
+  
+  return faqs;
+}
+
+
+// Helper function to track FAQ matches
+export async function trackFAQMatch(companyId, sessionId, faqId, confidenceScore, responseSource) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'faq_matched',
+      session_id: sessionId,
+      faq_id: faqId,
+      confidence_score: confidenceScore,
+      response_source: responseSource,
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track FAQ match:', error);
+  }
+}
+
+// Helper function to track AI fallbacks
+export async function trackAIFallback(companyId, sessionId, fallbackReason, confidenceScore = null) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'ai_fallback',
+      session_id: sessionId,
+      ai_fallback_reason: fallbackReason,
+      confidence_score: confidenceScore,
+      response_source: 'ai',
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track AI fallback:', error);
+  }
+}
 
 // Utility function to parse theme JSON
 export function parseTheme(theme) {
@@ -347,5 +522,167 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId, widget
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);
     throw error;
+  }
+}
+
+// Helper function to record message usage in the new message_usage table
+export async function recordMessageUsage(companyId, companyName, messageType, sessionId, userQuestion, aiResponse, faqId = null, confidenceScore = null, responseSource = null, fallbackReason = null) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const usageData = {
+      company_id: companyId,
+      company_name: companyName,
+      message_type: messageType,
+      session_id: sessionId,
+      user_question: userQuestion,
+      ai_response: aiResponse,
+      faq_id: faqId,
+      confidence_score: confidenceScore,
+      response_source: responseSource,
+      fallback_reason: fallbackReason
+    };
+
+    console.log('📝 Recording message usage:', { companyId, messageType, responseSource });
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/message_usage`,
+      usageData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ Message usage recorded successfully');
+  } catch (error) {
+    console.error('❌ Failed to record message usage:', error.response?.data || error.message);
+    // Don't fail the entire request if usage recording fails
+  }
+}
+
+// Helper function to check and update message limits using separate table
+export async function checkAndUpdateMessageLimit(companyId) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    // Use the new check_message_limit RPC function
+    const limitCheckResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/check_message_limit`,
+      {
+        p_company_id: companyId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!limitCheckResponse.data || limitCheckResponse.data.length === 0) {
+      throw new Error('Failed to check message limit');
+    }
+
+    const limitData = limitCheckResponse.data[0];
+    console.log('📊 Message limit check:', limitData);
+
+    // Get company details for email notifications
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=plan,contact_email,name`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      throw new Error('Company not found');
+    }
+
+    const company = companyResponse.data[0];
+    
+    // Check if messages are available
+    if (!limitData.can_send) {
+      console.log('❌ Message limit reached for company:', company.name);
+      
+      // Send email notification if contact email exists
+      if (company.contact_email) {
+        await sendMessageLimitReachedEmail(company.contact_email, company.name, company.plan);
+      }
+      
+      return {
+        canSend: false,
+        message: `Message limit for ${company.name} reached for this month. Please contact customer support with any questions.`,
+        company: company
+      };
+    }
+
+    console.log('✅ Message limit check passed for company:', company.name, 'Messages remaining:', limitData.messages_remaining);
+
+    // Check if this is the last message (for email notification)
+    const isLastMessage = limitData.messages_remaining === 1;
+    
+    // Send warning email if this was the last message
+    if (isLastMessage && company.contact_email) {
+      await sendMessageLimitReachedEmail(company.contact_email, company.name, company.plan);
+    }
+    
+    return {
+      canSend: true,
+      messagesLeft: limitData.messages_remaining,
+      isLastMessage: isLastMessage,
+      company: company
+    };
+  } catch (error) {
+    console.error('❌ Message limit check error:', error);
+    throw error;
+  }
+}
+
+// Helper function to send message limit reached email
+export async function sendMessageLimitReachedEmail(companyEmail, companyName, planName) {
+  try {
+    const adminLink = `${process.env.FRONTEND_URL}/integration`;
+    
+    const emailHtml = MessageLimitReachedEmailTemplate({
+      companyName,
+      planName,
+      adminLink
+    });
+
+    const emailData = {
+      from: 'Qurius AI <noreply@qurius.app>',
+      to: companyEmail,
+      subject: `⚠️ Message Limit Reached - ${companyName}`,
+      html: emailHtml
+    };
+
+    // Send email using Resend
+    const resendResponse = await axios.post('https://api.resend.com/emails', emailData, {
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('✅ Message limit reached email sent successfully to:', companyEmail);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send message limit reached email:', error);
+    return false;
   }
 }

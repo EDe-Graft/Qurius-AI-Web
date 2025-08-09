@@ -8,9 +8,10 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, getGeneratedFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
+import crawlerRoutes from './crawler/crawler-api.js';
 
 const app = express();;
 const PORT = process.env.PORT || 3001;
@@ -220,6 +221,9 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_RATE_LIMIT === '
   console.log('🚫 Rate limiting disabled for development');
 }
 
+// Crawler routes
+app.use('/api/crawler', crawlerRoutes);
+
 // Production monitoring endpoints
 app.get('/api/status', (req, res) => {
   res.json({
@@ -427,7 +431,7 @@ app.get('/api/companies', async (req, res) => {
 
 
 // Get company by ID with analytics
-app.get('/api/companies/:id', async (req, res) => {
+app.get('/api/companies/:id/', async (req, res) => {
   try {
     const { id } = req.params;
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -684,36 +688,29 @@ app.delete('/api/companies/:id', async (req, res) => {
 // Search FAQs with enhanced analytics tracking
 app.post('/api/faqs/search', async (req, res) => {
   try {
-    const { question, companyName, sessionId } = req.body;
-    console.log('Searching FAQs for company:', companyName);
+    const { question, companyId, companyName, sessionId } = req.body;
+    console.log('Searching FAQs for company ID:', companyId);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
-    // First get company ID
-    const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (!companyResponse.data || companyResponse.data.length === 0) {
-      console.log('Company not found:', companyName);
-      return res.json([]);
+    // Check message limit using new separate table approach
+    const messageLimitCheck = await checkAndUpdateMessageLimit(companyId);
+    if (!messageLimitCheck.canSend) {
+      // Record limit reached usage
+      await recordMessageUsage(companyId, companyName, 'limit_reached', sessionId, question, messageLimitCheck.message);
+      
+      return res.json([{ 
+        question: question, 
+        answer: messageLimitCheck.message, 
+        source: 'limit_reached',
+        limitReached: true
+      }]);
     }
-
-    const companyId = companyResponse.data[0].id;
-    console.log('Found company ID:', companyId);
 
     try {
       // Try semantic search with embeddings
@@ -748,7 +745,10 @@ app.post('/api/faqs/search', async (req, res) => {
         if (bestMatch.similarity >= confidenceThreshold) {
           console.log('Using FAQ with confidence:', bestMatch.similarity);
           
-          // Track FAQ match
+          // Record FAQ usage
+          await recordMessageUsage(companyId, companyName, 'faq', sessionId, question, bestMatch.answer, bestMatch.faq_id, bestMatch.similarity, 'faq');
+          
+          // Track FAQ match for analytics
           await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
           
           res.json([{ 
@@ -756,11 +756,15 @@ app.post('/api/faqs/search', async (req, res) => {
             answer: bestMatch.answer, 
             source: 'faq',
             faqId: bestMatch.faq_id,
-            confidence: bestMatch.similarity
+            confidence: bestMatch.similarity,
+            messagesLeft: messageLimitCheck.messagesLeft
           }]);
         } else {
           console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
           const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
+          
+          // Record AI usage
+          await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'low_confidence');
           
           // Track AI fallback
           await trackAIFallback(companyId, sessionId, 'low_confidence', bestMatch.similarity);
@@ -770,13 +774,17 @@ app.post('/api/faqs/search', async (req, res) => {
             answer: aiResponse, 
             source: 'ai',
             fallbackReason: 'low_confidence',
-            confidence: bestMatch.similarity
+            confidence: bestMatch.similarity,
+            messagesLeft: messageLimitCheck.messagesLeft
           }]);
         }
       } else {
         // No FAQ found, fallback to AI
         console.log('No FAQ found, falling back to AI');
         const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
+        
+        // Record AI usage
+        await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_faq_found');
         
         // Track AI fallback
         await trackAIFallback(companyId, sessionId, 'no_faq_found');
@@ -785,7 +793,8 @@ app.post('/api/faqs/search', async (req, res) => {
           question: question, 
           answer: aiResponse, 
           source: 'ai',
-          fallbackReason: 'no_faq_found'
+          fallbackReason: 'no_faq_found',
+          messagesLeft: messageLimitCheck.messagesLeft
         }]);
       }
     } catch (embeddingError) {
@@ -794,6 +803,9 @@ app.post('/api/faqs/search', async (req, res) => {
       // Fallback to AI when semantic search fails
       const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
       
+      // Record AI usage
+      await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'embedding_error');
+      
       // Track AI fallback
       await trackAIFallback(companyId, sessionId, 'embedding_error');
       
@@ -801,7 +813,8 @@ app.post('/api/faqs/search', async (req, res) => {
         question: question, 
         answer: aiResponse, 
         source: 'ai',
-        fallbackReason: 'embedding_error'
+        fallbackReason: 'embedding_error',
+        messagesLeft: messageLimitCheck.messagesLeft
       }]);
     }
   } catch (error) {
@@ -810,69 +823,85 @@ app.post('/api/faqs/search', async (req, res) => {
   }
 });
 
-// Helper function to track FAQ matches
-async function trackFAQMatch(companyId, sessionId, faqId, confidenceScore, responseSource) {
+
+
+// Generate FAQs from content using AI
+app.post('/api/ai/generate-faqs', async (req, res) => {
   try {
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const { companyName, content, maxFAQs = 10, companyId, saveToDatabase = false } = req.body;
     
-    const analyticsData = {
-      company_id: companyId,
-      event_type: 'faq_matched',
-      session_id: sessionId,
-      faq_id: faqId,
-      confidence_score: confidenceScore,
-      response_source: responseSource,
-      timestamp: new Date().toISOString()
-    };
+    if (!companyName || !content) {
+      return res.status(400).json({ error: 'Missing required fields: companyName, content' });
+    }
 
-    await axios.post(
-      `${supabaseUrl}/rest/v1/widget_analytics`,
-      analyticsData,
-      {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json'
+    console.log(`🤖 Generating FAQs for ${companyName}...`);
+
+    // Generate FAQs using OpenRouter AI
+    const faqs = await getGeneratedFAQs(companyName, content, maxFAQs);
+    console.log(`✅ Generated ${faqs.length} FAQs for ${companyName}`);
+
+    // Optionally save to database with embeddings
+    if (saveToDatabase && companyId) {
+      console.log(`📝 Saving FAQs to database with embeddings...`);
+      
+      const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      // Generate embeddings for each FAQ
+      const faqData = await Promise.all(faqs.map(async (faq) => {
+        try {
+          const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer);
+          return {
+            company_id: companyId,
+            company_name: companyName,
+            question: faq.question,
+            answer: faq.answer,
+            question_embedding: questionEmbedding,
+            answer_embedding: answerEmbedding,
+            source: faq.source || 'ai_generated',
+            confidence: faq.confidence || 0.9
+          };
+        } catch (embeddingError) {
+          console.warn(`⚠️ Failed to generate embeddings for FAQ: ${faq.question.substring(0, 50)}...`, embeddingError.message);
+          // Return FAQ without embeddings if embedding generation fails
+          return {
+            company_id: companyId,
+            company_name: companyName,
+            question: faq.question,
+            answer: faq.answer,
+            source: faq.source || 'ai_generated',
+            confidence: faq.confidence || 0.9
+          };
         }
-      }
-    );
-  } catch (error) {
-    console.error('Failed to track FAQ match:', error);
-  }
-}
+      }));
 
-// Helper function to track AI fallbacks
-async function trackAIFallback(companyId, sessionId, fallbackReason, confidenceScore = null) {
-  try {
-    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    const analyticsData = {
-      company_id: companyId,
-      event_type: 'ai_fallback',
-      session_id: sessionId,
-      ai_fallback_reason: fallbackReason,
-      confidence_score: confidenceScore,
-      response_source: 'ai',
-      timestamp: new Date().toISOString()
-    };
-
-    await axios.post(
-      `${supabaseUrl}/rest/v1/widget_analytics`,
-      analyticsData,
-      {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json'
+      // Save to database
+      const response = await axios.post(
+        `${supabaseUrl}/rest/v1/faqs`,
+        faqData,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          }
         }
-      }
-    );
+      );
+
+      console.log(`✅ Saved ${faqData.length} FAQs with embeddings to database`);
+    }
+
+    res.json({
+      success: true,
+      faqs: faqs.slice(0, maxFAQs),
+      saved: saveToDatabase && companyId
+    });
   } catch (error) {
-    console.error('Failed to track AI fallback:', error);
+    console.error('AI FAQ generation error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to generate FAQs' });
   }
-}
+});
 
 // Get embeddings from Jina
 app.post('/api/embeddings', async (req, res) => {
@@ -942,7 +971,7 @@ app.post('/api/analytics/widget-view', async (req, res) => {
       session_id: req.body.sessionId || null
     };
 
-    console.log('📝 Inserting view data:', viewData);
+    // console.log('📝 Inserting view data:', viewData);
 
     const insertResponse = await axios.post(
       `${supabaseUrl}/rest/v1/widget_analytics`,
@@ -1033,7 +1062,7 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       confidence_score: confidenceScore || null
     };
 
-    console.log('📝 Inserting widget analytics:', interactionData);
+    // console.log('📝 Inserting widget analytics:', interactionData);
 
     await axios.post(
       `${supabaseUrl}/rest/v1/widget_analytics`,
@@ -1594,6 +1623,18 @@ async function getCompanyAnalytics(companyId, period = 'all') {
 app.get('/api/validate-key', async (req, res) => {
   const { key, company } = req.query;
   console.log('🔑 Validating key:', key, 'for company:', company);
+
+  // Demo key validation
+  if (key === 'demo-2025-healthplus') {
+    return res.json({
+      valid: true,
+      company: 'HealthPlus Medical',
+      plan: 'demo',
+      features: ['chat', 'faq', 'analytics'],
+      demo: true
+    });
+  }
+
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1651,21 +1692,21 @@ app.get('/api/validate-key', async (req, res) => {
 });
 
 // Demo key validation (always returns true for demo purposes)
-app.get('/api/validate-demo-key', async (req, res) => {
-  const { key } = req.query;
+// app.get('/api/validate-demo-key', async (req, res) => {
+//   const { key } = req.query;
   
-  if (key === 'demo-2025-healthplus') {
-    res.json({ 
-      valid: true, 
-      company: 'HealthPlus Medical',
-      plan: 'demo',
-      features: ['chat', 'faq', 'analytics'],
-      demo: true
-    });
-  } else {
-    res.json({ valid: false, error: 'Invalid demo key' });
-  }
-});
+//   if (key === 'demo-2025-healthplus') {
+//     res.json({ 
+//       valid: true, 
+//       company: 'HealthPlus Medical',
+//       plan: 'demo',
+//       features: ['chat', 'faq', 'analytics'],
+//       demo: true
+//     });
+//   } else {
+//     res.json({ valid: false, error: 'Invalid demo key' });
+//   }
+// });
 
 // Stripe Payment Endpoints
 
@@ -2025,10 +2066,125 @@ app.post('/api/companies/:companyId/regenerate-widget-key', async (req, res) => 
   }
 });
 
+// Get message usage statistics for a company
+app.get('/api/companies/:companyId/message-usage', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { startDate, endDate } = req.query;
+    
+    console.log('📊 Getting message usage for company:', companyId);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Use the new get_message_usage_stats RPC function
+    const statsResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_message_usage_stats`,
+      {
+        p_company_id: companyId,
+        p_start_date: startDate || null,
+        p_end_date: endDate || null
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!statsResponse.data || statsResponse.data.length === 0) {
+      return res.json({
+        totalMessages: 0,
+        faqMessages: 0,
+        aiMessages: 0,
+        limitReachedCount: 0,
+        avgConfidence: 0,
+        mostCommonFallback: null,
+        usageByDay: []
+      });
+    }
+
+    const stats = statsResponse.data[0];
+    
+    res.json({
+      totalMessages: stats.total_messages || 0,
+      faqMessages: stats.faq_messages || 0,
+      aiMessages: stats.ai_messages || 0,
+      limitReachedCount: stats.limit_reached_count || 0,
+      avgConfidence: stats.avg_confidence || 0,
+      mostCommonFallback: stats.most_common_fallback,
+      usageByDay: stats.usage_by_day || []
+    });
+  } catch (error) {
+    console.error('❌ Message usage stats error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch message usage statistics' });
+  }
+});
+
+// Get current message usage for a company
+app.get('/api/companies/:companyId/current-usage', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    console.log('📊 Getting current usage for company:', companyId);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Use the new get_company_message_usage RPC function
+    const usageResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_company_message_usage`,
+      {
+        p_company_id: companyId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!usageResponse.data || usageResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found or no usage data available' });
+    }
+
+    const usage = usageResponse.data[0];
+    
+    res.json({
+      companyName: usage.company_name,
+      plan: usage.plan,
+      messagesUsed: usage.messages_used,
+      messagesLimit: usage.messages_limit,
+      messagesRemaining: usage.messages_remaining,
+      canSend: usage.can_send,
+      lastMessageDate: usage.last_message_date,
+      contactEmail: usage.contact_email
+    });
+  } catch (error) {
+    console.error('❌ Current usage error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch current usage' });
+  }
+});
+
+// ========================================
+// START SERVER
+// ========================================
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
 }); 
-

@@ -23,6 +23,7 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImport from "@/components/admin/FAQImport"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
+import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
@@ -68,6 +69,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     averageFAQMatchRate: 0,
     averageAIFallbackRate: 0
   })
+
+  // Selected company for Quick Actions
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
 
   // Modal states
   const [modalState, setModalState] = useState<{
@@ -126,6 +130,8 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     }
   })
 
+  const [showCrawler, setShowCrawler] = useState(false)
+
   // Verify super admin access
   useEffect(() => {
     if (!isSuperAdmin(user)) {
@@ -152,7 +158,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     }
 
     loadCompanies()
-  }, [user])
+  }, [])
 
   // Calculate system-wide analytics
   const calculateSystemAnalytics = async (companies: Company[]) => {
@@ -358,6 +364,31 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     })
   }
 
+  // Quick Actions handlers for selected company
+  const handleQuickActionFAQ = () => {
+    if (selectedCompany) {
+      handleManageFAQs(selectedCompany)
+    }
+  }
+
+  const handleQuickActionIntegration = () => {
+    if (selectedCompany) {
+      handleViewIntegrationCode(selectedCompany)
+    }
+  }
+
+  const handleQuickActionWidget = () => {
+    if (selectedCompany) {
+      handleConfigureWidget(selectedCompany)
+    }
+  }
+
+  const handleQuickActionCrawler = () => {
+    if (selectedCompany) {
+      setShowCrawler(true)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -527,7 +558,17 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             {companies.length > 0 && (
               <select
                 value={selectedCompanyId || ''}
-                onChange={(e) => setSelectedCompanyId(e.target.value || null)}
+                onChange={(e) => {
+                  const companyId = e.target.value || null
+                  setSelectedCompanyId(companyId)
+                  // Set selected company for Quick Actions
+                  if (companyId) {
+                    const company = companies.find(c => c.id === companyId)
+                    setSelectedCompany(company || null)
+                  } else {
+                    setSelectedCompany(null)
+                  }
+                }}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Companies</option>
@@ -555,16 +596,29 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Integration Codes
+                  Integration Code
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  View integration codes for companies
+                  {selectedCompany 
+                    ? `View integration code for ${selectedCompany.name}`
+                    : 'View integration codes for companies'
+                  }
                 </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Use the table below to view integration codes for individual companies
-            </p>
+            {selectedCompany ? (
+              <Button
+                onClick={handleQuickActionIntegration}
+                className="mt-4 w-full"
+                variant="outline"
+              >
+                View Integration Code
+              </Button>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Select a company from the dropdown above to view their integration code
+              </p>
+            )}
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -579,13 +633,26 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
                   FAQ Management
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Import and manage FAQs for all companies
+                  {selectedCompany 
+                    ? `Manage FAQs for ${selectedCompany.name}`
+                    : 'Import and manage FAQs for all companies'
+                  }
                 </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Use the table below to manage FAQs for individual companies
-            </p>
+            {selectedCompany ? (
+              <Button
+                onClick={handleQuickActionFAQ}
+                className="mt-4 w-full"
+                variant="outline"
+              >
+                Manage FAQs
+              </Button>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Select a company from the dropdown above to manage their FAQs
+              </p>
+            )}
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -600,13 +667,60 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
                   Widget Settings
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Configure widget themes for companies
+                  {selectedCompany 
+                    ? `Configure widget for ${selectedCompany.name}`
+                    : 'Configure widget themes for companies'
+                  }
                 </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Use the table below to configure widget settings for individual companies
-            </p>
+            {selectedCompany ? (
+              <Button
+                onClick={handleQuickActionWidget}
+                className="mt-4 w-full"
+                variant="outline"
+              >
+                Configure Widget
+              </Button>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Select a company from the dropdown above to configure their widget
+              </p>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                  <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Website Crawler
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedCompany 
+                    ? `Auto-generate FAQs from ${selectedCompany.name}'s website`
+                    : 'Auto-generate FAQs from company websites'
+                  }
+                </p>
+              </div>
+            </div>
+            {selectedCompany ? (
+              <Button
+                onClick={handleQuickActionCrawler}
+                className="mt-4 w-full"
+                variant="outline"
+              >
+                Crawl Website
+              </Button>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">
+                Select a company from the dropdown above to crawl their website
+              </p>
+            )}
           </div>
         </div>
 
@@ -693,6 +807,16 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         initialTheme={widgetSettingsModal.initialTheme}
         onThemeUpdate={handleThemeUpdate}
       />
+
+      {/* Crawler Modal */}
+      {selectedCompany && (
+        <CrawlerModal
+          isOpen={showCrawler}
+          onClose={() => setShowCrawler(false)}
+          companyId={selectedCompany.id || ''}
+          companyName={selectedCompany.name || ''}
+        />
+      )}
     </div>
   )
 } 
