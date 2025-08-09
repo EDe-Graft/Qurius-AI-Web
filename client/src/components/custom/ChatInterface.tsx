@@ -147,16 +147,27 @@ export function ChatInterface({
     }
   }, [companyData]) // Only depend on companyData, not on t or companyName to prevent resets
 
-  // Update welcome message content when language changes (without resetting conversation)
+  // Reset conversation when language changes (fresh start in new language)
   useEffect(() => {
-    if (messages.length > 0 && !messages[0]?.isUser && companyData) {
-      setMessages(prev => prev.map((message, index) => 
-        index === 0 && !message.isUser
-          ? { ...message, content: getWelcomeMessage() }
-          : message
-      ))
+    if (messages.length > 0 && companyData) {
+      console.log('🌐 Language changed, resetting conversation to welcome message in new language')
+      
+      const welcomeMessage = {
+        content: getWelcomeMessage(),
+        isUser: false,
+        liked: null,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      
+      // Reset to only the welcome message in the new language
+      setMessages([welcomeMessage])
+      
+      // Track language change event
+      if (companyName) {
+        AnalyticsService.trackLanguageChange(companyName, currentLanguage)
+      }
     }
-  }, [t, companyName]) // Update welcome message when language or company name changes
+  }, [currentLanguage, companyData]) // Reset when language changes, but not company name alone
 
   // Get company theme
   useEffect(() => {

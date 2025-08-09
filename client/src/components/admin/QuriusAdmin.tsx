@@ -438,47 +438,52 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <div className="py-6">
+            {/* Top row - Title and icon buttons */}
+            <div className="flex justify-between items-start mb-4 lg:mb-0">
+              <div className="flex-shrink-0 min-w-0 flex-1 pr-4">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   Qurius-AI Super Admin
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Manage all companies and system-wide analytics
                 </p>
               </div>
+              
+              {/* Icon buttons - always visible */}
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center"
+                >
+                  {defaultTheme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-4">
+
+            {/* Bottom row - Add Company button */}
+            <div className="flex justify-start lg:justify-end">
               <Button
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto"
                 onClick={handleAddCompany}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Company
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleTheme}
-                className="flex items-center justify-center"
-              >
-                {defaultTheme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={signOut}
-                className="flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
-              >
-                <LogOut className="h-4 w-4" />
+                <span className="sm:inline">Add Company</span>
               </Button>
             </div>
           </div>
