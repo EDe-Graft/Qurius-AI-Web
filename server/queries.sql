@@ -1,27 +1,27 @@
 -- Companies table (removed message tracking columns)
-CREATE TABLE public.companies (
+CREATE TABLE companies (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL UNIQUE,
-    widget_key_hash TEXT, -- Bcrypt hashed widget key
     domain TEXT UNIQUE,
     location TEXT,
     description TEXT,
-    theme JSONB NOT NULL DEFAULT '{"primaryColor": "#58c4dc", "backgroundColor": "#F3F4F6", "textColor": "#000000"}',
     industry TEXT,
     website TEXT,
     contact_email TEXT UNIQUE,
     admin_email TEXT UNIQUE, -- Email of the company admin
     logo_url TEXT,
-    enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status TEXT DEFAULT 'active',
     plan TEXT DEFAULT 'free', -- Subscription plan: 'free', 'starter', 'pro'
+    theme JSONB NOT NULL DEFAULT '{"primaryColor": "#58c4dc", "backgroundColor": "#F3F4F6", "textColor": "#000000"}',
+    widget_key_hash TEXT, -- Bcrypt hashed widget key
     stripe_customer_id TEXT, -- Stripe customer ID
     stripe_subscription_id TEXT, -- Stripe subscription ID
     subscription_status TEXT DEFAULT 'active', -- 'active', 'canceled', 'past_due', 'unpaid'
-    subscription_end_date TIMESTAMP WITH TIME ZONE, -- When subscription expires
+    subscription_start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    subscription_end_date DATE, -- When subscription expires
     last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for companies table
@@ -29,59 +29,21 @@ CREATE INDEX idx_companies_name ON public.companies(name);
 CREATE INDEX idx_companies_domain ON public.companies(domain);
 CREATE INDEX idx_companies_status ON public.companies(status);
 CREATE INDEX IF NOT EXISTS idx_companies_widget_key_hash ON public.companies(widget_key_hash);
-CREATE INDEX IF NOT EXISTS idx_companies_widget_key_plan ON public.companies(widget_key_plan);
+CREATE INDEX IF NOT EXISTS idx_companies_plan ON public.companies(plan);
 
 -- Allow public read access to companies
 CREATE POLICY "Allow public read access to companies" ON public.companies
 FOR SELECT USING (true);
 
 
-
--- Message Usage Table
-CREATE TABLE public.message_usage (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    company_name TEXT,
-    message_type VARCHAR(20) NOT NULL, -- 'faq', 'ai', 'limit_reached'
-    used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    session_id VARCHAR(255),
-    user_question TEXT,
-    ai_response TEXT,
-    faq_id UUID REFERENCES faqs(id),
-    confidence_score REAL,
-    response_source VARCHAR(20), -- 'faq', 'ai', 'limit_reached'
-    fallback_reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Indexes for message usage
-CREATE INDEX idx_message_usage_company_id ON message_usage(company_id);
-CREATE INDEX idx_message_usage_used_at ON message_usage(used_at);
-CREATE INDEX idx_message_usage_message_type ON message_usage(message_type);
-CREATE INDEX idx_message_usage_session_id ON message_usage(session_id);
-
--- Enable RLS
-ALTER TABLE message_usage ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for message_usage
-CREATE POLICY "Companies can view their own message usage" ON message_usage
-  FOR SELECT USING (
-    company_id IN (
-      SELECT id FROM companies WHERE id = company_id
-    )
-  );
-
-CREATE POLICY "Service role can insert message usage" ON message_usage
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Service role can read all message usage" ON message_usage
-  FOR SELECT USING (true);
-
+--Create crawl_sessions table first before FAQs table
+--Create FAQs table without crawl_session_id column
+--Add crawl_session_id column to FAQs table
 
 
 -- FAQs table
 CREATE TABLE public.faqs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid() ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     company_name TEXT NOT NULL,
     question TEXT NOT NULL,
@@ -90,42 +52,44 @@ CREATE TABLE public.faqs (
     answer_embedding extensions.vector(768),   -- Use fully qualified vector type
     source VARCHAR(20) DEFAULT 'manual',
     confidence REAL DEFAULT 1.0,
-    crawl_session_id UUID REFERENCES crawl_sessions(id),
-    tags TEXT[], -- Optional tags for categorization
+    
     relevance_score REAL DEFAULT 1.0, -- Manually adjustable relevance
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add crawl_session_id column
+ALTER TABLE public.faqs ADD COLUMN IF NOT EXISTS crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL;
+
 
 -- Create index for faster queries
-CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON faqs(company_id);
-CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON faqs(created_at);
+CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON public.faqs(company_id);
+CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON public.faqs(created_at);
 
 -- Enable Row Level Security
-ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-CREATE POLICY "Companies can view their own FAQs" ON faqs
+CREATE POLICY "Companies can view their own FAQs" ON public.faqs
   FOR SELECT USING (company_id IN (
-    SELECT id FROM companies WHERE id = company_id
+    SELECT id FROM public.companies WHERE id = company_id
   ));
 
-CREATE POLICY "Service role can insert FAQs" ON faqs
+CREATE POLICY "Service role can insert FAQs" ON public.faqs
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Service role can update FAQs" ON faqs
+CREATE POLICY "Service role can update FAQs" ON public.faqs
   FOR UPDATE USING (true);
 
-CREATE POLICY "Service role can delete FAQs" ON faqs
+CREATE POLICY "Service role can delete FAQs" ON public.faqs
   FOR DELETE USING (true);
 
 
 
 -- Widget Analytics Table (Updated with new event types)
-CREATE TABLE IF NOT EXISTS widget_analytics (
+CREATE TABLE IF NOT EXISTS public.widget_analytics (
   id SERIAL PRIMARY KEY,
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE,
   company_name TEXT,
   event_type VARCHAR(50) NOT NULL, -- 'widget_view', 'message_sent', 'message_received', 'widget_opened', 'widget_closed', 'rating_given', 'language_changed', 'theme_changed', 'faq_matched', 'ai_fallback'
   page_url TEXT,
@@ -138,7 +102,7 @@ CREATE TABLE IF NOT EXISTS widget_analytics (
   feedback_text TEXT, -- Optional feedback from user
   language VARCHAR(10), -- Language code (e.g., 'en', 'es', 'fr')
   theme_mode VARCHAR(10), -- 'light' or 'dark'
-  faq_id UUID REFERENCES faqs(id), -- Reference to matched FAQ
+  faq_id UUID REFERENCES public.faqs(id), -- Reference to matched FAQ
   ai_fallback_reason TEXT, -- Reason for AI fallback
   response_source VARCHAR(20), -- 'faq' or 'ai'
   confidence_score REAL, -- Similarity score for FAQ matches
@@ -147,78 +111,76 @@ CREATE TABLE IF NOT EXISTS widget_analytics (
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON widget_analytics(company_id);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON widget_analytics(event_type);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_timestamp ON widget_analytics(timestamp);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_session_id ON widget_analytics(session_id);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_rating ON widget_analytics(rating);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_response_source ON widget_analytics(response_source);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_language ON widget_analytics(language);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_theme_mode ON widget_analytics(theme_mode);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON public.widget_analytics(company_id);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON public.widget_analytics(event_type);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_timestamp ON public.widget_analytics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_session_id ON public.widget_analytics(session_id);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_rating ON public.widget_analytics(rating);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_response_source ON public.widget_analytics(response_source);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_language ON public.widget_analytics(language);
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_theme_mode ON public.widget_analytics(theme_mode);
 
 -- Enable RLS
-ALTER TABLE widget_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.widget_analytics ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for widget_analytics
-CREATE POLICY "Companies can view their own analytics" ON widget_analytics
+CREATE POLICY "Companies can view their own analytics" ON public.widget_analytics
   FOR SELECT USING (
     company_id IN (
-      SELECT id FROM companies WHERE name = current_setting('request.jwt.claims', true)::json->>'company_name'
+      SELECT id FROM public.companies WHERE name = current_setting('request.jwt.claims', true)::json->>'company_name'
     )
   );
 
-CREATE POLICY "Service role can insert analytics" ON widget_analytics
+CREATE POLICY "Service role can insert analytics" ON public.widget_analytics
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Service role can update analytics" ON widget_analytics
+CREATE POLICY "Service role can update analytics" ON public.widget_analytics
   FOR UPDATE USING (true);
 
 -- Allow service role to read all analytics (for admin dashboard)
-CREATE POLICY "Service role can read all analytics" ON widget_analytics
+CREATE POLICY "Service role can read all analytics" ON public.widget_analytics
   FOR SELECT USING (true);
 
 
+-- Message Usage Table
+CREATE TABLE public.message_usage (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    company_name TEXT,
+    message_type VARCHAR(20) NOT NULL, -- 'faq', 'ai', 'limit_reached'
+    used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    session_id VARCHAR(255),
+    user_question TEXT,
+    ai_response TEXT,
+    faq_id UUID REFERENCES public.faqs(id),
+    confidence_score REAL,
+    response_source VARCHAR(20), -- 'faq', 'ai', 'limit_reached'
+    fallback_reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- User Ratings Table (for detailed rating analytics)
--- CREATE TABLE IF NOT EXISTS user_ratings (
---   id SERIAL PRIMARY KEY,
---   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
---   session_id VARCHAR(255),
---   message_id VARCHAR(255), -- To link rating to specific message
---   rating INTEGER NOT NULL, -- 1 for thumbs up, -1 for thumbs down
---   feedback_text TEXT,
---   response_text TEXT, -- The response that was rated
---   response_source VARCHAR(20), -- 'faq' or 'ai'
---   faq_id UUID REFERENCES faqs(id), -- If response came from FAQ
---   confidence_score REAL, -- If from FAQ, the similarity score
---   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
--- );
+-- Indexes for message usage
+CREATE INDEX idx_message_usage_company_id ON public.message_usage(company_id);
+CREATE INDEX idx_message_usage_used_at ON public.message_usage(used_at);
+CREATE INDEX idx_message_usage_message_type ON public.message_usage(message_type);
+CREATE INDEX idx_message_usage_session_id ON public.message_usage(session_id);
 
+-- Enable RLS
+ALTER TABLE public.message_usage ENABLE ROW LEVEL SECURITY;
 
+-- RLS Policies for message_usage
+CREATE POLICY "Companies can view their own message usage" ON public.message_usage
+  FOR SELECT USING (
+    company_id IN (
+      SELECT id FROM public.companies WHERE id = company_id
+    )
+  );
 
--- Indexes for user ratings
--- CREATE INDEX IF NOT EXISTS idx_user_ratings_company_id ON user_ratings(company_id);
--- CREATE INDEX IF NOT EXISTS idx_user_ratings_session_id ON user_ratings(session_id);
--- CREATE INDEX IF NOT EXISTS idx_user_ratings_rating ON user_ratings(rating);
--- CREATE INDEX IF NOT EXISTS idx_user_ratings_response_source ON user_ratings(response_source);
--- CREATE INDEX IF NOT EXISTS idx_user_ratings_created_at ON user_ratings(created_at);
--- ALTER TABLE user_ratings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role can insert message usage" ON public.message_usage
+  FOR INSERT WITH CHECK (true);
 
-
--- RLS Policies for user_ratings
--- CREATE POLICY "Companies can view their own ratings" ON user_ratings
---   FOR SELECT USING (
---     company_id IN (
---       SELECT id FROM companies WHERE name = current_setting('request.jwt.claims', true)::json->>'company_name'
---     )
---   );
-
--- CREATE POLICY "Service role can insert ratings" ON user_ratings
---   FOR INSERT WITH CHECK (true);
-
--- CREATE POLICY "Service role can read all ratings" ON user_ratings
---   FOR SELECT USING (true);
-
+CREATE POLICY "Service role can read all message usage" ON public.message_usage
+  FOR SELECT USING (true);
 
 
 -- ========================================
@@ -301,7 +263,7 @@ BEGIN
         COUNT(CASE WHEN wa.event_type = 'language_changed' THEN 1 END)::INTEGER as language_changes,
         COUNT(CASE WHEN wa.event_type = 'theme_changed' THEN 1 END)::INTEGER as theme_changes,
         MAX(wa.timestamp) as last_activity
-    FROM widget_analytics wa
+    FROM public.widget_analytics wa
     WHERE wa.company_id = p_company_id
     AND (p_start_date IS NULL OR wa.timestamp >= p_start_date)
     AND (p_end_date IS NULL OR wa.timestamp <= p_end_date);
@@ -327,10 +289,7 @@ BEFORE UPDATE ON public.faqs
 FOR EACH ROW
 EXECUTE FUNCTION update_modified_column();
 
-CREATE TRIGGER update_widget_keys_modtime
-BEFORE UPDATE ON public.widget_keys
-FOR EACH ROW
-EXECUTE FUNCTION update_modified_column();
+
 
 
 
@@ -341,7 +300,7 @@ RETURNS INTEGER AS $$
 BEGIN
     RETURN (
         SELECT COUNT(*)
-        FROM message_usage
+        FROM public.message_usage
         WHERE company_id = p_company_id
         AND used_at >= DATE_TRUNC('month', CURRENT_DATE)
         AND message_type IN ('faq', 'ai')
@@ -364,15 +323,15 @@ DECLARE
 BEGIN
     -- Get company plan
     SELECT plan INTO company_plan
-    FROM companies
+    FROM public.companies
     WHERE id = p_company_id;
     
     -- Set message limit based on plan
     CASE company_plan
-        WHEN 'free' THEN message_limit := 1;
-        WHEN 'starter' THEN message_limit := 2;
-        WHEN 'pro' THEN message_limit := 3;
-        ELSE message_limit := 1; -- Default to free plan limit
+        WHEN 'free' THEN message_limit := 500;
+        WHEN 'starter' THEN message_limit := 10000;
+        WHEN 'pro' THEN message_limit := 100000;
+        ELSE message_limit := 500; -- Default to free plan limit
     END CASE;
     
     -- Get current month usage (only count actual messages, not limit_reached)
@@ -403,7 +362,7 @@ RETURNS UUID AS $$
 DECLARE
     usage_id UUID;
 BEGIN
-    INSERT INTO message_usage (
+    INSERT INTO public.message_usage (
         company_id,
         message_type,
         session_id,
@@ -459,7 +418,7 @@ BEGIN
                 'count', COUNT(*)
             )
         ) as usage_by_day
-    FROM message_usage
+    FROM public.message_usage
     WHERE company_id = p_company_id
     AND (p_start_date IS NULL OR used_at >= p_start_date)
     AND (p_end_date IS NULL OR used_at <= p_end_date)
@@ -486,7 +445,7 @@ DECLARE
 BEGIN
     -- Get company details
     SELECT name, plan, contact_email INTO company_record
-    FROM companies
+    FROM public.companies
     WHERE id = p_company_id;
     
     IF NOT FOUND THEN
@@ -496,9 +455,9 @@ BEGIN
     -- Set message limit based on plan
     CASE company_record.plan
         WHEN 'free' THEN message_limit := 500;
-        WHEN 'starter' THEN message_limit := 5000;
+        WHEN 'starter' THEN message_limit := 10000;
         WHEN 'pro' THEN message_limit := 100000;
-        ELSE message_limit := 1; -- Default to free plan limit
+        ELSE message_limit := 500; -- Default to free plan limit
     END CASE;
     
     -- Get current month usage
@@ -506,7 +465,7 @@ BEGIN
     
     -- Get last message date
     SELECT MAX(used_at) INTO company_record.last_message_date
-    FROM message_usage
+    FROM public.message_usage
     WHERE company_id = p_company_id
     AND message_type IN ('faq', 'ai');
     

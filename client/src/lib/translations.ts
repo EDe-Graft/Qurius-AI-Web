@@ -55,6 +55,7 @@ export interface TranslationKeys {
     languageSpecificCustomization: string
     multiLanguageAnalytics: string
     customLanguageSupport: string
+    customWebCrawling: string
   }
   
   // Chat Widget
@@ -203,7 +204,8 @@ const en: TranslationKeys = {
     translatedFaqTemplates: '📝 Translated FAQ templates',
     languageSpecificCustomization: '🎨 Language-specific customization',
     multiLanguageAnalytics: '📊 Multi-language analytics',
-    customLanguageSupport: '🔧 Custom language support'
+    customLanguageSupport: '🔧 Custom language support',
+    customWebCrawling: '🕸️ Custom web crawling'
   },
   chat: {
     welcome: 'How can I help you today?',
@@ -278,7 +280,7 @@ const en: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Company Website Content',
-    companyWebsiteDescription: 'This is a demonstration of how the chat interface would appear when embedded in a professional company website. The chat widget is positioned in the bottom-right corner and can be minimized when not in use.',
+    companyWebsiteDescription: 'This is a demonstration of how the chat interface would appear when embedded in a professional company website (PurpleSoft Inc). The chat widget is positioned in the bottom-right corner and can be minimized when not in use.',
     keyFeaturesTitle: 'Key features include:',
     feature1: 'Modern, professional design that matches company branding',
     feature2: 'Light and dark theme support with smooth transitions',
@@ -344,7 +346,8 @@ const es: TranslationKeys = {
     translatedFaqTemplates: '📝 Plantillas FAQ traducidas',
     languageSpecificCustomization: '🎨 Personalización específica por idioma',
     multiLanguageAnalytics: '📊 Analíticas multiidioma',
-    customLanguageSupport: '🔧 Soporte de idioma personalizado'
+    customLanguageSupport: '🔧 Soporte de idioma personalizado',
+    customWebCrawling: '🕸️ Web crawling personalizado'
   },
   chat: {
     welcome: '¿Cómo puedo ayudarte hoy?',
@@ -419,7 +422,7 @@ const es: TranslationKeys = {
   demo: {
     title: 'Demo de Interfaz de Chat Profesional',
     companyWebsiteTitle: 'Contenido del Sitio Web de la Empresa',
-    companyWebsiteDescription: 'Esta es una demostración de cómo aparecería la interfaz de chat cuando se integre en un sitio web profesional de una empresa. El widget de chat está posicionado en la esquina inferior derecha y se puede minimizar cuando no se usa.',
+    companyWebsiteDescription: 'Esta es una demostración de cómo aparecería la interfaz de chat cuando se integre en un sitio web profesional de una empresa (PurpleSoft Inc). El widget de chat está posicionado en la esquina inferior derecha y se puede minimizar cuando no se usa.',
     keyFeaturesTitle: 'Características principales incluyen:',
     feature1: 'Diseño moderno y profesional que coincide con la marca de la empresa',
     feature2: 'Soporte para temas claros y oscuros con transiciones suaves',
@@ -485,7 +488,8 @@ const fr: TranslationKeys = {
     translatedFaqTemplates: '📝 Modèles FAQ traduits',
     languageSpecificCustomization: '🎨 Personnalisation spécifique à la langue',
     multiLanguageAnalytics: '📊 Analyses multilingues',
-    customLanguageSupport: '🔧 Support de langue personnalisé'
+    customLanguageSupport: '🔧 Support de langue personnalisé',
+    customWebCrawling: '🕸️ Web crawling personnalisé'
   },
   chat: {
     welcome: 'Comment puis-je vous aider aujourd\'hui ?',
@@ -560,7 +564,7 @@ const fr: TranslationKeys = {
   demo: {
     title: 'Démo',
     companyWebsiteTitle: 'Site web de l\'entreprise',
-    companyWebsiteDescription: 'Description pour le site web de l\'entreprise',
+    companyWebsiteDescription: 'Description pour le site web de l\'entreprise (PurpleSoft Inc)',
     keyFeaturesTitle: 'Fonctionnalités clés',
     feature1: 'Fonctionnalité 1',
     feature2: 'Fonctionnalité 2',
@@ -626,7 +630,8 @@ const de: TranslationKeys = {
     translatedFaqTemplates: '📝 Übersetzte FAQ-Vorlagen',
     languageSpecificCustomization: '🎨 Sprachspezifische Anpassung',
     multiLanguageAnalytics: '📊 Mehrsprachige Analysen',
-    customLanguageSupport: '🔧 Benutzerdefinierte Sprachunterstützung'
+    customLanguageSupport: '🔧 Benutzerdefinierte Sprachunterstützung',
+    customWebCrawling: '🕸️ Benutzerdefinierter Web-Crawling'
   },
   chat: {
     welcome: 'Wie kann ich Ihnen heute helfen?',
@@ -701,7 +706,7 @@ const de: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sitio web de la empresa',
-    companyWebsiteDescription: 'Descripción para el sitio web de la empresa',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (PurpleSoft Inc)',
     keyFeaturesTitle: 'Características clave',
     feature1: 'Característica 1',
     feature2: 'Característica 2',
@@ -767,7 +772,8 @@ const zh: TranslationKeys = {
     translatedFaqTemplates: '📝 翻译FAQ模板',
     languageSpecificCustomization: '🎨 语言特定定制',
     multiLanguageAnalytics: '📊 多语言分析',
-    customLanguageSupport: '🔧 自定义语言支持'
+    customLanguageSupport: '🔧 自定义语言支持',
+    customWebCrawling: '🕸️ 自定义网络爬虫'
   },
   chat: {
     welcome: '今天我能为您做些什么？',
@@ -842,7 +848,7 @@ const zh: TranslationKeys = {
   demo: {
     title: '演示',
     companyWebsiteTitle: '公司网站',
-    companyWebsiteDescription: '公司网站描述',
+    companyWebsiteDescription: '公司网站描述 (PurpleSoft Inc)',
     keyFeaturesTitle: '关键功能',
     feature1: '功能1',
     feature2: '功能2',
@@ -908,7 +914,8 @@ const ja: TranslationKeys = {
     translatedFaqTemplates: '📝 翻訳済みFAQテンプレート',
     languageSpecificCustomization: '🎨 言語固有のカスタマイズ',
     multiLanguageAnalytics: '📊 多言語分析',
-    customLanguageSupport: '🔧 カスタム言語サポート'
+    customLanguageSupport: '🔧 カスタム言語サポート',
+    customWebCrawling: '🕸️ カスタムWebクローリング'
   },
   chat: {
     welcome: '今日はどのようにお手伝いできますか？',
@@ -983,7 +990,7 @@ const ja: TranslationKeys = {
   demo: {
     title: 'デモ',
     companyWebsiteTitle: '会社ウェブサイト',
-    companyWebsiteDescription: '会社ウェブサイトの説明',
+    companyWebsiteDescription: '会社ウェブサイトの説明 (PurpleSoft Inc)',
     keyFeaturesTitle: '主要機能',
     feature1: '機能1',
     feature2: '機能2',
@@ -1049,7 +1056,8 @@ const pt: TranslationKeys = {
     translatedFaqTemplates: '📝 Modelos FAQ traduzidos',
     languageSpecificCustomization: '🎨 Personalização específica por idioma',
     multiLanguageAnalytics: '📊 Análises multilíngues',
-    customLanguageSupport: '🔧 Suporte de idioma personalizado'
+    customLanguageSupport: '🔧 Suporte de idioma personalizado',
+    customWebCrawling: '🕸️ Web crawling personalizado'
   },
   chat: {
     welcome: 'Olá! Como posso ajudá-lo hoje?',
@@ -1124,7 +1132,7 @@ const pt: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Site da Empresa',
-    companyWebsiteDescription: 'Descrição para o site da empresa',
+    companyWebsiteDescription: 'Descrição para o site da empresa (PurpleSoft Inc)',
     keyFeaturesTitle: 'Recursos Principais',
     feature1: 'Recursos 1',
     feature2: 'Recursos 2',
@@ -1190,7 +1198,8 @@ const it: TranslationKeys = {
     translatedFaqTemplates: '📝 Modelli FAQ tradotti',
     languageSpecificCustomization: '🎨 Personalizzazione specifica per lingua',
     multiLanguageAnalytics: '📊 Analisi multilingue',
-    customLanguageSupport: '🔧 Supporto lingua personalizzato'
+    customLanguageSupport: '🔧 Supporto lingua personalizzato',
+    customWebCrawling: '🕸️ Web crawling personalizzato'
   },
   chat: {
     welcome: 'Ciao! Come posso aiutarti oggi?',
@@ -1265,7 +1274,7 @@ const it: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sito web dell\'azienda',
-    companyWebsiteDescription: 'Descrizione per il sito web dell\'azienda',
+    companyWebsiteDescription: 'Descrizione per il sito web dell\'azienda (PurpleSoft Inc)',
     keyFeaturesTitle: 'Funzionalità principali',
     feature1: 'Funzionalità 1',
     feature2: 'Funzionalità 2',
@@ -1331,7 +1340,8 @@ const ru: TranslationKeys = {
     translatedFaqTemplates: '📝 Переведенные шаблоны FAQ',
     languageSpecificCustomization: '🎨 Языковая настройка',
     multiLanguageAnalytics: '📊 Многоязычная аналитика',
-    customLanguageSupport: '🔧 Пользовательская языковая поддержка'
+    customLanguageSupport: '🔧 Пользовательская языковая поддержка',
+    customWebCrawling: '🕸️ Пользовательский веб-скрапинг'
   },
   chat: {
     welcome: 'Привет! Как я могу помочь вам сегодня?',
@@ -1406,7 +1416,7 @@ const ru: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Сайт компании',
-    companyWebsiteDescription: 'Описание для сайта компании',
+    companyWebsiteDescription: 'Описание для сайта компании (PurpleSoft Inc)',
     keyFeaturesTitle: 'Ключевые функции',
     feature1: 'Функция 1',
     feature2: 'Функция 2',
@@ -1472,7 +1482,8 @@ const ko: TranslationKeys = {
     translatedFaqTemplates: '📝 번역된 FAQ 템플릿',
     languageSpecificCustomization: '🎨 언어별 맞춤 설정',
     multiLanguageAnalytics: '📊 다국어 분석',
-    customLanguageSupport: '🔧 사용자 정의 언어 지원'
+    customLanguageSupport: '🔧 사용자 정의 언어 지원',
+    customWebCrawling: '🕸️ 사용자 정의 웹 크롤링'
   },
   chat: {
     welcome: '안녕하세요! 오늘 어떻게 도와드릴까요?',
@@ -1547,7 +1558,7 @@ const ko: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sitio web de la empresa',
-    companyWebsiteDescription: 'Descripción para el sitio web de la empresa',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (PurpleSoft Inc)',
     keyFeaturesTitle: 'Características clave',
     feature1: 'Característica 1',
     feature2: 'Característica 2',

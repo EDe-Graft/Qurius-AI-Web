@@ -4,7 +4,9 @@ import Login from "@/pages/Login"
 import { Onboarding } from "@/pages/Onboarding"
 import { Landing } from "@/pages/Landing"
 import { Demo } from "@/pages/Demo"
-import { Integration } from "@/pages/Integration"
+
+import { About } from "@/pages/About"
+import { Contact } from "@/pages/Contact"
 import { TestPaymentBypass } from "@/pages/TestPaymentBypass"
 import { AuthCallback } from "@/pages/AuthCallback"
 import { PasswordReset } from "@/pages/PasswordReset"
@@ -23,7 +25,9 @@ export default function App() {
             <Route path="/" element={<><PublicNavigation /><Landing /></>} />
             <Route path="/demo" element={<><PublicNavigation /><Demo /></>} />
             <Route path="/onboarding" element={<><PublicNavigation /><Onboarding /></>} />
-            <Route path="/integration" element={<><PublicNavigation /><Integration /></>} />
+
+            <Route path="/about" element={<><PublicNavigation /><About /></>} />
+            <Route path="/contact" element={<><PublicNavigation /><Contact /></>} />
             
             {/* Auth routes */}
             <Route path="/auth/callback" element={<AuthCallback />} />

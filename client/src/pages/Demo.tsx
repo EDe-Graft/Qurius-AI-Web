@@ -44,7 +44,7 @@ export function Demo() {
               {t('demo.companyWebsiteTitle') || 'Company Website Content'}
             </h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4 leading-relaxed">
-              {t('demo.companyWebsiteDescription') || 'This is a demonstration of how the chat interface would appear when embedded in a professional company website. The chat widget is positioned in the bottom-right corner and can be minimized when not in use.'}
+              {t('demo.companyWebsiteDescription') || 'This is a demonstration of how the chat interface would appear when embedded in a professional company website. It is shown here with a fictional company called PurpleSoft Inc. The chat widget is positioned in the bottom-right corner and can be minimized when not in use.'}
             </p>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
               {t('demo.keyFeaturesTitle') || 'Key features include:'}

@@ -1,3 +1,4 @@
+
 -- Crawler Sessions Table
 CREATE TABLE IF NOT EXISTS public.crawl_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -15,22 +16,22 @@ CREATE TABLE IF NOT EXISTS public.crawl_sessions (
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_company_id ON crawl_sessions(company_id);
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_status ON crawl_sessions(status);
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_date ON crawl_sessions(crawl_date);
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_company_id ON public.crawl_sessions(company_id);
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_status ON public.crawl_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_date ON public.crawl_sessions(crawl_date);
 
-CREATE INDEX IF NOT EXISTS idx_faqs_source ON faqs(source);
-CREATE INDEX IF NOT EXISTS idx_faqs_confidence ON faqs(confidence);
+CREATE INDEX IF NOT EXISTS idx_faqs_source ON public.faqs(source);
+CREATE INDEX IF NOT EXISTS idx_faqs_confidence ON public.faqs(confidence);
 
 -- RLS Policies for crawl_sessions
-ALTER TABLE crawl_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.crawl_sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Companies can view their own crawl sessions" ON crawl_sessions
+CREATE POLICY "Companies can view their own crawl sessions" ON public.crawl_sessions
   FOR SELECT USING (company_id IN (
     SELECT id FROM companies WHERE id = company_id
   ));
 
-CREATE POLICY "Service role can manage crawl sessions" ON crawl_sessions
+CREATE POLICY "Service role can manage crawl sessions" ON public.crawl_sessions
   FOR ALL USING (true);
 
 
@@ -43,7 +44,7 @@ CREATE OR REPLACE FUNCTION update_crawl_session_status(
 )
 RETURNS VOID AS $$
 BEGIN
-    UPDATE crawl_sessions 
+    UPDATE public.crawl_sessions 
     SET 
         status = new_status,
         error_message = error_msg,
@@ -74,7 +75,7 @@ BEGIN
             WHEN COUNT(*) > 0 THEN AVG(faqs_generated)::REAL
             ELSE 0::REAL
         END as average_faqs_per_session
-    FROM crawl_sessions
+    FROM public.crawl_sessions
     WHERE company_id = company_uuid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

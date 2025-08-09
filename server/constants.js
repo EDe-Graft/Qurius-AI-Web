@@ -37,7 +37,7 @@ export const PRICING_PLANS = {
       price: 29,
       stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
       features: [
-        '10,000 messages/month',
+        '5,000 messages/month',
         'Advanced customization',
         'Priority support',
         'Analytics dashboard',
@@ -46,7 +46,7 @@ export const PRICING_PLANS = {
     },
     'pro': {
       name: 'Pro Plan',
-      price: 99,
+      price: 59,
       stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
       features: [
         'Unlimited messages',

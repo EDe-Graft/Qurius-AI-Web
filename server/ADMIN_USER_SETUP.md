@@ -24,8 +24,8 @@ node create-admin-user.js create
 ```
 
 This will:
-- Create a new user with email: `edgquansah@gmail.com`
-- Set password: `SuperAdmin123!`
+- Create a new user with email: `admin@email.com`
+- Set password: `AdminPassword!`
 - Set role: `super_admin`
 - Set `is_super_admin: true`
 - Update user metadata and app metadata
@@ -78,7 +78,7 @@ After running the script, your user should have:
 ```json
 {
   "id": "user-uuid",
-  "email": "edgquansah@gmail.com",
+  "email": "admin@email.com",
   "role": "authenticated",
   "is_super_admin": true,
   "user_metadata": {

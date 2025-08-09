@@ -127,7 +127,7 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-8 pt-15">
+      <div className="max-w-4xl mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-4 pt-15">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8 mt-3">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -171,7 +171,7 @@ export function Onboarding() {
           </div>
           
           {/* Step Titles and Descriptions */}
-          <div className="flex justify-between gap-2 md:gap-4">
+          <div className="flex justify-around gap-2 md:gap-4">
             {steps.map((step, index) => (
               <div key={step.id} className="flex flex-col justify-between text-center min-h-[3rem] ">
                 <h3 className={`text-xs md:text-sm font-medium mb-2 leading-tight ${

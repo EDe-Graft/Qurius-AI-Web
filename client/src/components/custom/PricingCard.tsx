@@ -60,7 +60,7 @@ export function PricingCard({
             {getPlanTitle()}
           </h3>
           {isPopular && (
-            <span className="absolute -top-9 right-20 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+            <span className="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
               Most Popular
             </span>
           )}

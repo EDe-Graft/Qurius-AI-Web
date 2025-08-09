@@ -72,8 +72,13 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const companyName = session.metadata.company_name;
         const planId = session.metadata.plan_id;
         const customerEmail = session.metadata.customer_email;
+        const location = session.metadata.location;
+        const industry = session.metadata.industry;
+        const website = session.metadata.website;
+        const description = session.metadata.description;
         
         console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
+        console.log('💳 Session:', session);
         
         // Create company after successful payment
         const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -87,36 +92,46 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         // Create company with subscription info
         const companyData = {
           name: companyName,
+          email: customerEmail, // createCompany expects 'email' field
           contact_email: customerEmail,
-          admin_email: customerEmail, // Add admin email
+          admin_email: customerEmail,
+          location: location || '',
+          industry: industry || '',
+          website: website || '',
+          description: description || '',
           plan: planId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           subscription_status: 'active',
           status: 'active',
-          enrollment_date: formatReadableDateTime(new Date())
+
         };
 
         try {
-        //Create auth user first to avoid duplicate users
-        const userId = await createAuthUser(customerEmail)
+          // Create auth user first to avoid duplicate users
+          console.log('💳 Creating auth user for:', customerEmail);
+          const userId = await createAuthUser(customerEmail);
 
-        //if success, create company
-        if (userId) {
-          const { companyId, companyName, email: companyEmail, widgetKey } = await createCompany(companyData);
-          console.log('✅ Company created successfully:', companyId);
+          // If success, create company
+          if (userId) {
+            console.log('💳 Creating company for:', companyData);
+            const { companyId, companyName, email: companyEmail, widgetKey } = await createCompany(companyData, userId);
+            console.log('✅ Company created successfully:', companyId);
 
-          // Update auth user with company id
-          await updateAuthUser(companyId, userId)
-          console.log('✅ Auth user updated successfully:', userId);
+            // Update auth user with company id
+            await updateAuthUser(companyId, userId);
+            console.log('✅ Auth user updated successfully:', userId);
 
-          // Send welcome email with password reset and widget key
-          await sendWelcomeEmail(companyEmail, companyName, planId, widgetKey);
-          console.log('✅ Welcome email sent successfully with widget key');
-        }
-
+            // Send welcome email with password reset and widget key
+            console.log('💳 Sending welcome email for:', companyEmail);
+            await sendWelcomeEmail(companyEmail, companyName, planId, widgetKey);
+            console.log('✅ Welcome email sent successfully with widget key');
+          } else {
+            console.error('❌ Failed to create auth user for:', customerEmail);
+          }
         } catch (error) {
           console.error('❌ Error creating company:', error.response?.data || error.message);
+          console.error('❌ Error stack:', error.stack);
         }
         break;
 
@@ -1713,7 +1728,7 @@ app.get('/api/validate-key', async (req, res) => {
 // Create checkout session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
-    console.log('💳 PRICING_PLANS:', PRICING_PLANS);
+    // console.log('💳 PRICING_PLANS:', PRICING_PLANS);
     const { companyName, customerEmail, planId, theme } = req.body;
     console.log('💳 Plan ID:', planId, 'Customer Email:', customerEmail, 'Company Name:', companyName);
     
@@ -1773,13 +1788,13 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: plan.stripe_price_id,
+          price: 'price_1RqxqR5gHOIxGKPlrtTTRHUi',
           quantity: 1,
         },
       ],
       mode: 'subscription',
-      success_url: `${frontendUrl}/integration?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/integration?canceled=true`,
+      success_url: `${frontendUrl}/admin?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/onboarding?payment=canceled`,
       metadata: {
         company_name: companyName,
         plan_id: planId,
@@ -1827,7 +1842,7 @@ app.post('/api/payments/create-portal-session', async (req, res) => {
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.FRONTEND_URL}/integration`,
+      return_url: `${process.env.FRONTEND_URL}/admin`,
     });
 
     res.json({ url: session.url });
@@ -1975,7 +1990,7 @@ app.post('/api/test/create-company', async (req, res) => {
 
     //if success, create company
     if (userId) {
-      const { companyId } = await createCompany(companyData)
+      const { companyId } = await createCompany(companyData, userId)
       console.log('✅ Test company created successfully:', companyId);
 
       // Update auth user with company id

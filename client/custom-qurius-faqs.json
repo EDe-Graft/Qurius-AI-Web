@@ -1,0 +1,127 @@
+[
+  {
+    "company": "Qurius AI",
+    "question": "What is Qurius AI?",
+    "answer": "Qurius AI is an advanced AI-powered customer support platform that provides intelligent chatbots for businesses. Our solution uses cutting-edge natural language processing to understand customer queries and provide instant, accurate responses in multiple languages."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How quickly can I get started with Qurius AI?",
+    "answer": "You can set up your AI chatbot in under 10 minutes! Our streamlined onboarding process guides you through company setup, customization, and deployment. No technical expertise required."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What pricing plans do you offer?",
+    "answer": "We offer three plans: Free ($0/month with 500 messages), Starter ($29/month with 10,000 messages), and Pro ($59/month with unlimited messages). The Pro plan includes advanced features like web crawling, API access, and multi-language support."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I customize the chat widget to match my brand?",
+    "answer": "Absolutely! You can customize colors, themes, and styling to perfectly match your brand. Our Pro plan includes white-label options for complete brand integration."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What languages does Qurius AI support?",
+    "answer": "Qurius AI supports multiple languages with automatic language detection. Our Pro plan includes comprehensive multi-language support and translated FAQ templates for global businesses."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How do I add content to my chatbot?",
+    "answer": "You can add content through our admin dashboard by importing FAQs, using our web crawler to automatically extract content from your website, or manually adding questions and answers. Our system automatically generates embeddings for semantic search."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What is web crawling and how does it work?",
+    "answer": "Our web crawling feature automatically scans your website to extract relevant content and create a comprehensive knowledge base. This is available with our Pro plan and saves hours of manual content entry."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How accurate are the AI responses?",
+    "answer": "Our AI uses advanced semantic search and natural language processing to provide highly accurate responses. The system learns from your content and improves over time. Response accuracy depends on the quality and comprehensiveness of your knowledge base."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I integrate Qurius AI with my existing website?",
+    "answer": "Yes! Integration is simple with our embed code. Just copy and paste our widget code into your website, and the chatbot will appear. We also offer API access for custom integrations with Pro plans."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What analytics and insights do you provide?",
+    "answer": "Our analytics dashboard shows message volume, user engagement, popular questions, response ratings, and performance metrics. Pro plans include advanced analytics with detailed insights and reporting."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What support do you offer?",
+    "answer": "We provide email support for all plans, priority support for Starter plans, and dedicated phone support for Pro plans. Our response times are: Sales inquiries (2 hours), Technical support (4 hours), General questions (24 hours)."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Is there a free trial available?",
+    "answer": "Yes! Our Free plan includes 500 messages per month with basic customization and email support. You can upgrade anytime as your needs grow."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How does the message limit work?",
+    "answer": "Message limits count each customer interaction with your chatbot. The Free plan includes 500 messages/month, Starter includes 10,000 messages/month, and Pro offers unlimited messages."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I export my data?",
+    "answer": "Yes, you can export your FAQ data, conversation logs, and analytics through our admin dashboard. We believe in data portability and never lock you in."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What security measures do you have in place?",
+    "answer": "We use enterprise-grade security with data encryption, secure hosting, and regular security audits. Your data is protected and we comply with privacy regulations including GDPR."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Do you offer custom integrations?",
+    "answer": "Yes! Our Pro plan includes custom integrations with your existing tools and systems like CRM, helpdesk, and business applications. Contact our team to discuss your specific integration needs."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How does automatic language detection work?",
+    "answer": "Our AI automatically detects the language of incoming messages and responds in the same language. This feature is included with Pro plans and supports dozens of languages for global customer support."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I use my own AI model?",
+    "answer": "Currently, we use our optimized AI models for best performance. However, we're exploring options for custom model integration. Contact us if you have specific AI model requirements."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What happens if I exceed my message limit?",
+    "answer": "If you approach your message limit, we'll notify you via email. You can upgrade your plan anytime. We won't cut off service abruptly - we'll work with you to find the right solution."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How do I contact Qurius AI support?",
+    "answer": "You can reach us at support@qurius.ai, call us at +1 (973) 986-9907 (Monday-Friday, 9AM-6PM EST), or use the contact form on our website. We're here to help you succeed!"
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Do you offer training or onboarding assistance?",
+    "answer": "Yes! We provide comprehensive onboarding guidance, documentation, and training resources. Pro plan customers receive dedicated onboarding support to ensure successful implementation."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Can I cancel my subscription anytime?",
+    "answer": "Absolutely. You can cancel your subscription anytime from your admin dashboard. We believe in earning your business every month - no long-term contracts required."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "What makes Qurius AI different from other chatbot solutions?",
+    "answer": "Qurius AI combines advanced semantic search, multi-language support, easy customization, and powerful analytics in one platform. Our focus on user experience and rapid deployment sets us apart from complex enterprise solutions."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "Do you offer white-label solutions?",
+    "answer": "Yes! Our Pro plan includes white-label options, allowing you to completely customize the branding and even remove Qurius AI branding for a seamless integration with your brand."
+  },
+  {
+    "company": "Qurius AI",
+    "question": "How does the web crawler respect robots.txt?",
+    "answer": "Our web crawler fully respects robots.txt files and follows ethical crawling practices. We only crawl content you own or have permission to use, and you can configure crawling rules and exclusions."
+  }
+] 

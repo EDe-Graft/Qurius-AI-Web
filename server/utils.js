@@ -296,9 +296,9 @@ export function getDailyStats(analytics, days) {
 
 
 //Create company and profile and auth user and send welcome email
-export async function createCompany(companyData) {
+export async function createCompany(companyData, userId = null) {
   try {
-    const { name, location, description, theme, industry, website, email, logo_url, status, plan, domain } = companyData;
+    const { name, location, description, theme, industry, website, email, logo_url, status, plan, domain, enrollment_date } = companyData;
 
     // Extract domain from website URL if not provided
     let extractedDomain = domain;
@@ -342,14 +342,19 @@ export async function createCompany(companyData) {
       status: status || 'active',
       plan: plan || 'free', // Default to free plan
       widget_key_hash: hashedKey, // Store hashed widget key
-      widget_key_plan: plan || 'free' // Store widget key plan
-      // enrollment_date: formatReadableDateTime(new Date())
+      // Stripe fields
+      stripe_customer_id: companyData.stripe_customer_id || null,
+      stripe_subscription_id: companyData.stripe_subscription_id || null,
+      subscription_status: companyData.subscription_status || 'active'
     };
 
-    // Create company
+    // Create company with the auth user ID as the company ID
     const companyResponse = await axios.post(
       `${supabaseUrl}/rest/v1/companies`,
-      companyDataForDB,
+      {
+        ...companyDataForDB,
+        id: userId // Use the auth user ID as the company ID
+      },
       {
         headers: {
           'apikey': supabaseKey,
@@ -361,7 +366,7 @@ export async function createCompany(companyData) {
     );
     console.log("Company created:", companyResponse.data)
 
-    const companyId = companyResponse.data[0].id;
+    const companyId = userId || companyResponse.data[0].id;
     return { companyId, name, email, plan, widgetKey: newKey };
 
     } catch (error) {
