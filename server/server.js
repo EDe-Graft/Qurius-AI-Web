@@ -22,7 +22,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 // Middleware
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500,https://qurius-ai.vercel.app').split(',').map(origin => origin.trim());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5500,http://localhost:5500,https://qurius-ai.vercel.app,https://qurius.app').split(',').map(origin => origin.trim());
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -35,7 +35,7 @@ app.use(cors({
       return callback(null, true);
     }
     // Allow Vercel domains
-    if (origin && (origin.includes('vercel.app') || origin.includes('qurius-ai.vercel.app'))) {
+    if (origin && (origin.includes('vercel.app') || origin.includes('qurius-ai.vercel.app') || origin.includes('qurius.app'))) {
       return callback(null, true);
     }
     console.log('CORS blocked origin:', origin);
@@ -117,7 +117,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           // If success, create company
           if (userId) {
             console.log('💳 Creating company for:', companyData);
-            const { companyId, companyName, email: companyEmail, widgetKey } = await createCompany(companyData, userId);
+            const { companyId, companyName, email: companyEmail } = await createCompany(companyData, userId);
             console.log('✅ Company created successfully:', companyId);
 
             // Update auth user with company id
@@ -126,7 +126,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
 
             // Send welcome email with password reset and widget key
             console.log('💳 Sending welcome email for:', companyEmail);
-            await sendWelcomeEmail(companyEmail, companyName, planId, widgetKey);
+            await sendWelcomeEmail(companyEmail, companyName, planId );
             console.log('✅ Welcome email sent successfully with widget key');
           } else {
             console.error('❌ Failed to create auth user for:', customerEmail);

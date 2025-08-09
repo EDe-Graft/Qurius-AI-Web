@@ -372,7 +372,7 @@ export async function createCompany(companyData, userId = null) {
     console.log("Company created:", companyResponse.data)
 
     const companyId = userId || companyResponse.data[0].id;
-    return { companyId, name, email, plan, widgetKey: newKey };
+    return { companyId, companyName: name, email, plan };
 
     } catch (error) {
       console.error('❌ Error creating company:', error.response?.data || error.message);
@@ -477,7 +477,7 @@ export const generateWidgetKeyForCompany = async () => {
 };
 
 // Send welcome email
-export async function sendWelcomeEmail(companyEmail, companyName, planId, widgetKey = null) {
+export async function sendWelcomeEmail(companyEmail, companyName, planId) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -490,7 +490,6 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId, widget
       companyName,
       planName,
       adminLink: `${process.env.FRONTEND_URL}/admin`,
-      widgetKey: widgetKey // Pass widget key to template
     });
 
     // Send welcome email via Resend
@@ -526,9 +525,7 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId, widget
     console.log('📧 To:', companyEmail);
     console.log('🏢 Company:', companyName);
     console.log('📦 Plan:', planName);
-    if (widgetKey) {
-      console.log('🔑 Widget Key:', widgetKey);
-    }
+
     
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);
