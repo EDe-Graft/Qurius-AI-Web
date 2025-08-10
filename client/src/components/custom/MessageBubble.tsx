@@ -53,7 +53,8 @@ function AIMessageBubble({
   isLastAiMessage, 
   companyName, 
   onRatingChange, 
-  wasMinimized 
+  wasMinimized,
+  onStreamingComplete
 }: {
   message: string
   messageIndex: number
@@ -66,6 +67,7 @@ function AIMessageBubble({
   companyName?: string
   onRatingChange?: (rating: 'like' | 'dislike' | null) => void
   wasMinimized?: boolean
+  onStreamingComplete?: (messageIndex: number) => void
 }) {
   const [streamText, setStreamText] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
@@ -90,28 +92,25 @@ function AIMessageBubble({
         if (i === words.length - 1) {
           setIsStreaming(false)
           onStreamingChange?.(false)
+          onStreamingComplete?.(messageIndex) // Notify parent that streaming is complete
         }
 
         await new Promise(resolve => setTimeout(resolve, 100))
     }
   }
   
+  // Set initialized to true on mount
   useEffect(() => {
-    // Mark as initialized after a brief moment to allow styling to settle
-    const initTimer = setTimeout(() => {
       setIsInitialized(true)
-    }, 500)
-
-    return () => clearTimeout(initTimer)
   }, [])
 
   useEffect(() => {
     // Only simulate streaming for the last AI response, when not skipping, and after initialization
-    if (!skipStreaming && isInitialized && isLastAiMessage) {
+    if (isInitialized && isLastAiMessage && !skipStreaming) {
       // Give time for components to initialize before streaming starts
       setTimeout(() => {
         simulateStream(message)
-      }, 1000)
+      }, 100)
     } else if (!skipStreaming && !isInitialized && isLastAiMessage) {
       // Set streaming state but don't start yet
       setIsStreaming(true)
@@ -323,7 +322,7 @@ function AIMessageBubble({
 }
 
 // Main MessageBubble Component - now acts as a router
-export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, wasMinimized }: MessageBubbleProps) {
+export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, onStreamingComplete }: MessageBubbleProps) {
   if (isUser) {
     return (
       <UserMessageBubble 
@@ -345,7 +344,8 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
         isLastAiMessage={isLastAiMessage}
         companyName={companyName}
         onRatingChange={onRatingChange}
-        wasMinimized={wasMinimized}
+        onStreamingComplete={onStreamingComplete}
+        // wasMinimized={wasMinimized}
       />
     )
   }

@@ -13,7 +13,7 @@ export function Demo() {
   const navigate = useNavigate()
   // Company data for demo
   let companyData = {
-    id: '18c69d1d-89c3-432f-b7e6-cb69c67de342',
+    id: 'cf97eacc-8346-4f8b-ba8a-4c3e286030ab',
     name: 'PurpleSoft Inc',
     plan: 'pro',
     status: 'active',

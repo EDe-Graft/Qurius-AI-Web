@@ -124,8 +124,25 @@ export class TranslationService {
       })
 
       return response.data.data.detections[0][0].language
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error detecting language:', error)
+      
+      // Handle specific error cases
+      if (error.response?.status === 403) {
+        console.warn('⚠️ Google Translate API access forbidden. This could be due to:')
+        console.warn('   - Invalid or expired API key')
+        console.warn('   - API key not enabled for Google Translate API')
+        console.warn('   - Billing not enabled for the project')
+        console.warn('   - API quotas exceeded')
+        console.warn('🔄 Falling back to English detection')
+      } else if (error.response?.status === 400) {
+        console.warn('⚠️ Bad request to Google Translate API')
+        console.warn('🔄 Falling back to English detection')
+      } else if (error.response?.status === 429) {
+        console.warn('⚠️ Google Translate API rate limit exceeded')
+        console.warn('🔄 Falling back to English detection')
+      }
+      
       return 'en' // Fallback to English
     }
   }
@@ -160,8 +177,18 @@ export class TranslationService {
       })
 
       return response.data.data.translations[0].translatedText
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error translating text:', error)
+      
+      // Handle specific error cases
+      if (error.response?.status === 403) {
+        console.warn('⚠️ Google Translate API access forbidden, using fallback translations')
+      } else if (error.response?.status === 400) {
+        console.warn('⚠️ Bad request to Google Translate API, using fallback translations')
+      } else if (error.response?.status === 429) {
+        console.warn('⚠️ Google Translate API rate limit exceeded, using fallback translations')
+      }
+      
       // Fallback to fallback translations
       const fallbackTranslations = FALLBACK_TRANSLATIONS[targetLang]
       return fallbackTranslations[text] || text

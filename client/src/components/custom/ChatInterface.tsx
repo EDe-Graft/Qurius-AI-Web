@@ -55,7 +55,7 @@ export function ChatInterface({
   const [userScrolled, setUserScrolled] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
-  const [wasMinimized, setWasMinimized] = useState(false) // Add this state
+  // const [wasMinimized, setWasMinimized] = useState(false) // Add this state
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -132,30 +132,14 @@ export function ChatInterface({
   //   testServices()
   // }, [])
 
-  // Initialize welcome message ONLY once when component first loads
-  useEffect(() => {
-    // Only set welcome message if we have company data and NO messages at all
-    if (messages.length === 0 && companyData) {
-      const welcomeMessage = {
-        content: getWelcomeMessage(),
-        isUser: false,
-        liked: null,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }
-      
-      setMessages([welcomeMessage])
-    }
-  }, [companyData]) // Only depend on companyData, not on t or companyName to prevent resets
 
   // Reset conversation when language changes (fresh start in new language)
-  useEffect(() => {
-    if (messages.length > 0 && companyData) {
-      console.log('🌐 Language changed, resetting conversation to welcome message in new language')
-      
+  useEffect(() => {      
       const welcomeMessage = {
         content: getWelcomeMessage(),
         isUser: false,
         liked: null,
+        isMessageStreamed: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       
@@ -166,8 +150,7 @@ export function ChatInterface({
       if (companyName) {
         AnalyticsService.trackLanguageChange(companyName, currentLanguage)
       }
-    }
-  }, [currentLanguage, companyData]) // Reset when language changes, but not company name alone
+  }, [currentLanguage]) // Reset when language changes
 
   // Get company theme
   useEffect(() => {
@@ -245,7 +228,7 @@ export function ChatInterface({
     if (isStreaming && !userScrolled) {
       const interval = setInterval(() => {
         scrollToBottom()
-      }, 25) // Scroll every 25ms during streaming
+      }, 10) // Scroll every 10ms during streaming
       
       return () => clearInterval(interval)
     }
@@ -278,6 +261,7 @@ export function ChatInterface({
       content,
       isUser: true,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      isMessageStreamed: true,
     }
 
     setIsTyping(true)
@@ -323,6 +307,7 @@ export function ChatInterface({
             content: limitMessageContent,
             isUser: false,
             liked: null,
+            isMessageStreamed: false,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
           setMessages((prev) => [...prev, limitMessage])
@@ -350,6 +335,7 @@ export function ChatInterface({
           content: translatedResponse,
           isUser: false,
           liked: null,
+          isMessageStreamed: false,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, aiMessage])
@@ -375,6 +361,7 @@ export function ChatInterface({
             content: 'Sorry, I encountered an error. Please try again.',
             isUser: false,
             liked: null,
+            isMessageStreamed: false,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
         ])
@@ -392,6 +379,7 @@ export function ChatInterface({
         {
           content: 'Sorry, something went wrong. Please try again.',
           isUser: false,
+          isMessageStreamed: false,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
       ])
@@ -399,6 +387,14 @@ export function ChatInterface({
       console.log('🏁 Finishing message processing')
       setIsTyping(false)
     }
+  }
+
+  const handleStreamingComplete = (messageIndex: number) => {
+    setMessages(prev => prev.map((message, index) => 
+      index === messageIndex 
+        ? { ...message, isMessageStreamed: true }
+        : message
+    ))
   }
 
   // Generate hover color from primary color
@@ -552,9 +548,9 @@ export function ChatInterface({
             onClick={() => {
               onToggleMinimize?.()
               // Only set wasMinimized when user manually minimizes
-              if (!isMinimized) {
-                setWasMinimized(true)
-              }
+              // if (!isMinimized) {
+              //   setWasMinimized(true)
+              // }
             }}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
@@ -583,12 +579,12 @@ export function ChatInterface({
                 isUser={message.isUser}
                 timestamp={message.timestamp}
                 onStreamingChange={!message.isUser ? handleStreamingChange : undefined}
-                skipStreaming={wasMinimized && !message.isUser} // Pass this prop to MessageBubble
+                skipStreaming={message.isMessageStreamed === true} // Pass this prop to MessageBubble
                 isLastAiMessage={isLastAiMessage} // Stream last AI messages
-                companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
                 companyName={companyName} // Pass company name for analytics
+                companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
                 onRatingChange={(rating) => handleRatingChange(index, rating)} // Pass the new handler with message index
-                wasMinimized={wasMinimized} // Pass visibility state to MessageBubble
+                onStreamingComplete={handleStreamingComplete} // Pass the new handler
               />
             );
           })}

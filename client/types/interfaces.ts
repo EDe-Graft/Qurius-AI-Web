@@ -95,13 +95,14 @@ export interface MessageBubbleProps {
     isUser: boolean
     timestamp?: string
     onStreamingChange?: (isStreaming: boolean) => void
+    onStreamingComplete?: (messageIndex: number) => void // Callback when streaming is complete
     skipStreaming?: boolean // Add this prop
     isLastAiMessage?: boolean // Only stream the last AI message
     defaultTheme?: "light" | "dark"
     companyTheme?: CompanyTheme
     companyName?: string // For analytics tracking
     onRatingChange?: (rating: 'like' | 'dislike' | null) => void // Add callback for rating changes
-    wasMinimized?: boolean // Add visibility state for conditional rendering
+    isMessageStreamed?: boolean // Track if this message has been streamed
   }
   
 
@@ -111,4 +112,5 @@ export interface Message {
     isUser: boolean
     liked?: 'like' | 'dislike' | null
     timestamp: string
+    isMessageStreamed?: boolean // Track if this message has been streamed
 }

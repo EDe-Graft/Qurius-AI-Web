@@ -281,12 +281,29 @@ app.get('/api/translate/api-key', (req, res) => {
   try {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      return res.status(404).json({ error: 'Google Translate API key not configured' });
+      console.warn('⚠️ Google Translate API key not configured in environment variables');
+      return res.status(404).json({ 
+        error: 'Google Translate API key not configured',
+        message: 'Translation features will use fallback translations'
+      });
     }
+    
+    // Validate the API key format (basic check)
+    if (!apiKey.startsWith('AIza')) {
+      console.warn('⚠️ Google Translate API key format appears invalid');
+      return res.status(400).json({ 
+        error: 'Invalid Google Translate API key format',
+        message: 'Translation features will use fallback translations'
+      });
+    }
+    
     res.json({ apiKey });
   } catch (error) {
     console.error('API key error:', error);
-    res.status(500).json({ error: 'Failed to get API key' });
+    res.status(500).json({ 
+      error: 'Failed to get API key',
+      message: 'Translation features will use fallback translations'
+    });
   }
 });
 

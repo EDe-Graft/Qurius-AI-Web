@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { getTranslation } from '@/lib/translations'
 
 export type Language = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'it' | 'ru' | 'ko'
@@ -70,7 +70,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const setLanguage = (language: Language) => {
+  const setLanguage = useCallback((language: Language) => {
     setIsLanguageChanging(true)
     setCurrentLanguage(language)
     localStorage.setItem('qurius_language', language)
@@ -79,19 +79,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       setIsLanguageChanging(false)
     }, 300)
-  }
+  }, [])
 
   // Translation function using the translation system
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     return getTranslation(currentLanguage, key)
-  }
+  }, [currentLanguage])
 
-  const value = {
+  const value = useMemo(() => ({
     currentLanguage,
     setLanguage,
     t,
     isLanguageChanging
-  }
+  }), [currentLanguage, setLanguage, t, isLanguageChanging])
 
   return (
     <LanguageContext.Provider value={value}>

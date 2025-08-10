@@ -19,7 +19,7 @@ export function Landing() {
 
   // Company data for Qurius AI
   const companyData = {
-    id: 'qurius-ai-demo',
+    id: '2bdad203-31da-403f-90d1-049a28d7adfc',
     name: 'Qurius AI',
     plan: 'pro',
     status: 'active',
@@ -406,7 +406,7 @@ export function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 md:py-20 bg-blue-600 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
             {t('landing.ctaTitle')}
@@ -429,7 +429,7 @@ export function Landing() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('landing.emailPlaceholder')}
-                className="px-4 py-3 rounded-lg border-2 border-white text-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base"
+                className="px-4 py-3 rounded-lg border-2 border-white text-white placeholder-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base"
                 required
               />
               <button
