@@ -1801,7 +1801,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_1RqxqR5gHOIxGKPlrtTTRHUi',
+          price: plan.stripe_price_id,
           quantity: 1,
         },
       ],
