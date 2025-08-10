@@ -19,12 +19,13 @@ class FAQService {
   private BACKEND_URL = config.backendUrl;
 
   // Get FAQ answer using semantic search
-  async getFAQAnswer(companyId: string, companyName: string, userQuestion: string): Promise<FAQResponse | null> {
+  async getFAQAnswer(companyId: string, companyName: string, userQuestion: string, website: string): Promise<FAQResponse | null> {
     try {
       const response = await axios.post(`${this.BACKEND_URL}/api/faqs/search`, {
         companyId,
         companyName,
-        question: userQuestion
+        question: userQuestion,
+        website: website
       });
       
       console.log('FAQ search results:', response.data);

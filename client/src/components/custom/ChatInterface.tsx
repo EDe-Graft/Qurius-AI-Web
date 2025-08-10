@@ -41,7 +41,7 @@ export function ChatInterface({
   const [isVisible, setIsVisible] = useState(false)
 
   // destructure company data
-  const { name: companyName, id: companyId, plan: verifiedPlan } = companyData || {}
+  const { name: companyName, id: companyId, plan: verifiedPlan, website } = companyData || {}
 
   // Compute the translated welcome message
   const getWelcomeMessage = () => {
@@ -302,7 +302,7 @@ export function ChatInterface({
       
       console.log('🤖 Getting FAQ answer...')
       // Get AI response in English
-      const result = await faqService.getFAQAnswer(companyId || '', companyName || '', translatedInput)
+      const result = await faqService.getFAQAnswer(companyId || '', companyName || '', translatedInput, website || '')
       // console.log('✅ FAQ result:', result)
       // console.log('🔍 Result type:', typeof result, 'Truthy:', !!result)
       

@@ -705,7 +705,7 @@ app.delete('/api/companies/:id', async (req, res) => {
 // Search FAQs with enhanced analytics tracking
 app.post('/api/faqs/search', async (req, res) => {
   try {
-    const { question, companyId, companyName, sessionId } = req.body;
+    const { question, companyId, companyName, sessionId, website } = req.body;
     console.log('Searching FAQs for company ID:', companyId);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -778,7 +778,7 @@ app.post('/api/faqs/search', async (req, res) => {
           }]);
         } else {
           console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
-          const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
+          const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
           
           // Record AI usage
           await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'low_confidence');
@@ -798,7 +798,7 @@ app.post('/api/faqs/search', async (req, res) => {
       } else {
         // No FAQ found, fallback to AI
         console.log('No FAQ found, falling back to AI');
-        const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
+        const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
         
         // Record AI usage
         await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_faq_found');
@@ -818,7 +818,7 @@ app.post('/api/faqs/search', async (req, res) => {
       console.log('Embedding search failed, falling back to AI:', embeddingError.message);
       
       // Fallback to AI when semantic search fails
-      const aiResponse = await getAIResponse({role: 'user', content: question, companyName});
+      const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
       
       // Record AI usage
       await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'embedding_error');
