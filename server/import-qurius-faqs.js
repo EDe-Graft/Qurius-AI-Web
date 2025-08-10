@@ -57,11 +57,8 @@ async function findQuriusCompany() {
 async function generateEmbeddingsForFAQ(question, answer) {
   try {
     console.log(`🔍 Generating embeddings for: "${question.substring(0, 50)}..."`)
-    const embeddings = await getEmbedding(question, answer)
-    return {
-      question_embedding: embeddings.questionEmbedding,
-      answer_embedding: embeddings.answerEmbedding
-    }
+    const {questionEmbedding, answerEmbedding} = await getEmbedding(question, answer)
+    return { questionEmbedding, answerEmbedding }
   } catch (error) {
     console.error('❌ Error generating embeddings:', error.message)
     throw error
@@ -112,7 +109,7 @@ async function importFAQs(companyId) {
       
       try {
         // Generate embeddings
-        const embeddings = await generateEmbeddingsForFAQ(faq.question, faq.answer)
+        const {questionEmbedding, answerEmbedding} = await generateEmbeddingsForFAQ(faq.question, faq.answer)
         
         // Prepare FAQ data for database insertion
         const faqData = {
@@ -120,8 +117,8 @@ async function importFAQs(companyId) {
           company_name: 'Qurius AI',
           question: faq.question,
           answer: faq.answer,
-          question_embedding: embeddings.questionEmbedding,
-          answer_embedding: embeddings.answerEmbedding,
+          question_embedding: questionEmbedding,
+          answer_embedding: answerEmbedding,
           source: 'manual',
           confidence: 1.0,
           relevance_score: 1.0
