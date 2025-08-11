@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/context/useThemeContext"
 import { useLanguage } from "@/context/LanguageContext"
@@ -11,8 +11,30 @@ export function Demo() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const { t } = useLanguage()
   const [isChatMinimized, setIsChatMinimized] = useState(true)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const navigate = useNavigate()
-  const { purpleSoftData } = useRouteBasedCompany()
+  const { purpleSoftData, isDataLoading } = useRouteBasedCompany()
+
+  useEffect(() => {
+    // Simulate page loading time and wait for company data
+    const timer = setTimeout(() => {
+      setIsPageLoading(false)
+    }, 800)
+
+    return () => clearTimeout(timer)
+  }, [isDataLoading])
+
+  // Loading screen
+  if (isPageLoading || isDataLoading) {
+    return (
+      <div className={`min-h-screen transition-colors duration-200 flex items-center justify-center ${defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

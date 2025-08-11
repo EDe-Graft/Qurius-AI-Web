@@ -12,7 +12,7 @@ interface CompanyData extends Omit<Company, 'plan' | 'status'> {
 interface CompanyDataContextType {
   quriusData: CompanyData | null
   purpleSoftData: CompanyData | null
-  isLoading: boolean
+  isDataLoading: boolean
   error: string | null
 }
 
@@ -28,13 +28,13 @@ interface CompanyDataProviderProps {
 export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
   const [quriusData, setQuriusData] = useState<CompanyData | null>(null)
   const [purpleSoftData, setPurpleSoftData] = useState<CompanyData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isDataLoading, setIsDataLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Initialize company data once on mount
   useEffect(() => {
     const initializeCompanyData = async () => {
-      setIsLoading(true)
+      setIsDataLoading(true)
       setError(null)
 
       try {
@@ -77,7 +77,7 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
             description: 'AI-powered customer support platform that provides intelligent chatbots for businesses.',
             industry: 'AI/Technology',
             website: 'https://qurius.app',
-            logo_url: '',
+            logo_url: 'https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png',
             enrollment_date: '2024-01-01',
             subscription_status: 'active',
             subscription_end_date: '2050-01-01',
@@ -170,7 +170,7 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
           subscription_end_date: '2025-01-01',
         })
       } finally {
-        setIsLoading(false)
+        setIsDataLoading(false)
       }
     }
 
@@ -181,7 +181,7 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
   const contextValue: CompanyDataContextType = {
     quriusData,
     purpleSoftData,
-    isLoading,
+    isDataLoading,
     error
   }
 

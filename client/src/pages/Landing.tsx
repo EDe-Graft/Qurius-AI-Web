@@ -1,23 +1,33 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { MessageCircle, Zap, Shield, Globe, Menu, X, Play } from "lucide-react"
-import { LanguageSelector } from "@/components/ui/LanguageSelector"
+import { Zap, Shield, Globe, Play, MessageCircle } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import { TestimonialCarousel } from "@/components/custom/TestimonialCarousel"
 import { PricingCard } from "@/components/custom/PricingCard"
-import { ThemeToggle } from "@/components/custom/ThemeToggle"
-import { useTheme } from "@/context/useThemeContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
+import { Navigation } from "@/components/custom/Navigation"
+import { useTheme } from "@/context/useThemeContext"
 
 export function Landing() {
   const navigate = useNavigate()
   const [email, setEmail] = useState("")
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isChatMinimized, setIsChatMinimized] = useState(true)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const { t } = useLanguage()
-  const { defaultTheme, isDark, isThemeChanging, toggleTheme } = useTheme()
-  const { quriusData } = useRouteBasedCompany()
+  const { defaultTheme, isThemeChanging, toggleTheme } = useTheme()
+  const { quriusData, isDataLoading } = useRouteBasedCompany()
+
+  useEffect(() => {
+    // Only set page loading to false when company data is fully loaded
+    if (!isDataLoading) {
+      const timer = setTimeout(() => {
+        setIsPageLoading(false)
+      }, 300) // Reduced delay since we're already waiting for data
+
+      return () => clearTimeout(timer)
+    }
+  }, [isDataLoading])
 
   const handleGetStarted = () => {
     navigate("/onboarding")
@@ -56,8 +66,8 @@ export function Landing() {
       case 'pricing':
         scrollToSection('pricing-section')
         break
-      case 'documentation':
-        navigate('/admin')
+      case 'installation':
+        scrollToSection('video-section')
         break
       case 'about':
         navigate('/about')
@@ -71,111 +81,27 @@ export function Landing() {
     }
   }
 
+  // Loading screen
+  if (isPageLoading || isDataLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="pt-18 flex justify-between items-center md:pt-18 md:pb-4">
-            <div className="flex items-center">
-              <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
-              {/* <img src="/logo.png" alt="Qurius AI" className="h-10 w-10" /> */}
-              <span className="ml-2 text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100">Qurius AI</span>
-            </div>
-            
-            <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Navigation Links - Hidden on mobile, shown on desktop */}
-              <nav className="hidden lg:flex items-center space-x-6 mr-4">
-                <button
-                  onClick={() => navigate("/about")}
-                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                >
-                  About
-                </button>
-                <button
-                  onClick={() => navigate("/contact")}
-                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                >
-                  Contact
-                </button>
-                <button
-                  onClick={() => navigate("/demo")}
-                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                >
-                  Demo
-                </button>
-              </nav>
-              
-              <LanguageSelector />
-              <ThemeToggle 
-                theme={isDark ? "dark" : "light"}
-                toggleTheme={toggleTheme}
-                isThemeChanging={isThemeChanging}
-              />
-              
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-              
-              <button
-                onClick={handleGetStarted}
-                className="hidden sm:flex bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base min-h-[44px] md:min-h-[40px] items-center"
-              >
-                <span className="hidden sm:inline">{t('common.getStarted')}</span>
-                <span className="sm:hidden">Start</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-            <div className="px-4 py-4 space-y-4">
-              <button
-                onClick={() => {
-                  navigate("/about")
-                  setIsMobileMenuOpen(false)
-                }}
-                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
-              >
-                About
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/contact")
-                  setIsMobileMenuOpen(false)
-                }}
-                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
-              >
-                Contact
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/demo")
-                  setIsMobileMenuOpen(false)
-                }}
-                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
-              >
-                Demo
-              </button>
-              <button
-                onClick={() => {
-                  handleGetStarted()
-                  setIsMobileMenuOpen(false)
-                }}
-                className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
-              >
-                {t('common.getStarted')}
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+      {/* Navigation */}
+      <Navigation 
+        currentPage="home"
+        showGetStarted={true}
+        getStartedText={t('common.getStarted')}
+        onGetStarted={handleGetStarted}
+      />
 
       {/* Hero Section */}
       <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -204,7 +130,7 @@ export function Landing() {
       </section>
 
       {/* Demo Video Section */}
-      <section className="py-12 md:py-20 bg-white dark:bg-gray-900">
+      <section id="video-section" className="py-12 md:py-20 bg-white dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -291,7 +217,7 @@ export function Landing() {
             <div className="text-center mt-8 md:mt-12">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
                 <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base mb-4">
-                  💡 <strong>Ready to transform your customer support?</strong> 
+                  💡 <strong>Ready to transform your customer support? </strong> 
                   Get started with Qurius AI today and see the difference.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -573,10 +499,10 @@ export function Landing() {
                 </li>
                 <li>
                   <button 
-                    onClick={() => handleFooterLinkClick('documentation')}
+                    onClick={() => handleFooterLinkClick('installation')}
                     className="hover:text-white transition-colors text-left"
                   >
-                    {t('landing.documentation')}
+                    {t('landing.installation')}
                   </button>
                 </li>
               </ul>

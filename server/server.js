@@ -531,8 +531,9 @@ app.get('/api/companies/:id/', async (req, res) => {
 // Get demo company IDs (for frontend use)
 app.get('/api/demo/company-ids', async (req, res) => {
   try {
-    const quriusCompanyId = process.env.QURIUS_COMPANY_ID;
+    const quriusCompanyId = process.env.QURIUS_AI_COMPANY_ID;
     const purpleSoftCompanyId = process.env.PURPLESOFT_INC_COMPANY_ID;
+    console.log('Qurius Company ID:', quriusCompanyId, 'PurpleSoft Company ID:', purpleSoftCompanyId);
     
     if (!quriusCompanyId || !purpleSoftCompanyId) {
       console.error('❌ Demo company IDs not configured in environment variables');
@@ -749,7 +750,10 @@ app.delete('/api/companies/:id', async (req, res) => {
 // Search FAQs with enhanced analytics tracking
 app.post('/api/faqs/search', async (req, res) => {
   try {
-    const { question, companyId, companyName, sessionId, website } = req.body;
+    const { question, companyData, messages } = req.body;
+    const {id: companyId, name: companyName, website, contact_email } = companyData;
+    let sessionId = 'qurius-ai-session';
+    
     console.log('Searching FAQs for company ID:', companyId);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -822,7 +826,7 @@ app.post('/api/faqs/search', async (req, res) => {
           }]);
         } else {
           console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
-          const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
+          const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
           
           // Record AI usage
           await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'low_confidence');
@@ -842,7 +846,7 @@ app.post('/api/faqs/search', async (req, res) => {
       } else {
         // No FAQ found, fallback to AI
         console.log('No FAQ found, falling back to AI');
-        const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
+        const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
         
         // Record AI usage
         await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_faq_found');
@@ -862,7 +866,7 @@ app.post('/api/faqs/search', async (req, res) => {
       console.log('Embedding search failed, falling back to AI:', embeddingError.message);
       
       // Fallback to AI when semantic search fails
-      const aiResponse = await getAIResponse({role: 'user', content: question, companyName, companyWebsite: website });
+      const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
       
       // Record AI usage
       await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'embedding_error');

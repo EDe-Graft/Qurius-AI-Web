@@ -39,7 +39,7 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': '"production"',
     // Set environment variables to default values to prevent errors
-    'import.meta.env.VITE_BACKEND_URL': '"https://qurius-ai.onrender.com"',
+    'import.meta.env.VITE_BACKEND_URL': '"http://localhost:3000"',
     'import.meta.env.VITE_SUPABASE_PROJECT_URL': '"https://demo.supabase.co"',
     'import.meta.env.VITE_SUPABASE_ANON_KEY': '"demo-key"',
     'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': '"demo-service-key"',

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CheckCircle, ArrowRight, Settings, Palette, MessageCircle, CreditCard } from "lucide-react"
 import { CompanyService } from "@/services/companyService"
 import { useLanguage } from "@/context/LanguageContext"
@@ -34,7 +34,17 @@ export function Onboarding() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const { t } = useLanguage()
+
+  useEffect(() => {
+    // Simulate page loading time
+    const timer = setTimeout(() => {
+      setIsPageLoading(false)
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Get selected plan from sessionStorage on component mount
   React.useEffect(() => {
@@ -124,6 +134,18 @@ export function Onboarding() {
     }
   }
 
+
+  // Loading screen
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

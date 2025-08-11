@@ -53,7 +53,6 @@ function AIMessageBubble({
   isLastAiMessage, 
   companyName, 
   onRatingChange, 
-  wasMinimized,
   onStreamingComplete
 }: {
   message: string
@@ -66,7 +65,6 @@ function AIMessageBubble({
   isLastAiMessage?: boolean
   companyName?: string
   onRatingChange?: (rating: 'like' | 'dislike' | null) => void
-  wasMinimized?: boolean
   onStreamingComplete?: (messageIndex: number) => void
 }) {
   const [streamText, setStreamText] = useState("")
@@ -192,7 +190,7 @@ function AIMessageBubble({
         </div>
 
         {/* Message Content */}
-        {(wasMinimized || isInitialized) && (
+        {(isInitialized) && (
           <div className="flex-1 space-y-2 text-left">
             <div
               className="inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed text-gray-900 dark:text-gray-100 rounded-bl-md"
@@ -345,7 +343,6 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
         companyName={companyName}
         onRatingChange={onRatingChange}
         onStreamingComplete={onStreamingComplete}
-        // wasMinimized={wasMinimized}
       />
     )
   }

@@ -41,7 +41,7 @@ export function ChatInterface({
   const [isVisible, setIsVisible] = useState(false)
 
   // destructure company data
-  const { name: companyName, id: companyId, plan: verifiedPlan, website } = companyData || {}
+  const { name: companyName, plan: verifiedPlan, logo_url: logoUrl } = companyData || {}
 
   // Compute the translated welcome message
   const getWelcomeMessage = () => {
@@ -170,14 +170,14 @@ export function ChatInterface({
           setTimeout(() => {
             setIsInitialLoading(false)
             setHasBeenInitialized(true)
-          }, 1000)
+          }, 100)
         })
         .catch((error) => {
           console.error('Failed to load company theme:', error)
           setTimeout(() => {
             setIsInitialLoading(false)
             setHasBeenInitialized(true)
-          }, 1000)
+          }, 100)
         })
       
     } else {
@@ -185,7 +185,7 @@ export function ChatInterface({
       setTimeout(() => {
         setIsInitialLoading(false)
         setHasBeenInitialized(true)
-      }, 1000)
+      }, 100)
     }
   }, [companyName, isDark, companyData])
 
@@ -241,25 +241,33 @@ export function ChatInterface({
   }, [isStreaming, userScrolled])
 
 
-  // function buildMessagesForAPI(messages: Array<Message>) {
-  //   const systemPrompt = {
-  //     role: 'system',
-  //     content: `Format your response using these Markdown rules:\n1. **Bold** text with **double asterisks**\n2. *Italic* text with *single asterisks*\n3. Links with [visible text](url)\n4. Lists with - or * bullets\n5. Headers with # symbols\n6. Code blocks with \`\`\`\n7. Use markdown to format your response.\n8. Keep responses concise and mobile-friendly.\n9. Consider the user's theme and style when responding .`
-  //   };
-  //   // Skip the first message (initial AI greeting) and convert to API format
-  //   const history = messages.slice(1).map(m => ({
-  //     role: m.isUser ? 'user' : 'assistant',
-  //     content: m.content
-  //   }));
-  //   return [systemPrompt, ...history];
+    // Build messages array for API with current user message included
+  const buildMessagesForAPI = (currentMessages: Message[], currentUserMessage: string) => {
+    // Skip the first message (initial AI greeting) and convert to API format
+    const history = currentMessages.slice(1).map(m => ({
+      role: m.isUser ? 'user' : 'assistant',
+      content: m.content
+    }));
+    
+    // Add the current user message to the conversation
+    const conversationHistory = [
+      ...history,
+      {
+        role: 'user' as const,
+        content: currentUserMessage
+      }
+    ];
+    
+    console.log('🔧 Built conversation with current message:', {
+      historyLength: history.length,
+      currentMessage: currentUserMessage.substring(0, 50) + '...',
+      totalMessages: conversationHistory.length
+    });
+    
+    return conversationHistory;
+  };
 
-  //   //call the function
-  //   // setMessages((prev) => [...prev, userMessage]) //add new user message
-  //   // // Build API messages with the current user message included
-  //   // const updatedMessages = [...messages, userMessage]
-  //   // const apiMessages = buildMessagesForAPI(updatedMessages) //build message history for api. exclude first message
-  // }
-
+  // Handle send message
   const handleSendMessage = async (content: string) => {
     console.log('🚀 Starting message processing:', content)
 
@@ -273,7 +281,9 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
     
     // Scroll to bottom after user message is added to state
-    scrollToBottom()
+    setTimeout(() => {
+      scrollToBottom()
+    }, 0)
 
     // Track message sent
     if (companyName) {
@@ -293,10 +303,15 @@ export function ChatInterface({
       }
       
       console.log('🤖 Getting FAQ answer...')
-      // Get AI response in English
-      const result = await faqService.getFAQAnswer(companyId || '', companyName || '', translatedInput, website || '')
+      
+      // Build messages array for API with current user message included
+      const conversationMessages = buildMessagesForAPI(messages, translatedInput)
+      
+      console.log('📝 Conversation context:', conversationMessages.length, 'messages')
+      
+      // Get AI response in English with conversation context
+      const result = await faqService.getFAQAnswer(translatedInput, conversationMessages, companyData)
       // console.log('✅ FAQ result:', result)
-      // console.log('🔍 Result type:', typeof result, 'Truthy:', !!result)
       
       if (result) {
         // Check if this is a limit reached response
@@ -426,7 +441,7 @@ export function ChatInterface({
       >
         <button
           onClick={onToggleMinimize}
-          className="text-white p-4 rounded-full shadow-lg transition-colors"
+          className={`text-white p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-2xl group relative`}
           style={{
             backgroundColor: companyTheme?.primaryColor || '#007bff',
           }}
@@ -439,10 +454,11 @@ export function ChatInterface({
             e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
           }}
         >
+          
           {isInitialLoading && !hasBeenInitialized ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <MessageCircle className="h-6 w-6" />
+            <MessageCircle className="h-7 w-7" />
           )}
         </button>
       </div>
@@ -505,9 +521,9 @@ export function ChatInterface({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-3">
-            {companyTheme?.logoUrl ? (
+            {logoUrl ? (
               <div className={`w-8 h-8 rounded-full flex items-center justify-center`}>
-                <img src={companyTheme?.logoUrl} alt="Company Logo" className="w-7 h-7" />
+                <img src={logoUrl} alt="Company Logo" className="w-7 h-7" />
               </div>
             ) : (
               // Default logo
@@ -562,10 +578,6 @@ export function ChatInterface({
                 setSavedScrollPosition(messagesContainerRef.current.scrollTop)
               }
               onToggleMinimize?.()
-              // Only set wasMinimized when user manually minimizes
-              // if (!isMinimized) {
-              //   setWasMinimized(true)
-              // }
             }}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >

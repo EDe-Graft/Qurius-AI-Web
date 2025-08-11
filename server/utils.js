@@ -29,11 +29,11 @@ export async function getEmbedding(question, answer) {
 
 
 // Get AI response using OpenAI
-export async function getAIResponse({role, content, companyName, companyWebsite}) {
+export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-4o-mini';
-  const systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly. If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. If you don't find the information on the website, suggest they contact customer support.`;
+  const systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly. If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. If you don't find the information on the website, suggest they contact customer support at ${customerSupportEmail}.`;
   const maxTokens = 300;
   const temperature = 0.7;
 
@@ -47,10 +47,7 @@ export async function getAIResponse({role, content, companyName, companyWebsite}
             role: 'system',
             content: systemPrompt
           },
-          {
-            role: role,
-            content: content
-          }
+          ...messageHistory // Add messages history to the request
         ],
         max_tokens: maxTokens,
         temperature: temperature
@@ -534,7 +531,7 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId) {
 }
 
 // Helper function to record message usage in the new message_usage table
-export async function recordMessageUsage(companyId, companyName, messageType, sessionId, userQuestion, aiResponse, faqId = null, confidenceScore = null, responseSource = null, fallbackReason = null) {
+export async function recordMessageUsage(companyId, companyName, messageType, sessionId = null, userQuestion, aiResponse, faqId = null, confidenceScore = null, responseSource = null, fallbackReason = null) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
