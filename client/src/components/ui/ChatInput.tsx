@@ -44,9 +44,18 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
               "bg-white dark:bg-gray-800",
               "text-gray-900 dark:text-gray-100",
               "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-              "focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+              "focus:ring-2 focus:border-transparent",
               "disabled:opacity-50 disabled:cursor-not-allowed",
             )}
+
+            onFocus={(e) => {
+              if (companyTheme?.primaryColor) {
+                e.target.style.boxShadow = `0 0 0 2px ${companyTheme.primaryColor}`;
+              }
+            }}
+            onBlur={(e) => {
+              e.target.style.boxShadow = '';
+            }}
             rows={1}
           />
           <Button

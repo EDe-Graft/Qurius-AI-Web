@@ -55,11 +55,25 @@ export function ChatInterface({
   const [userScrolled, setUserScrolled] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
-  // const [wasMinimized, setWasMinimized] = useState(false) // Add this state
+  const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+
+  // Add this function inside your ChatInterface component
+  const restoreScrollPosition = () => {
+    if (messagesContainerRef.current && savedScrollPosition > 0) {
+      // Restore scroll position without animation
+      messagesContainerRef.current.scrollTop = savedScrollPosition
+    }
   }
+
+  // Modify the existing scrollToBottom function to remove animation
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      // Use direct scrollTop manipulation for instant scrolling (no animation)
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
+  }
+
 
   const handleScroll = () => {
     if (messagesContainerRef.current) {
@@ -108,14 +122,6 @@ export function ChatInterface({
   //   ])
   // }
 
-
-  //Auto scroll to bottom when chat is opened
-  // useEffect(() => {
-  //   if (!isMinimized) {
-  //     // Don't scroll immediately - wait for chat to be visible
-  //     // scrollToBottom() will be called after chat becomes visible
-  //   }
-  // }, [isMinimized])
 
   // Test translation service on mount (DISABLED to avoid API errors)
   // useEffect(() => {
@@ -207,14 +213,14 @@ export function ChatInterface({
       // Start invisible
       setIsVisible(false)
       
-      // After 500ms, make it visible with smooth transition and scroll to bottom
+      // After 300ms, make it visible with smooth transition and scroll to saved position
       const timer = setTimeout(() => {
         setIsVisible(true)
         // Scroll to bottom after chat is visible and ready
         setTimeout(() => {
-          scrollToBottom()
-        }, 100) // Small delay to ensure DOM is ready
-      }, 500)
+          restoreScrollPosition() // restore scroll position
+        }, 100) // delay to ensure DOM is ready
+      }, 300)
       return () => clearTimeout(timer)
     } else {
       // When minimized, hide immediately
@@ -228,7 +234,7 @@ export function ChatInterface({
     if (isStreaming && !userScrolled) {
       const interval = setInterval(() => {
         scrollToBottom()
-      }, 10) // Scroll every 10ms during streaming
+      }, 50) // Scroll every 50ms during streaming - more efficient
       
       return () => clearInterval(interval)
     }
@@ -256,16 +262,18 @@ export function ChatInterface({
 
   const handleSendMessage = async (content: string) => {
     console.log('🚀 Starting message processing:', content)
-    
+
     const userMessage: Message = {
       content,
       isUser: true,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       isMessageStreamed: true,
     }
-
     setIsTyping(true)
     setMessages((prev) => [...prev, userMessage])
+    
+    // Scroll to bottom after user message is added to state
+    scrollToBottom()
 
     // Track message sent
     if (companyName) {
@@ -390,6 +398,9 @@ export function ChatInterface({
   }
 
   const handleStreamingComplete = (messageIndex: number) => {
+    //after streaming is complete, reset user scroll state
+    setUserScrolled(true)
+
     setMessages(prev => prev.map((message, index) => 
       index === messageIndex 
         ? { ...message, isMessageStreamed: true }
@@ -546,6 +557,10 @@ export function ChatInterface({
           )}
           <button
             onClick={() => {
+              //save scroll position when minimizing
+              if (messagesContainerRef.current) {
+                setSavedScrollPosition(messagesContainerRef.current.scrollTop)
+              }
               onToggleMinimize?.()
               // Only set wasMinimized when user manually minimizes
               // if (!isMinimized) {
@@ -565,7 +580,7 @@ export function ChatInterface({
         className="flex-1 overflow-y-auto bg-white dark:bg-gray-900"
         onScroll={handleScroll}
       >
-        <div className="py-4">
+        <div className="py-4 pb-8">
           {messages.map((message, index) => {
             // Check if this is the last AI message (for streaming)
             const isLastAiMessage = !message.isUser && index === messages.length - 1;
@@ -590,7 +605,7 @@ export function ChatInterface({
           })}
           {isTyping && <TypingIndicator companyTheme={companyTheme} />}
         </div>
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-2" />
       </div>
 
       {/* Floating Scroll to Bottom Button */}

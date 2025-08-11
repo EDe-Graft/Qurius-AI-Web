@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { MessageCircle, Zap, Shield, Globe, Menu, X } from "lucide-react"
+import { MessageCircle, Zap, Shield, Globe, Menu, X, Play } from "lucide-react"
 import { LanguageSelector } from "@/components/ui/LanguageSelector"
 import { useLanguage } from "@/context/LanguageContext"
 import { TestimonialCarousel } from "@/components/custom/TestimonialCarousel"
@@ -199,6 +199,117 @@ export function Landing() {
             >
               {t('landing.viewDemo')}
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Video Section */}
+      <section className="py-12 md:py-20 bg-white dark:bg-gray-900">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
+              See Qurius AI in Action
+            </h2>
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-4 md:px-0 max-w-3xl mx-auto">
+              Watch how easy it is to install and set up Qurius AI on your website. 
+              See the installation process and discover the benefits in just 2 minutes.
+            </p>
+          </div>
+          
+          <div className="relative max-w-4xl mx-auto">
+            {/* Video Placeholder - Replace with actual video */}
+            <div className="relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl">
+              <div className="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
+                {/* Video Player Placeholder */}
+                <div className="text-center">
+                  <div className="bg-blue-600 hover:bg-blue-700 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer transition-all duration-200 transform hover:scale-110 shadow-lg">
+                    <Play className="h-8 w-8 md:h-10 md:w-10 text-white ml-1" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+                    Demo video coming soon
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-500 text-xs md:text-sm mt-1">
+                    Installation guide & benefits showcase
+                  </p>
+                </div>
+              </div>
+              
+              {/* Video Overlay with Play Button */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button 
+                  className="bg-blue-600 hover:bg-blue-700 w-16 h-16 md:w-20 md:w-20 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-lg opacity-0 hover:opacity-100"
+                  onClick={() => {
+                    // TODO: Implement video player functionality
+                    alert('Demo video will be available soon!')
+                  }}
+                >
+                  <Play className="h-6 w-6 md:h-8 md:w-8 text-white ml-1" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Video Benefits */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 md:mt-12">
+              <div className="text-center">
+                <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Zap className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  2-Minute Setup
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Simple installation process with just one line of code
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Shield className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Instant Benefits
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  See immediate improvements in customer support efficiency
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Globe className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Multi-Language
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Support customers in their preferred language automatically
+                </p>
+              </div>
+            </div>
+            
+            {/* CTA Below Video */}
+            <div className="text-center mt-8 md:mt-12">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
+                <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base mb-4">
+                  💡 <strong>Ready to transform your customer support?</strong> 
+                  Get started with Qurius AI today and see the difference.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleGetStarted}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Start Free Trial
+                  </button>
+                  <button
+                    onClick={() => navigate("/demo")}
+                    className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-6 py-3 rounded-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Try Live Demo
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
