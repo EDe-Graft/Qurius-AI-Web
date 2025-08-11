@@ -5,29 +5,14 @@ import { useLanguage } from "@/context/LanguageContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
 import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 
 export function Demo() {
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
   const { t } = useLanguage()
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const navigate = useNavigate()
-  // Company data for demo
-  let companyData = {
-    id: 'cf97eacc-8346-4f8b-ba8a-4c3e286030ab',
-    name: 'PurpleSoft Inc',
-    plan: 'pro',
-    status: 'active',
-    contact_email: 'contact@purplesoft.com',
-    admin_email: 'admin@purplesoft.com',
-    domain: 'purplesoft.com',
-    location: 'New York, NY',
-    description: 'PurpleSoft Inc is a software development company that specializes in building custom software solutions for businesses.',
-    industry: 'Software Development',
-    website: 'https://purplesoft.com',
-    enrollment_date: '2021-01-01',
-    subscription_status: 'active',
-    subscription_end_date: '2025-01-01',
-  }
+  const { purpleSoftData } = useRouteBasedCompany()
 
   return (
     <div
@@ -93,14 +78,16 @@ export function Demo() {
       </div>
 
       {/* Chat Interface */}
-      <ChatInterface
-        defaultTheme={defaultTheme}
-        toggleTheme={toggleTheme}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-        companyData={companyData}
-        isThemeChanging={isThemeChanging}
-      />
+      {purpleSoftData && (
+        <ChatInterface
+          defaultTheme={defaultTheme}
+          toggleTheme={toggleTheme}
+          isMinimized={isChatMinimized}
+          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+          companyData={purpleSoftData}
+          isThemeChanging={isThemeChanging}
+        />
+      )}
     </div>
   )
 } 

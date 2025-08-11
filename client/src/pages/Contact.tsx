@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { MessageCircle, Mail, Phone, MapPin, ArrowLeft, Send } from "lucide-react"
+import { MessageCircle, Mail, Phone, MapPin, Send, Menu, X } from "lucide-react"
 import { LanguageSelector } from "@/components/ui/LanguageSelector"
 // import { useLanguage } from "@/context/LanguageContext"
 import { ThemeToggle } from "@/components/custom/ThemeToggle"
 import { useTheme } from "@/context/useThemeContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
+import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 
 export function Contact() {
   const navigate = useNavigate()
@@ -21,24 +22,8 @@ export function Contact() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isChatMinimized, setIsChatMinimized] = useState(true)
-
-  // Company data for Qurius AI
-  const companyData = {
-    id: 'qurius-ai-demo',
-    name: 'Qurius AI',
-    plan: 'pro',
-    status: 'active',
-    contact_email: 'support@qurius.ai',
-    admin_email: 'admin@qurius.ai',
-    domain: 'qurius.app',
-    location: 'Tech Valley, CA',
-    description: 'AI-powered customer support platform that provides intelligent chatbots for businesses.',
-    industry: 'AI/Technology',
-    website: 'https://qurius.app',
-    enrollment_date: '2024-01-01',
-    subscription_status: 'active',
-    subscription_end_date: '2050-01-01',
-  }
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { quriusData } = useRouteBasedCompany()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -87,23 +72,80 @@ export function Contact() {
             </div>
             
             <div className="flex items-center space-x-2 md:space-x-4">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Back to Home</span>
-                <span className="sm:hidden">Back</span>
-              </button>
+              {/* Navigation Links - Hidden on mobile, shown on desktop */}
+              <nav className="hidden lg:flex items-center space-x-6 mr-4">
+                <button
+                  onClick={() => navigate("/")}
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                >
+                  About
+                </button>
+                <button
+                  onClick={() => navigate("/demo")}
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                >
+                  Demo
+                </button>
+              </nav>
+              
               <LanguageSelector />
               <ThemeToggle 
                 theme={isDark ? "dark" : "light"}
                 toggleTheme={toggleTheme}
                 isThemeChanging={isThemeChanging}
               />
+              
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+            <div className="px-4 py-4 space-y-4">
+              <button
+                onClick={() => {
+                  navigate("/")
+                  setIsMobileMenuOpen(false)
+                }}
+                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/about")
+                  setIsMobileMenuOpen(false)
+                }}
+                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
+              >
+                About
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/demo")
+                  setIsMobileMenuOpen(false)
+                }}
+                className="block w-full text-left text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors py-2"
+              >
+                Demo
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -371,14 +413,16 @@ export function Contact() {
       </footer>
 
       {/* Chat Interface */}
-      <ChatInterface
-        defaultTheme={defaultTheme}
-        toggleTheme={toggleTheme}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-        companyData={companyData}
-        isThemeChanging={isThemeChanging}
-      />
+      {quriusData && (
+        <ChatInterface
+          defaultTheme={defaultTheme}
+          toggleTheme={toggleTheme}
+          isMinimized={isChatMinimized}
+          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+          companyData={quriusData}
+          isThemeChanging={isThemeChanging}
+        />
+      )}
     </div>
   )
 } 

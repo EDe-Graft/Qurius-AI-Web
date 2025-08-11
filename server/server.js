@@ -528,6 +528,33 @@ app.get('/api/companies/:id/', async (req, res) => {
   }
 });
 
+// Get demo company IDs (for frontend use)
+app.get('/api/demo/company-ids', async (req, res) => {
+  try {
+    const quriusCompanyId = process.env.QURIUS_COMPANY_ID;
+    const purpleSoftCompanyId = process.env.PURPLESOFT_INC_COMPANY_ID;
+    
+    if (!quriusCompanyId || !purpleSoftCompanyId) {
+      console.error('❌ Demo company IDs not configured in environment variables');
+      return res.status(500).json({ 
+        error: 'Demo company configuration missing',
+        message: 'Demo company IDs not configured in environment variables'
+      });
+    }
+
+    res.json({
+      quriusCompanyId,
+      purpleSoftCompanyId
+    });
+  } catch (error) {
+    console.error('❌ Error fetching demo company IDs:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch demo company IDs',
+      message: 'Unable to retrieve demo company configuration'
+    });
+  }
+});
+
 // Check if email belongs to a company admin
 app.post('/api/companies/admin-check', async (req, res) => {
   try {
@@ -1659,10 +1686,10 @@ app.get('/api/validate-key', async (req, res) => {
   console.log('🔑 Validating key:', key, 'for company:', company);
 
   // Demo key validation
-  if (key === 'demo-2025-healthplus') {
+  if (key.includes('demo-2025')) {
     return res.json({
       valid: true,
-      company: 'HealthPlus Medical',
+      company: company,
       plan: 'demo',
       features: ['chat', 'faq', 'analytics'],
       demo: true

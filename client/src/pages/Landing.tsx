@@ -8,6 +8,7 @@ import { PricingCard } from "@/components/custom/PricingCard"
 import { ThemeToggle } from "@/components/custom/ThemeToggle"
 import { useTheme } from "@/context/useThemeContext"
 import { ChatInterface } from "@/components/custom/ChatInterface"
+import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 
 export function Landing() {
   const navigate = useNavigate()
@@ -16,24 +17,7 @@ export function Landing() {
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const { t } = useLanguage()
   const { defaultTheme, isDark, isThemeChanging, toggleTheme } = useTheme()
-
-  // Company data for Qurius AI
-  const companyData = {
-    id: '2bdad203-31da-403f-90d1-049a28d7adfc',
-    name: 'Qurius AI',
-    plan: 'pro',
-    status: 'active',
-    contact_email: 'support@qurius.ai',
-    admin_email: 'admin@qurius.ai',
-    domain: 'qurius.app',
-    location: 'Tech Valley, CA',
-    description: 'AI-powered customer support platform that provides intelligent chatbots for businesses.',
-    industry: 'AI/Technology',
-    website: 'https://qurius.app',
-    enrollment_date: '2024-01-01',
-    subscription_status: 'active',
-    subscription_end_date: '2050-01-01',
-  }
+  const { quriusData } = useRouteBasedCompany()
 
   const handleGetStarted = () => {
     navigate("/onboarding")
@@ -555,14 +539,16 @@ export function Landing() {
       </footer>
 
       {/* Chat Interface */}
-      <ChatInterface
-        defaultTheme={defaultTheme}
-        toggleTheme={toggleTheme}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-        companyData={companyData}
-        isThemeChanging={isThemeChanging}
-      />
+      {quriusData && (
+        <ChatInterface
+          defaultTheme={defaultTheme}
+          toggleTheme={toggleTheme}
+          isMinimized={isChatMinimized}
+          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+          companyData={quriusData}
+          isThemeChanging={isThemeChanging}
+        />
+      )}
     </div>
   )
 } 

@@ -59,7 +59,7 @@ export interface ChatInterfaceProps {
     onToggleMinimize?: () => void
     isThemeChanging?: boolean
     companyData?: {
-        id: string
+        id?: string
         name: string
         plan: string
         status: string

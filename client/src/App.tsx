@@ -14,35 +14,38 @@ import { PublicNavigation, AdminNavigation } from "@/components/admin/Navigation
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
 import { LanguageProvider } from "@/context/LanguageContext"
+import { CompanyDataProvider } from "@/context/CompanyDataContext"
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes without authentication */}
-            <Route path="/" element={<><PublicNavigation /><Landing /></>} />
-            <Route path="/demo" element={<><PublicNavigation /><Demo /></>} />
-            <Route path="/onboarding" element={<><PublicNavigation /><Onboarding /></>} />
+    <CompanyDataProvider>
+      <LanguageProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes without authentication */}
+              <Route path="/" element={<><PublicNavigation /><Landing /></>} />
+              <Route path="/demo" element={<><PublicNavigation /><Demo /></>} />
+              <Route path="/onboarding" element={<><PublicNavigation /><Onboarding /></>} />
 
-            <Route path="/about" element={<><PublicNavigation /><About /></>} />
-            <Route path="/contact" element={<><PublicNavigation /><Contact /></>} />
-            
-            {/* Auth routes */}
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/reset-password" element={<PasswordReset />} />
-            
-            {/* Test route (development only) */}
-            {/* <Route path="/test-payment-bypass" element={<TestPaymentBypass />} /> */}
-            
-            {/* Admin routes with authentication */}
-            <Route path="/login" element={<><AdminNavigation /><Login /></>} />
-            <Route path="/admin" element={<ProtectedRoute><><AdminNavigation /><Admin /></></ProtectedRoute>} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </LanguageProvider>
+              <Route path="/about" element={<><PublicNavigation /><About /></>} />
+              <Route path="/contact" element={<><PublicNavigation /><Contact /></>} />
+              
+              {/* Auth routes */}
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/reset-password" element={<PasswordReset />} />
+              
+              {/* Test route (development only) */}
+              {/* <Route path="/test-payment-bypass" element={<TestPaymentBypass />} /> */}
+              
+              {/* Admin routes with authentication */}
+              <Route path="/login" element={<><AdminNavigation /><Login /></>} />
+              <Route path="/admin" element={<ProtectedRoute><><AdminNavigation /><Admin /></></ProtectedRoute>} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </LanguageProvider>
+    </CompanyDataProvider>
   )
 }
 
