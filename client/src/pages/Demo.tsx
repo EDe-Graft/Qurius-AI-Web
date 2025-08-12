@@ -19,7 +19,7 @@ export function Demo() {
     // Simulate page loading time and wait for company data
     const timer = setTimeout(() => {
       setIsPageLoading(false)
-    }, 800)
+    }, 900)
 
     return () => clearTimeout(timer)
   }, [isDataLoading])

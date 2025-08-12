@@ -89,7 +89,7 @@ export function Navigation({
           <div className="flex items-center">
             <button
               onClick={() => navigate("/")}
-              className="flex items-center hover:opacity-80 transition-opacity"
+              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
             >
               {/* <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-600" /> */}
               {quriusLogo ? (

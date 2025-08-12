@@ -5,6 +5,7 @@ import { Users, Target, Award, MessageCircle } from "lucide-react"
 import { ChatInterface } from "@/components/custom/ChatInterface"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 import { Navigation } from "@/components/custom/Navigation"
+import { Footer } from "@/components/custom/Footer"
 import { useTheme } from "@/context/useThemeContext"
 import founderImage from "@/assets/founder.png"
 
@@ -20,7 +21,7 @@ export function About() {
     // Simulate page loading time and wait for company data
     const timer = setTimeout(() => {
       setIsPageLoading(false)
-    }, 800)
+    }, 900)
 
     return () => clearTimeout(timer)
   }, [isDataLoading])
@@ -309,17 +310,7 @@ export function About() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <MessageCircle className="h-6 w-6 text-blue-400" />
-            <span className="ml-2 text-lg font-bold">Qurius AI</span>
-          </div>
-          <p className="text-gray-400">
-            &copy; {new Date().getFullYear()} Qurius AI. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer showFullFooter={false} />
 
       {/* Chat Interface */}
       {quriusData && (
