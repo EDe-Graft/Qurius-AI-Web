@@ -753,7 +753,7 @@ app.post('/api/faqs/search', async (req, res) => {
     const { question, companyData, messages } = req.body;
     const {id: companyId, name: companyName, website, contact_email } = companyData;
     let sessionId = 'qurius-ai-session';
-    
+
     console.log('Searching FAQs for company ID:', companyId);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -1686,14 +1686,14 @@ async function getCompanyAnalytics(companyId, period = 'all') {
 
 // Widget key validation middleware
 app.get('/api/validate-key', async (req, res) => {
-  const { key, company } = req.query;
-  console.log('🔑 Validating key:', key, 'for company:', company);
+  const { key, companyId } = req.query;
+  console.log('🔑 Validating key:', key, 'for company with id:', companyId);
 
   // Demo key validation
   if (key.includes('demo-2025')) {
     return res.json({
       valid: true,
-      company: company,
+      companyId: companyId || null,
       plan: 'demo',
       features: ['chat', 'faq', 'analytics'],
       demo: true
@@ -1710,7 +1710,7 @@ app.get('/api/validate-key', async (req, res) => {
 
     // Get company with widget key
     const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?name=eq.${encodeURIComponent(company)}&select=id,name,widget_key_hash,widget_key_plan,status`,
+      `${supabaseUrl}/rest/v1/companies?id=eq.${encodeURIComponent(companyId)}&select=id,name,widget_key_hash,plan,status`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -1743,8 +1743,9 @@ app.get('/api/validate-key', async (req, res) => {
     if (isValid) {
       return res.json({
         valid: true,
-        company: companyData.name,
-        plan: companyData.widget_key_plan,
+        companyId: companyData.id,
+        companyName: companyData.name,
+        plan: companyData.plan,
         features: ['chat', 'faq', 'analytics']
       });
     } else {

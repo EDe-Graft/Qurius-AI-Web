@@ -184,7 +184,7 @@
       const key = script.getAttribute('data-key');
       const plan = script.getAttribute('data-plan');
       const theme = script.getAttribute('data-theme') || CONFIG.defaultTheme;
-      if (companyName && companyId) {
+      if (companyId) {
         initWidget(companyName, companyId, { theme, key, plan });
       } else {
         console.error('Company name or ID not found in data attributes');

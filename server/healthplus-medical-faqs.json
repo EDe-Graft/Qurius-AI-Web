@@ -1,0 +1,222 @@
+[
+  {
+    "company": "HealthPlus Medical",
+    "question": "What are your business hours?",
+    "answer": "Our regular business hours are Monday-Friday: 8AM-8PM, Saturday: 9AM-5PM, and Sunday: 10AM-4PM. We also offer 24/7 emergency care services when you need immediate medical attention. For urgent care needs outside of regular hours, our emergency department is always available."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you accept Blue Cross insurance?",
+    "answer": "Yes, we accept Blue Cross Blue Shield insurance along with most major insurance providers including Aetna, Cigna, UnitedHealth, and Medicare. We recommend calling our office at (555) 123-4567 to verify your specific coverage before your appointment. Our billing team can help you understand your benefits and any out-of-pocket costs."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How much does a primary care visit cost?",
+    "answer": "A primary care visit costs $150 for a comprehensive health checkup and consultation. This includes a full physical examination, vital signs check, and consultation with our healthcare provider. If you have insurance, your cost will depend on your specific plan and deductible. We also offer discounted rates for self-pay patients and payment plans for those who need them."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Can I book an appointment online?",
+    "answer": "Yes! You can book appointments online through our patient portal or by calling us at (555) 123-4567. We offer both in-person and telemedicine appointments. Online booking is available 24/7 and you can schedule appointments for primary care, specialist consultations, and lab testing. For urgent care needs, we also offer same-day appointments when available."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What services do you offer for children?",
+    "answer": "We provide comprehensive pediatric care for children from infancy through adolescence. Our services include well-child visits, vaccinations, sick visits, developmental screenings, and specialized pediatric care. We have experienced pediatricians who are trained to handle everything from routine checkups to complex medical conditions. We also offer family-friendly facilities and flexible scheduling for busy families."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you have telemedicine appointments?",
+    "answer": "Yes, we offer telemedicine appointments for many types of consultations. Virtual visits are perfect for follow-up appointments, medication refills, minor health concerns, and mental health consultations. Our telemedicine platform is secure, HIPAA-compliant, and easy to use. You can schedule a telemedicine appointment online or by calling our office. Some conditions may still require an in-person visit for proper diagnosis and treatment."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your cancellation policy?",
+    "answer": "We require 24 hours notice for appointment cancellations. If you need to cancel or reschedule, please call us at (555) 123-4567 or use our online patient portal. Late cancellations or no-shows may result in a $25 fee. We understand that emergencies happen, so we're flexible for genuine emergencies. This policy helps us serve all our patients efficiently and keeps appointment slots available for those who need them."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer lab testing on weekends?",
+    "answer": "Yes, we offer lab testing on Saturdays from 9AM-5PM. Our lab is closed on Sundays, but we can coordinate with local lab facilities for urgent testing needs. Most routine lab work can be scheduled during our regular hours, and we offer same-day results for many common tests. For specialized testing, we may need to send samples to external labs, which typically take 2-3 business days for results."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What insurance plans do you accept?",
+    "answer": "We accept most major insurance plans including Blue Cross Blue Shield, Aetna, Cigna, UnitedHealth, Humana, and Medicare. We also work with many regional and local insurance providers. To verify your specific coverage, please call our billing office at (555) 123-4567. We can help you understand your benefits, copays, and deductibles before your visit."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I get my lab results?",
+    "answer": "Lab results are typically available within 24-48 hours for routine tests. You can access your results through our secure patient portal, or we'll call you if any results require immediate attention. For specialized tests sent to external labs, results may take 3-5 business days. We'll contact you directly if any results are concerning or require follow-up."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer mental health services?",
+    "answer": "Yes, we offer comprehensive mental health services including individual counseling, psychiatric evaluations, medication management, and therapy sessions. Our mental health team includes licensed therapists and psychiatrists who specialize in treating depression, anxiety, stress, and other mental health conditions. We also offer telemedicine appointments for mental health services, making it convenient to get the care you need."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What should I bring to my first appointment?",
+    "answer": "For your first appointment, please bring your photo ID, insurance card, list of current medications, medical history, and any relevant medical records from previous providers. If you're a new patient, you can download and complete our new patient forms from our website to save time. Also bring any recent lab results or imaging studies that might be relevant to your visit."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer physical therapy services?",
+    "answer": "Yes, we offer physical therapy services for injury recovery, mobility improvement, and rehabilitation. Our physical therapy team works closely with our physicians to develop personalized treatment plans. We treat conditions like sports injuries, post-surgical rehabilitation, chronic pain, and mobility issues. Physical therapy sessions can be scheduled during our regular business hours."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I request a prescription refill?",
+    "answer": "You can request prescription refills through our patient portal, by calling our office at (555) 123-4567, or by having your pharmacy send us a refill request. Please allow 24-48 hours for refill processing. For controlled substances, you may need to schedule an appointment. We also offer medication management services to help optimize your treatment plan."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer women's health services?",
+    "answer": "Yes, we offer comprehensive women's health services including gynecological care, obstetrics, reproductive health, and preventive screenings. Our women's health team provides annual exams, family planning services, prenatal care, and specialized treatments. We create a comfortable, private environment for all women's health needs and offer flexible scheduling options."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What emergency services do you provide?",
+    "answer": "We provide 24/7 emergency care services for urgent medical needs. Our emergency department is equipped to handle a wide range of conditions from minor injuries to serious medical emergencies. We have experienced emergency physicians and nurses on staff at all times. For life-threatening emergencies, we recommend calling 911 or going to the nearest emergency room."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer vaccinations?",
+    "answer": "Yes, we offer a full range of vaccinations for children and adults including flu shots, COVID-19 vaccines, childhood immunizations, travel vaccines, and adult boosters. We follow CDC guidelines for vaccination schedules and can help you stay up-to-date on all recommended vaccines. Vaccinations can be scheduled during regular office hours, and we often offer walk-in flu shot clinics during flu season."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I access my medical records?",
+    "answer": "You can access your medical records through our secure patient portal. This includes test results, visit summaries, medication lists, and immunization records. If you need copies of your records for another provider, you can request them through the portal or by calling our medical records department. We can also help you transfer records to or from other healthcare providers."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer same-day appointments?",
+    "answer": "Yes, we offer same-day appointments for urgent care needs when available. These appointments are perfect for minor illnesses, injuries, or other urgent health concerns that can't wait for a regular appointment. Call us early in the day for the best availability. For serious emergencies, we recommend going to our emergency department or calling 911."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your address and how do I get there?",
+    "answer": "We are located at 123 Medical Center Dr, Healthcare City, HC 12345. We're easily accessible from major highways and have plenty of free parking available. Our facility is fully accessible with ramps, elevators, and designated parking for patients with disabilities. You can find detailed directions and a map on our website, or call us for specific directions from your location."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer family medicine services?",
+    "answer": "Yes, we offer comprehensive family medicine services for patients of all ages. Our family medicine physicians can care for your entire family, from newborns to seniors, providing continuity of care and building long-term relationships. We offer preventive care, chronic disease management, acute care, and coordination with specialists when needed. This makes it convenient to have all your family's healthcare needs met in one place."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I contact the doctor after hours?",
+    "answer": "For urgent medical concerns after hours, you can call our main number at (555) 123-4567 and follow the prompts to reach our on-call physician. For life-threatening emergencies, call 911 immediately. Our emergency department is open 24/7 for urgent care needs. For non-urgent questions, you can leave a message and we'll return your call during the next business day."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer preventive care services?",
+    "answer": "Yes, we emphasize preventive care and offer comprehensive preventive services including annual physicals, health screenings, cancer screenings, immunizations, and lifestyle counseling. Our preventive care programs are designed to catch health issues early and help you maintain optimal health. We work with you to develop personalized prevention plans based on your age, gender, family history, and risk factors."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What payment methods do you accept?",
+    "answer": "We accept cash, checks, and all major credit cards including Visa, MasterCard, American Express, and Discover. We also accept health savings account (HSA) and flexible spending account (FSA) cards. For patients without insurance, we offer discounted self-pay rates and payment plans. We can also help you apply for financial assistance programs if you qualify."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you have a patient portal?",
+    "answer": "Yes, we have a secure patient portal that allows you to access your medical records, schedule appointments, request prescription refills, view test results, and communicate with our healthcare team. The portal is available 24/7 and is HIPAA-compliant to protect your privacy. You can access the portal from our website or download our mobile app for convenient access on your smartphone."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I become a new patient?",
+    "answer": "To become a new patient, simply call our office at (555) 123-4567 or schedule an appointment online. We'll help you choose a primary care physician and schedule your first visit. You can download new patient forms from our website to complete before your appointment. We accept most insurance plans and also welcome self-pay patients. Our team will help you get started with the registration process."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer specialist referrals?",
+    "answer": "Yes, we coordinate specialist referrals when needed. Our primary care physicians can refer you to specialists within our network or to external specialists as appropriate. We work with specialists in cardiology, orthopedics, dermatology, gastroenterology, and many other fields. Our care coordination team helps ensure smooth communication between your primary care physician and specialists."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What COVID-19 services do you offer?",
+    "answer": "We offer COVID-19 testing, vaccination, and treatment services. We provide PCR and rapid antigen testing for symptomatic and asymptomatic patients. We also offer COVID-19 vaccines and boosters following CDC guidelines. For patients with COVID-19, we provide treatment and monitoring services. We follow all current safety protocols to protect our patients and staff."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer chronic disease management?",
+    "answer": "Yes, we offer comprehensive chronic disease management for conditions like diabetes, hypertension, heart disease, asthma, and arthritis. Our team works with you to develop personalized treatment plans, monitor your condition, and help you manage your health effectively. We offer regular check-ups, medication management, lifestyle counseling, and coordination with specialists when needed."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I schedule a follow-up appointment?",
+    "answer": "You can schedule follow-up appointments through our patient portal, by calling our office at (555) 123-4567, or by speaking with our staff during your current visit. We'll work with you to find a convenient time that fits your schedule. Follow-up appointments are important for monitoring your health, adjusting treatments, and ensuring you're on track with your care plan."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer travel medicine services?",
+    "answer": "Yes, we offer travel medicine services including travel consultations, vaccinations, and prescriptions for travel-related medications. Our travel medicine specialists can help you prepare for international travel by providing necessary vaccinations, malaria prevention, and other travel health recommendations. We recommend scheduling a travel consultation at least 4-6 weeks before your trip."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your privacy policy?",
+    "answer": "We are committed to protecting your privacy and follow all HIPAA regulations. Your medical information is kept confidential and secure. We only share your information with your consent or as required by law. Our staff is trained in privacy practices, and we use secure systems to protect your data. You can request a copy of our complete privacy policy at any time."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer weight management services?",
+    "answer": "Yes, we offer comprehensive weight management services including medical weight loss programs, nutrition counseling, and lifestyle coaching. Our weight management team works with you to develop personalized plans that address your specific needs and goals. We offer both individual and group programs, and we can coordinate with specialists like dietitians and exercise physiologists when needed."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I get a copy of my medical records?",
+    "answer": "You can request a copy of your medical records through our patient portal or by calling our medical records department. We can provide copies in electronic or paper format. There may be a small fee for copying and processing. We can also help you transfer records to other healthcare providers. Your records are typically available within 5-7 business days of your request."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer sports medicine services?",
+    "answer": "Yes, we offer sports medicine services for athletes and active individuals. Our sports medicine team can help with injury prevention, treatment of sports-related injuries, performance optimization, and return-to-play guidance. We work with athletes of all levels, from recreational to competitive. Our services include physical therapy, injury evaluation, and coordination with orthopedic specialists when needed."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your no-show policy?",
+    "answer": "We have a 24-hour cancellation policy. If you miss an appointment without calling to cancel at least 24 hours in advance, you may be charged a $25 no-show fee. We understand that emergencies happen, so we're flexible for genuine emergencies. This policy helps us serve all our patients efficiently and keeps appointment slots available for those who need them. Multiple no-shows may result in dismissal from our practice."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer geriatric care services?",
+    "answer": "Yes, we offer specialized geriatric care services for older adults. Our geriatric care team understands the unique health needs of seniors and provides comprehensive care including preventive services, chronic disease management, medication management, and coordination with specialists. We also offer home health coordination and can help families navigate the complexities of elder care."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I update my contact information?",
+    "answer": "You can update your contact information through our patient portal, by calling our office at (555) 123-4567, or by speaking with our staff during your next visit. It's important to keep your contact information current so we can reach you with important health information, appointment reminders, and test results. You can update your address, phone number, email, and emergency contact information."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer allergy testing and treatment?",
+    "answer": "Yes, we offer allergy testing and treatment services. Our allergy services include skin testing, blood testing, and treatment options like immunotherapy (allergy shots). We can help diagnose and treat seasonal allergies, food allergies, and environmental allergies. Our allergy specialists work with you to develop personalized treatment plans to manage your symptoms effectively."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your billing process?",
+    "answer": "We bill your insurance company directly for covered services. You'll receive a statement showing what your insurance paid and any remaining balance. For services not covered by insurance, we'll bill you directly. We offer payment plans for larger balances and can help you understand your insurance benefits. You can pay your bill online through our patient portal, by phone, or in person."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer smoking cessation programs?",
+    "answer": "Yes, we offer comprehensive smoking cessation programs to help you quit smoking. Our programs include medical evaluation, counseling, medication options, and ongoing support. We understand that quitting smoking can be challenging, and our team is here to support you throughout the process. We offer both individual and group programs, and we can coordinate with specialists when needed."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "How do I get a referral to a specialist?",
+    "answer": "To get a referral to a specialist, schedule an appointment with your primary care physician. They will evaluate your condition and determine if a specialist consultation is needed. If a referral is appropriate, we'll help you find a specialist within your insurance network and coordinate the referral process. We work with specialists in many fields and can help ensure smooth communication between providers."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "Do you offer urgent care services?",
+    "answer": "Yes, we offer urgent care services for non-life-threatening conditions that need immediate attention. Our urgent care is available during regular business hours and can treat conditions like minor injuries, infections, fevers, and other acute health problems. For serious emergencies, we recommend going to our emergency department or calling 911. We also offer same-day appointments for urgent care needs when available."
+  },
+  {
+    "company": "HealthPlus Medical",
+    "question": "What is your patient satisfaction rating?",
+    "answer": "We maintain a 98% patient satisfaction rating and are proud of the quality care we provide. Our patients consistently rate us highly for our medical expertise, compassionate care, and excellent customer service. We regularly survey our patients to ensure we're meeting their needs and continuously work to improve our services. Your feedback is important to us and helps us provide the best possible care."
+  }
+] 

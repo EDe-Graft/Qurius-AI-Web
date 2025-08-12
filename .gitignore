@@ -1,5 +1,6 @@
 #Custom
 *.pdf
+*.mp4
 *.zip
 scripts
 .vscode

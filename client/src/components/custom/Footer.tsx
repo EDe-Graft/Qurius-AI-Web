@@ -24,15 +24,18 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
     return (
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-4 gap-1">
             <button
               className="flex items-center hover:opacity-80 transition-opacity cursor-pointer" 
               //navigate to top of the page when logo is clicked
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
               {/* <MessageCircle className="h-6 w-6 text-blue-400" /> */}
-              <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-8 md:w-8 text-blue-400" />
-              <span className="ml-2 text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
+              <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-12 md:w-12 text-blue-400" />
+              <div className="ml-2 flex flex-col">
+                <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
+                <span className="text-xs italic leading-tight text-gray-400">Your Website. Smarter.</span>
+              </div>
             </button>
           </div>
           <p className="text-gray-400">
@@ -48,15 +51,18 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
     <footer className="bg-gray-900 text-white py-8 md:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
-          <div>
+          <div className="flex flex-col justify-between">
             <button
               className="flex items-center hover:opacity-80 transition-opacity cursor-pointer mb-2.5" 
               //navigate to top of the page when logo is clicked
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
               {/* <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-400" /> */}
-              <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-8 md:w-8 text-blue-400" />
-              <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
+              <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-12 md:w-12 text-blue-400" />
+              <div className="flex flex-col gap-1 ml-2">
+                <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
+                <span className="text-xs md:text-xs italic text-gray-400 leading-tight">Your Website. Smarter.</span>
+              </div>
             </button>
             <p className="text-sm md:text-base text-gray-400 leading-relaxed">
               {t('landing.footerDescription')}

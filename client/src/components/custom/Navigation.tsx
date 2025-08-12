@@ -97,9 +97,12 @@ export function Navigation({
               ) : (
                 <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
               )}
-              <div className="ml-3 flex flex-col">
+              <div className="ml-3 flex flex-col gap-1">
                 <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Qurius AI
+                </span>
+                <span className="text-xs md:text-xs italic text-gray-300 leading-tight">
+                  Your Website. Smarter.
                 </span>
               </div>
             </button>

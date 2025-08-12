@@ -45,11 +45,11 @@ interface CompanyData {
 let widgetRoot: any = null
 
 // Key validation functions
-const validateWidgetKey = async (key: string, companyName: string, backendUrl: string) => {
+const validateWidgetKey = async (key: string, companyId: string, backendUrl: string) => {
   try {
-    console.log('🔑 Validating widget key:', key, 'for company with name:', companyName);
+    console.log('🔑 Validating widget key:', key, 'for company with id:', companyId);
     const response = await axios.get(`${backendUrl}/api/validate-key`, {
-      params: { key, companyName }
+      params: { key, companyId }
     })
     return response.data
   } catch (error) {
@@ -96,13 +96,12 @@ const verifyPlanAuthenticity = (scriptPlan: string, companyPlan: string): string
 // Widget initialization with validation
 const initializeWidget = async (config: WidgetConfig) => {
   const key = config.key
-  const companyName = config.companyName
   const companyId = config.companyId
   const scriptPlan = config.plan
   const backendUrl = import.meta.env.VITE_BACKEND_URL
   
   // Validate demo key or widget key before initializing widget
-  let validationResult = await validateWidgetKey(key, companyName, backendUrl)
+  let validationResult = await validateWidgetKey(key, companyId, backendUrl)
   
   if (!validationResult?.valid) {
     console.error('Widget key validation failed:', validationResult.error)

@@ -7,7 +7,7 @@ import { Demo } from "@/pages/Demo"
 
 import { About } from "@/pages/About"
 import { Contact } from "@/pages/Contact"
-// import { TestPaymentBypass } from "@/pages/TestPaymentBypass"
+import { TestPaymentBypass } from "@/pages/TestPaymentBypass"
 import { AuthCallback } from "@/pages/AuthCallback"
 import { PasswordReset } from "@/pages/PasswordReset"
 import { PublicNavigation, AdminNavigation } from "@/components/admin/Navigation"
@@ -36,7 +36,7 @@ export default function App() {
               <Route path="/reset-password" element={<PasswordReset />} />
               
               {/* Test route (development only) */}
-              {/* <Route path="/test-payment-bypass" element={<TestPaymentBypass />} /> */}
+              <Route path="/test-payment-bypass" element={<TestPaymentBypass />} />
               
               {/* Admin routes with authentication */}
               <Route path="/login" element={<><AdminNavigation /><Login /></>} />

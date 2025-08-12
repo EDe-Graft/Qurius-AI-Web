@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Zap, Shield, Globe, Play, MessageCircle } from "lucide-react"
+import { Zap, Shield, Globe, MessageCircle } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import { TestimonialCarousel } from "@/components/custom/TestimonialCarousel"
 import { PricingCard } from "@/components/custom/PricingCard"
@@ -15,6 +15,7 @@ export function Landing() {
   const [email, setEmail] = useState("")
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
+  const [isVideoLoading, setIsVideoLoading] = useState(true)
   const { t } = useLanguage()
   const { defaultTheme, isThemeChanging, toggleTheme } = useTheme()
   const { quriusData, isDataLoading } = useRouteBasedCompany()
@@ -48,6 +49,10 @@ export function Landing() {
     setEmail("")
     // Show success message
     alert("Thank you for subscribing!")
+  }
+
+  const handleVideoLoad = () => {
+    setIsVideoLoading(false)
   }
 
   // Smooth scroll to sections
@@ -107,22 +112,22 @@ export function Landing() {
       {/* Hero Section */}
       <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6 px-2 md:px-0">
+          <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6 px-2 md:px-0 animate-fade-in-up">
             {t('landing.heroTitle')}
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-6 md:mb-8 max-w-3xl mx-auto px-4 md:px-0 leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-6 md:mb-8 max-w-3xl mx-auto px-4 md:px-0 leading-relaxed animate-fade-in-up animation-delay-200">
             {t('landing.heroSubtitle')}
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4 md:px-0">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4 md:px-0 animate-fade-in-up animation-delay-400">
             <button
               onClick={handleGetStarted}
-              className="bg-blue-600 text-white px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold hover:bg-blue-700 transition-colors min-h-[48px] md:min-h-[44px]"
+              className="bg-blue-600 text-white px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold hover:bg-blue-700 hover:scale-105 transform transition-all duration-300 min-h-[48px] md:min-h-[44px] shadow-lg hover:shadow-xl"
             >
               {t('common.getStarted')}
             </button>
             <button
               onClick={() => navigate("/demo")}
-              className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors min-h-[48px] md:min-h-[44px]"
+              className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 hover:scale-105 transform transition-all duration-300 min-h-[48px] md:min-h-[44px] shadow-lg hover:shadow-xl"
             >
               {t('landing.viewDemo')}
             </button>
@@ -138,47 +143,42 @@ export function Landing() {
               See Qurius AI in Action
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-4 md:px-0 max-w-3xl mx-auto">
-              Watch how easy it is to install and set up Qurius AI on your website. 
-              See the installation process and discover the benefits in just 2 minutes.
+              Watch our 1-minute demo showing how easy it is to install and set up Qurius AI on your website. 
+              See the installation process and discover the immediate benefits for your customer support.
             </p>
           </div>
           
           <div className="relative max-w-4xl mx-auto">
-            {/* Video Placeholder - Replace with actual video */}
+            {/* Loom Video Embed */}
             <div className="relative bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl">
-              <div className="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
-                {/* Video Player Placeholder */}
-                <div className="text-center">
-                  <div className="bg-blue-600 hover:bg-blue-700 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer transition-all duration-200 transform hover:scale-110 shadow-lg">
-                    <Play className="h-8 w-8 md:h-10 md:w-10 text-white ml-1" />
+              {/* Video Loading Animation */}
+              {isVideoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 z-10">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Loading demo video...</p>
+                    <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Please wait while we prepare your demo</p>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                    Demo video coming soon
-                  </p>
-                  <p className="text-gray-500 dark:text-gray-500 text-xs md:text-sm mt-1">
-                    Installation guide & benefits showcase
-                  </p>
                 </div>
-              </div>
+              )}
               
-              {/* Video Overlay with Play Button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button 
-                  className="bg-blue-600 hover:bg-blue-700 w-16 h-16 md:w-20 md:w-20 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-lg opacity-0 hover:opacity-100"
-                  onClick={() => {
-                    // TODO: Implement video player functionality
-                    alert('Demo video will be available soon!')
-                  }}
-                >
-                  <Play className="h-6 w-6 md:h-8 md:w-8 text-white ml-1" />
-                </button>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                <iframe 
+                  src="https://www.loom.com/embed/74aa8c4eb82c4c42aed08f393ffb6c1c?sid=76e7b61f-d25d-492b-8105-a8d9c685c753" 
+                  frameBorder="0" 
+                  allowFullScreen 
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                  title="Qurius AI Demo Video"
+                  onLoad={handleVideoLoad}
+                  className={isVideoLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-500'}
+                ></iframe>
               </div>
             </div>
             
             {/* Video Benefits */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 md:mt-12">
-              <div className="text-center">
-                <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-100">
+                <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transform transition-all duration-300 shadow-lg">
                   <Zap className="h-6 w-6 text-blue-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -189,8 +189,8 @@ export function Landing() {
                 </p>
               </div>
               
-              <div className="text-center">
-                <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200">
+                <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transform transition-all duration-300 shadow-lg">
                   <Shield className="h-6 w-6 text-green-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -201,8 +201,8 @@ export function Landing() {
                 </p>
               </div>
               
-              <div className="text-center">
-                <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300">
+                <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transform transition-all duration-300 shadow-lg">
                   <Globe className="h-6 w-6 text-purple-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -254,8 +254,8 @@ export function Landing() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <div className="text-center px-4 md:px-0">
-              <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+            <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-100">
+              <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
                 <Zap className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -266,8 +266,8 @@ export function Landing() {
               </p>
             </div>
             
-            <div className="text-center px-4 md:px-0">
-              <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+            <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200">
+              <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
                 <Shield className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -278,8 +278,8 @@ export function Landing() {
               </p>
             </div>
             
-            <div className="text-center px-4 md:px-0">
-              <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+            <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300">
+              <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
                 <Globe className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -385,8 +385,8 @@ export function Landing() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center">
-              <MessageCircle className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-100 hover:shadow-lg">
+              <MessageCircle className="h-12 w-12 text-blue-600 mx-auto mb-4 animate-pulse" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Ask About Features
               </h3>
@@ -395,8 +395,8 @@ export function Landing() {
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center">
-              <Zap className="h-12 w-12 text-green-600 mx-auto mb-4" />
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200 hover:shadow-lg">
+              <Zap className="h-12 w-12 text-green-600 mx-auto mb-4 animate-pulse" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Check Pricing
               </h3>
@@ -405,8 +405,8 @@ export function Landing() {
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center">
-              <Shield className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300 hover:shadow-lg">
+              <Shield className="h-12 w-12 text-purple-600 mx-auto mb-4 animate-pulse" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Learn More
               </h3>
