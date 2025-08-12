@@ -79,6 +79,7 @@ export function Contact() {
       </div>
     )
   }
+  
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

@@ -1,4 +1,4 @@
-import { MessageCircle } from "lucide-react"
+// import { MessageCircle } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import quriusLogo from "@/assets/logo.png"
 
@@ -25,8 +25,15 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center mb-4">
-            <MessageCircle className="h-6 w-6 text-blue-400" />
-            <span className="ml-2 text-lg font-bold">Qurius AI</span>
+            <button
+              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer" 
+              //navigate to top of the page when logo is clicked
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              {/* <MessageCircle className="h-6 w-6 text-blue-400" /> */}
+              <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-8 md:w-8 text-blue-400" />
+              <span className="ml-2 text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
+            </button>
           </div>
           <p className="text-gray-400">
             &copy; {new Date().getFullYear()} Qurius AI. All rights reserved.
