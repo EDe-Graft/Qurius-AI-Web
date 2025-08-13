@@ -242,7 +242,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
   const { t } = useLanguage()
   
   return (
-    <div>
+    <div className="animate-fade-in-up animation-delay-2000">
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.companyInfo')}
       </h2>
@@ -389,7 +389,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in-up animation-delay-2000">
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.customization')}
       </h2>
@@ -571,7 +571,7 @@ function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeData, on
   }
 
   return (
-    <div>
+    <div className="animate-fade-in-up animation-delay-2000">
       <h2 className="text-xl md:text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.choosePlan')}
       </h2>

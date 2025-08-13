@@ -41,7 +41,7 @@ export function Demo() {
       className={`min-h-screen transition-colors duration-200 ${defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}
     >
       {/* Demo content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 animate-fade-in-up animation-delay-2000">
         <div className={`max-w-4xl mx-auto mt-10 ${window.innerWidth > 500 ? "flex-col items-center justify-center" : ""}`}>
           <h1 className="text-4xl md:text-4xl text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 mt-10 px-4 md:px-0">
             {t('demo.title') || 'Professional Chat Interface Demo'}

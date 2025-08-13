@@ -82,7 +82,7 @@ export function Contact() {
   
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-2000">
       {/* Navigation */}
       <Navigation 
       currentPage="contact" 
@@ -92,7 +92,7 @@ export function Contact() {
       />
 
       {/* Hero Section */}
-      <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 animate-fade-in-up animation-delay-3000">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
             {t('contact.title')}
@@ -104,7 +104,7 @@ export function Contact() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-12 md:py-16">
+      <section className="py-12 md:py-16 animate-fade-in-up animation-delay-4000">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
             {/* Contact Form */}
@@ -291,7 +291,7 @@ export function Contact() {
       </section>
 
       {/* Live Demo Section */}
-      <section className="py-12 md:py-16 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 md:py-16 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-5000">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t('contact.tryAI')}
@@ -312,7 +312,7 @@ export function Contact() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-16">
+      <section className="py-12 md:py-16 animate-fade-in-up animation-delay-6000">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t('contact.readyToStart')}

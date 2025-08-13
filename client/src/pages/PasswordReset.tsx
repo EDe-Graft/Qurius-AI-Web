@@ -129,7 +129,7 @@ export function PasswordReset() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 animate-fade-in-up animation-delay-2000">
       <div className="max-w-md w-full space-y-6 md:space-y-8 px-4 md:px-0">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 md:h-12 md:w-12 bg-purple-600 rounded-xl flex items-center justify-center">

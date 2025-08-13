@@ -43,7 +43,7 @@ export function About() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-2000">
       {/* Navigation */}
       <Navigation 
       currentPage="about" 

@@ -136,7 +136,7 @@ export function Landing() {
       </section>
 
       {/* Demo Video Section */}
-      <section id="video-section" className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-800">
+      <section id="video-section" className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-1000">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -242,7 +242,7 @@ export function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features-section" className="py-12 md:py-20 animate-fade-in-up animation-delay-1000">
+      <section id="features-section" className="py-12 md:py-20 animate-fade-in-up animation-delay-1200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -294,7 +294,7 @@ export function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing-section" className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1200">
+      <section id="pricing-section" className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -357,7 +357,7 @@ export function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-1400">
+      <section className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-1600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -373,7 +373,7 @@ export function Landing() {
       </section>
 
       {/* Interactive Demo Section */}
-      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1600">
+      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
