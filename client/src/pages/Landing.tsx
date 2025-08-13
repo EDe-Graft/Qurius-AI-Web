@@ -164,7 +164,7 @@ export function Landing() {
               
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                 <iframe 
-                  src="https://www.loom.com/embed/74aa8c4eb82c4c42aed08f393ffb6c1c?sid=76e7b61f-d25d-492b-8105-a8d9c685c753" 
+                  src="https://www.loom.com/embed/d510742d4cdf42bf9a3ecda35bbd1c39?sid=aa168369-76bd-4e7c-a2fa-05bb92551023" 
                   frameBorder="0" 
                   allowFullScreen 
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
