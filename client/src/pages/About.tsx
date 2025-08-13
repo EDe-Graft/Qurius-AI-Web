@@ -249,12 +249,12 @@ export function About() {
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
               {t('about.growingTeamDescription')}
             </p>
-            <button
-              onClick={() => navigate("/contact")}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              {t('about.joinTeam')}
-            </button>
+                          <button
+                onClick={() => navigate("/contact")}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                {t('about.joinTeam')}
+              </button>
           </div>
         </div>
       </section>
@@ -293,13 +293,13 @@ export function About() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => navigate("/onboarding")}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   {t('about.getStartedFree')}
                 </button>
                 <button
                   onClick={() => navigate("/contact")}
-                  className="bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 px-8 py-3 rounded-lg text-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                  className="bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 px-8 py-3 rounded-lg text-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   {t('about.contactUs')}
                 </button>

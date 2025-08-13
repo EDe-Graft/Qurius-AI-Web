@@ -136,7 +136,7 @@ export function Landing() {
       </section>
 
       {/* Demo Video Section */}
-      <section id="video-section" className="py-12 md:py-20 bg-white dark:bg-gray-900">
+      <section id="video-section" className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -224,13 +224,13 @@ export function Landing() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={handleGetStarted}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 transition-colors"
                   >
                     Start Free Trial
                   </button>
                   <button
                     onClick={() => navigate("/demo")}
-                    className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-6 py-3 rounded-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                    className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-6 py-3 rounded-lg font-semibold border border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 transition-colors"
                   >
                     Try Live Demo
                   </button>
@@ -242,7 +242,7 @@ export function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features-section" className="py-12 md:py-20">
+      <section id="features-section" className="py-12 md:py-20 animate-fade-in-up animation-delay-1000">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -294,7 +294,7 @@ export function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing-section" className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800">
+      <section id="pricing-section" className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -357,7 +357,7 @@ export function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-12 md:py-20 bg-white dark:bg-gray-900">
+      <section className="py-12 md:py-20 bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-1400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -373,7 +373,7 @@ export function Landing() {
       </section>
 
       {/* Interactive Demo Section */}
-      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
@@ -428,7 +428,7 @@ export function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-20 bg-blue-600 dark:bg-gray-800">
+      <section className="py-12 md:py-20 bg-blue-600 dark:bg-gray-800 animate-fade-in-up animation-delay-1800">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
             {t('landing.ctaTitle')}
@@ -437,7 +437,7 @@ export function Landing() {
             {t('landing.ctaSubtitle')}
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center animate-fade-in-up animation-delay-400">
             <button
               onClick={handleGetStarted}
               className="bg-white text-blue-600 px-6 md:px-8 py-3 rounded-lg text-base md:text-lg font-semibold hover:bg-gray-50 hover:shadow-lg transform hover:scale-105 transition-all duration-200 min-h-[48px] md:min-h-[44px] w-full sm:w-auto"

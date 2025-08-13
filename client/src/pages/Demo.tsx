@@ -76,19 +76,19 @@ export function Demo() {
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
               <Button
                 onClick={() => navigate('/')}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
+                className="bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
               >
                 {t('demo.learnMoreButton') || 'Learn More'}
               </Button>
               <Button
                 onClick={() => navigate('/onboarding')}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
+                className="bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
               >
                 {t('demo.getStartedButton') || 'Get Started'}
               </Button>
               <Button
                 onClick={() => navigate('/admin')}
-                className="bg-purple-600 hover:bg-purple-700 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
+                className="bg-purple-600 hover:bg-purple-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
               >
                 <User className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">{t('demo.viewAdminButton') || 'View Admin Dashboard'}</span>

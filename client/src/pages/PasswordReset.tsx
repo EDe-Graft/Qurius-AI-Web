@@ -233,7 +233,7 @@ export function PasswordReset() {
             <Button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 md:py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[40px]"
+              className="group relative w-full flex justify-center py-3 md:py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none min-h-[48px] md:min-h-[40px]"
             >
               {loading ? (
                 <div className="flex items-center">

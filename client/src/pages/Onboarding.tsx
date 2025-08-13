@@ -347,7 +347,7 @@ function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base min-h-[44px] md:min-h-[40px]"
+            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none text-sm md:text-base min-h-[44px] md:min-h-[40px]"
           >
             {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -485,7 +485,7 @@ function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base min-h-[44px] md:min-h-[40px]"
+            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none text-sm md:text-base min-h-[44px] md:min-h-[40px]"
           >
             {loading ? t('common.loading') : t('common.next')}
             <ArrowRight className="ml-2 h-4 w-4" />

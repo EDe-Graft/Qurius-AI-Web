@@ -101,7 +101,7 @@ export function Navigation({
                 <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Qurius AI
                 </span>
-                <span className="text-xs md:text-xs italic text-gray-300 leading-tight">
+                <span className="text-xs md:text-xs italic text-gray-500 dark:text-gray-300 leading-tight">
                   Your Website. Smarter.
                 </span>
               </div>
@@ -140,7 +140,7 @@ export function Navigation({
             {showGetStarted && (
               <button
                 onClick={handleGetStarted}
-                className="hidden sm:flex bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base min-h-[44px] md:min-h-[40px] items-center"
+                className="hidden sm:flex bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 transition-colors text-sm md:text-base min-h-[44px] md:min-h-[40px] items-center"
               >
                 <span className="hidden sm:inline">{getStartedText}</span>
                 <span className="sm:hidden">Start</span>

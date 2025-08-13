@@ -29,13 +29,13 @@ export function PricingCard({
   const getButtonClass = () => {
     switch (plan) {
       case 'free':
-        return "w-full bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-500 transition-colors"
+        return "w-full bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       case 'starter':
-        return "w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 transition-colors"
+        return "w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       case 'pro':
-        return "w-full bg-green-600 dark:bg-green-600 text-gray-900 dark:text-gray-100 py-2 px-4 rounded-lg font-medium hover:bg-green-500 dark:hover:bg-green-500 transition-colors"
+        return "w-full bg-green-600 dark:bg-green-600 text-gray-900 dark:text-gray-100 py-2 px-4 rounded-lg font-medium hover:bg-green-500 dark:hover:bg-green-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       default:
-        return "w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 transition-colors "
+        return "w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
     }
   }
 
@@ -53,7 +53,7 @@ export function PricingCard({
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-700 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col justify-between h-[500px] ${isPopular ? 'ring-2 ring-blue-500' : ''}`}>      
+    <div className={`bg-white dark:bg-gray-700 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col justify-between h-[500px] ${isPopular ? 'ring-2 ring-blue-500' : ''} `}>      
       <div className="text-center mb-6">
         <div className="relative">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
