@@ -85,6 +85,7 @@ export interface ChatInputProps {
     placeholder?: string
     defaultTheme?: "light" | "dark"
     companyTheme?: CompanyTheme
+    verifiedPlan?: string
 }
 
 // Message Bubble

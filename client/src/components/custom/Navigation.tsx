@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { MessageCircle, Menu, X } from "lucide-react"
-import { LanguageSelector } from "@/components/ui/LanguageSelector"
+import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { ThemeToggle } from "@/components/custom/ThemeToggle"
 import { useTheme } from "@/context/useThemeContext"
 import quriusLogo from "@/assets/logo.png"

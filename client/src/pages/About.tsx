@@ -201,7 +201,7 @@ export function About() {
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     {t('about.quriusVision')}
                   </h4>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                  <p className="text-gray-600 dark:text-gray-400 italic leading-relaxed">
                     {t('about.quriusVisionDescription')}
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export function About() {
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
               {t('about.growingTeamDescription')}
             </p>
-                          <button
+              <button
                 onClick={() => navigate("/contact")}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
               >

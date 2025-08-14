@@ -7,7 +7,7 @@ import { cn, darkenColor } from "@/lib/utils"
 import type { ChatInputProps } from "types/interfaces"
 
 // Chat Input
-export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Type your message...", companyTheme }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Type your message...", companyTheme, verifiedPlan }: ChatInputProps) {
   const [message, setMessage] = useState("")
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -101,6 +101,20 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
         <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
           Press Enter to send, Shift + Enter for new line
         </div>
+        {/* Powered by tooltip for free plans */}
+        {verifiedPlan === 'free' && (
+          <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 text-center">
+            Powered by{' '}
+            <a 
+              href="https://qurius.app" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-400 underline"
+            >
+              Qurius AI
+            </a>
+          </div>
+        )}
       </div>
     </div>
   )

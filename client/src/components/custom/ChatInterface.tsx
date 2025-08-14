@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
-import { ChatInput } from "../ui/ChatInput"
+import { ChatInput } from "./ChatInput"
 import { useLanguage } from "@/context/LanguageContext"
-import { LanguageSelector } from "@/components/ui/LanguageSelector"
+import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
 import { MessageCircle } from "lucide-react"
 import { AnalyticsService } from "@/services/analyticsService"
@@ -439,28 +439,50 @@ export function ChatInterface({
           maxHeight: '600px',
         }}
       >
-        <button
-          onClick={onToggleMinimize}
-          className={`text-white p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-2xl group relative`}
-          style={{
-            backgroundColor: companyTheme?.primaryColor || '#007bff',
-          }}
-          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-            if (hoverColor) {
-              e.currentTarget.style.backgroundColor = hoverColor;
-            }
-          }}
-          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
-          }}
-        >
+        <div className="relative group">
+          <button
+            onClick={onToggleMinimize}
+            className={`text-white p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-2xl`}
+            style={{
+              backgroundColor: companyTheme?.primaryColor || '#007bff',
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+              if (hoverColor) {
+                e.currentTarget.style.backgroundColor = hoverColor;
+              }
+            }}
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.currentTarget.style.backgroundColor = companyTheme?.primaryColor || '#007bff';
+            }}
+          >
+            
+            {isInitialLoading && !hasBeenInitialized ? (
+              <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <MessageCircle className="h-7 w-7" />
+            )}
+          </button>
           
-          {isInitialLoading && !hasBeenInitialized ? (
-            <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <MessageCircle className="h-7 w-7" />
+          {/* Powered by tooltip for free plans */}
+          {verifiedPlan === 'free' && (
+            <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg">
+                Powered by{' '}
+                <a 
+                  href="https://qurius.app" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-300 hover:text-blue-200 underline pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Qurius AI
+                </a>
+              </div>
+              {/* Arrow pointing down */}
+              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     )
   }
@@ -665,6 +687,7 @@ export function ChatInterface({
         placeholder={`Ask ${companyName} anything...`}
         defaultTheme={defaultTheme}
         companyTheme={companyTheme || undefined}
+        verifiedPlan={verifiedPlan}
       />
     </div>
   )
