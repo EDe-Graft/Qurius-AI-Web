@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
-import FAQImport from "@/components/admin/FAQImport"
+import FAQImport from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
@@ -45,6 +45,22 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showWidgetConfig, setShowWidgetConfig] = useState(false)
   const [showIntegrationCode, setShowIntegrationCode] = useState(false)
   const [showCrawler, setShowCrawler] = useState(false)
+  const [faqModalLoading, setFaqModalLoading] = useState(false)
+
+  // Scroll to top when FAQ modal opens with loading screen
+  useEffect(() => {
+    if (showFAQImport) {
+      setFaqModalLoading(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Hide loading screen after scroll animation completes
+      const timer = setTimeout(() => {
+        setFaqModalLoading(false);
+      }, 1000); // Adjust timing as needed
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showFAQImport]);
 
   // Enhanced analytics state
   const [analytics, setAnalytics] = useState<WidgetAnalytics | null>(null)
@@ -563,8 +579,19 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
       {/* FAQ Import Modal */}
       {showFAQImport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <>
+          {/* Loading overlay */}
+          {faqModalLoading && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
+              </div>
+            </div>
+          )}
+          
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -587,6 +614,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             </div>
           </div>
         </div>
+      </>
       )}
 
       {/* Integration Code Modal */}

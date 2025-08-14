@@ -81,6 +81,7 @@ const industries = [
 export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete }: CompanyModalProps) {
   const [formData, setFormData] = useState<Company>(defaultCompany)
   const [errors, setErrors] = useState<Partial<Company>>({})
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (company && mode !== 'add') {
@@ -90,6 +91,21 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
     }
     setErrors({})
   }, [company, mode, isOpen])
+
+  // Scroll to top when modal opens with loading screen
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
+      // Hide loading screen after scroll animation completes
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+      }, 1000) // Adjust timing as needed
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Company> = {}
@@ -149,15 +165,26 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full my-15 min-h-fit">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             {mode === 'view' && <Eye className="h-5 w-5 text-blue-600" />}
             {mode === 'add' && <Building2 className="h-5 w-5 text-green-600" />}
             {mode === 'edit' && <Edit className="h-5 w-5 text-purple-600" />}
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
               {mode === 'view' && 'View Company'}
               {mode === 'add' && 'Add New Company'}
               {mode === 'edit' && 'Edit Company'}
@@ -174,19 +201,19 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {mode === 'view' ? (
             <div className="space-y-6">
               {/* Company Info */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div 
-                  className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-xl font-bold"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl font-bold"
                   style={{ backgroundColor: formData.theme.primaryColor }}
                 >
                   {formData.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {formData.name}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">{formData.industry}</p>
@@ -194,7 +221,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
               </div>
 
               {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Domain</label>
@@ -299,7 +326,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Company Name *
@@ -343,7 +370,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Location *
@@ -411,7 +438,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Website *
@@ -455,7 +482,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Logo URL
@@ -482,7 +509,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Theme Color
@@ -529,7 +556,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 gap-3">
           <div className="flex space-x-3">
             {mode === 'edit' && company?.id && onDelete && (
               <Button
@@ -564,5 +591,6 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
         </div>
       </div>
     </div>
+    </>
   )
 } 

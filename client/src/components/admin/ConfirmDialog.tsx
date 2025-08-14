@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -22,6 +23,23 @@ export function ConfirmDialog({
   cancelText = "Cancel",
   type = 'danger'
 }: ConfirmDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Scroll to top when modal opens with loading screen
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Hide loading screen after scroll animation completes
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1000); // Adjust timing as needed
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null
 
   const getIcon = () => {
@@ -47,8 +65,19 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
+    <>
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full my-15">
         {/* Header */}
         <div className="flex items-center space-x-3 p-6 border-b border-gray-200 dark:border-gray-700">
           {getIcon()}
@@ -84,5 +113,6 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    </>
   )
 } 

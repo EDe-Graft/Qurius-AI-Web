@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Palette, Save, X } from 'lucide-react';
 import { CompanyService } from '@/services/companyService';
@@ -26,6 +26,22 @@ export function WidgetSettingsModal({
 }: WidgetSettingsModalProps) {
   const [widgetTheme, setWidgetTheme] = useState<WidgetTheme>(initialTheme);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Scroll to top when modal opens with loading screen
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Hide loading screen after scroll animation completes
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1000); // Adjust timing as needed
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   const handleSaveTheme = async () => {
     try {
@@ -84,8 +100,19 @@ export function WidgetSettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
@@ -241,5 +268,6 @@ export function WidgetSettingsModal({
         </div>
       </div>
     </div>
+    </>
   );
 } 
