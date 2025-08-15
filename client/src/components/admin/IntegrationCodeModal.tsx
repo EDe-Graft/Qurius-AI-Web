@@ -9,12 +9,12 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 interface IntegrationCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  company: string;
+  companyName: string;
   companyId: string;
   plan: string;
 }
 
-export function IntegrationCodeModal({ isOpen, onClose, company, companyId, plan }: IntegrationCodeModalProps) {
+export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, plan }: IntegrationCodeModalProps) {
   const [copied, setCopied] = useState(false);
   const [widgetKey, setWidgetKey] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -39,7 +39,7 @@ export function IntegrationCodeModal({ isOpen, onClose, company, companyId, plan
     if (!widgetKey) {
       return '<!-- Click "Generate New Key" to get your widget integration code -->'
     }
-    return `<script src="https://qurius.app/embed.js" data-company="${company}" data-key="${widgetKey}" data-plan="${plan}"></script>`
+    return `<script src="https://qurius.app/embed.js" data-company="${companyName}" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="light"></script>`
   }
 
   const copyIntegrationCode = async () => {

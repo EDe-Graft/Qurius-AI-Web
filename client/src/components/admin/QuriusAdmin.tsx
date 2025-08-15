@@ -335,7 +335,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     setIntegrationModal({
       isOpen: true,
       companyName: company.name,
-      plan: company.widget_key_plan || '',
+      plan: company.plan || '',
       companyId: company.id || ''
     })
   }
@@ -827,7 +827,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       <IntegrationCodeModal
         isOpen={integrationModal.isOpen}
         onClose={closeIntegrationModal}
-        company={integrationModal.companyName}
+        companyName={integrationModal.companyName}
         companyId={integrationModal.companyId}
         plan={integrationModal.plan}
       />

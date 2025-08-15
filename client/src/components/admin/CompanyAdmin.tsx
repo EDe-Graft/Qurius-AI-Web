@@ -629,7 +629,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       <IntegrationCodeModal
         isOpen={showIntegrationCode}
         onClose={() => setShowIntegrationCode(false)}
-        company={company?.name || ''}
+        companyName={company?.name || ''}
         companyId={company?.id || ''}
         plan={company?.plan || ''}
       />
