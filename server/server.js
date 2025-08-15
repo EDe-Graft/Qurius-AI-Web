@@ -2218,7 +2218,7 @@ app.post('/api/companies/:companyId/regenerate-widget-key', async (req, res) => 
       `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
       {
         widget_key_hash: hashedKey,
-        widget_key_plan: planType
+        plan: planType
       },
       {
         headers: {

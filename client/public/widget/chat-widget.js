@@ -21697,7 +21697,7 @@ function jy({ content: n, className: i = "" }) {
   ) });
 }
 class fn {
-  static BACKEND_URL = "http://localhost:3000";
+  static BACKEND_URL = "https://qurius-ai.onrender.com";
   // Track widget view
   static async trackWidgetView(i, l) {
     try {
@@ -24748,7 +24748,7 @@ function XE({ className: n = "", variant: i = "dropdown", companyName: l }) {
   ] });
 }
 class KE {
-  static BACKEND_URL = "http://localhost:3000";
+  static BACKEND_URL = "https://qurius-ai.onrender.com";
   // Generate theme from primary color
   static generateThemeFromPrimary(i, l, o) {
     return {
@@ -24774,7 +24774,7 @@ class KE {
     }
   }
 }
-const ZE = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "http://localhost:3000", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
+const ZE = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "https://qurius-ai.onrender.com", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
 function Hn(n, i = "") {
   const l = typeof process < "u" ? process.env?.[n] : void 0;
   return (typeof import.meta < "u" ? ZE?.[n] : void 0) ?? l ?? i;
@@ -25508,7 +25508,7 @@ const sC = async (n, i, l) => {
     throw console.error("Failed to fetch company data:", o.response?.data || o.message), new Error("Failed to fetch company data");
   }
 }, cC = (n, i) => (console.log("🔍 Verifying plan authenticity:", { scriptPlan: n, companyPlan: i }), n === "free" ? n : n === i ? (console.log("✅ Plan verification successful: plans match"), i) : (console.log("⚠️ Plan mismatch detected: using company plan as source of truth"), console.log("Script plan:", n, "Company plan:", i), i)), fC = async (n) => {
-  const i = n.key, l = n.companyId, o = n.plan, u = "http://localhost:3000";
+  const i = n.key, l = n.companyId, o = n.plan, u = "https://qurius-ai.onrender.com";
   let c = await sC(i, l, u);
   if (!c?.valid)
     return console.error("Widget key validation failed:", c.error), !1;
