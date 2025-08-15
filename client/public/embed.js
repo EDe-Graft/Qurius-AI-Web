@@ -4,8 +4,8 @@
 
   // Configuration
   const CONFIG = {
-    scriptUrl: 'dist/widget/chat-widget.umd.cjs', // Points to React widget
-    cssUrl: 'dist/widget/chat-widget.css', // CSS file for styling
+    scriptUrl: 'https://qurius.app/dist/widget/chat-widget.umd.cjs', // Points to React widget
+    cssUrl: 'https://qurius.app/dist/widget/chat-widget.css', // CSS file for styling
     apiUrl: window.location.hostname === 'qurius.app' ? 'https://qurius-ai.onrender.com' : 'http://localhost:3000',
     defaultTheme: 'light'
   };
