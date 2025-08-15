@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react"
-import { CheckCircle, ArrowRight, Settings, Palette, MessageCircle, CreditCard } from "lucide-react"
+import { CheckCircle, Settings, Palette, CreditCard } from "lucide-react"
 import { CompanyService } from "@/services/companyService"
 import { useLanguage } from "@/context/LanguageContext"
-import { PricingCard } from "@/components/custom/PricingCard"
 import React from "react"
-import axios from "axios"
+import { useNavigate } from "react-router-dom"
+import { CompanyInfoStep } from "@/components/onboarding/CompanyInfoStep"
+import { CustomizationStep } from "@/components/onboarding/CustomizationStep"
+import { PaymentStep } from "@/components/onboarding/PaymentStep"
+import { CompletionStep } from "@/components/onboarding/CompletionStep"
 
 interface OnboardingStep {
   id: string
@@ -15,7 +18,7 @@ interface OnboardingStep {
 }
 
 export function Onboarding() {
-//   const navigate = useNavigate()
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPlan, setSelectedPlan] = useState<string>('free')
   const [companyData, setCompanyData] = useState({
@@ -73,6 +76,13 @@ export function Onboarding() {
       description: "Choose your billing plan",
       icon: <CreditCard className="h-5 w-5 md:h-6 md:w-6" />,
       completed: false
+    },
+    {
+      id: "completion",
+      title: "Setup Complete",
+      description: "Welcome to Qurius AI",
+      icon: <CheckCircle className="h-5 w-5 md:h-6 md:w-6" />,
+      completed: false
     }
   ]
 
@@ -123,6 +133,8 @@ export function Onboarding() {
         return <CustomizationStep onSubmit={handleCustomizationSubmit} loading={loading} initialTheme={themeData} />
       case 2:
         return <PaymentStep selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} companyData={companyData} themeData={themeData} onComplete={handleCompleteSetup} />
+      case 3:
+        return <CompletionStep companyData={companyData} onNavigateToAdmin={() => navigate('/admin')} />
       default:
         return null
     }
@@ -216,7 +228,7 @@ export function Onboarding() {
           {renderStepContent()}
           
           {/* Navigation Buttons */}
-          {currentStep < steps.length && (
+          {currentStep < steps.length - 1 && (
             <div className="flex justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={goToPreviousStep}
@@ -237,400 +249,4 @@ export function Onboarding() {
   )
 }
 
-// Step Components
-function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error }: any) {
-  const { t } = useLanguage()
-  
-  return (
-    <div className="animate-fade-in-up animation-delay-2000">
-      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
-        {t('onboarding.companyInfo')}
-      </h2>
-      
-      {error && (
-        <div className="mb-4 p-3 md:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm md:text-base text-red-600 dark:text-red-400">{error}</p>
-        </div>
-      )}
-
-      <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('onboarding.companyName')} *
-            </label>
-            <input
-              type="text"
-              required
-              value={companyData.name}
-              onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-              placeholder="Enter your company name"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 pr-2">
-              {t('onboarding.industry')}
-            </label>
-            <select
-              value={companyData.industry}
-              onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-            >
-              <option value="">Select industry</option>
-              <option value="Technology">Technology</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Finance">Finance</option>
-              <option value="Education">Education</option>
-              <option value="Retail">Retail</option>
-              <option value="Manufacturing">Manufacturing</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.website')}
-          </label>
-          <input
-            type="url"
-            value={companyData.website}
-            onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-            placeholder="https://yourcompany.com"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.email')} *
-          </label>
-          <input
-            type="email"
-            required
-            value={companyData.email}
-            onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-            placeholder="contact@yourcompany.com"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.location')}
-          </label>
-          <input
-            type="text"
-            value={companyData.location}
-            onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-            placeholder="e.g., New York, NY"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.description')}
-          </label>
-          <textarea
-            value={companyData.description}
-            onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base"
-            placeholder="Tell us about your business..."
-          />
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-          >
-            {loading ? t('common.loading') : t('common.next')}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-function CustomizationStep({ onSubmit, loading, initialTheme }: any) {
-  const { t } = useLanguage()
-  const [theme, setTheme] = useState(initialTheme || {
-    primaryColor: "#3B82F6",
-    backgroundColor: "#FFFFFF",
-    textColor: "#1F2937"
-  })
-
-  const defaultThemes = [
-    { name: "Blue", primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" },
-    { name: "Green", primaryColor: "#10B981", backgroundColor: "#FFFFFF", textColor: "#1F2937" },
-    { name: "Purple", primaryColor: "#8B5CF6", backgroundColor: "#FFFFFF", textColor: "#1F2937" },
-    { name: "Orange", primaryColor: "#F59E0B", backgroundColor: "#FFFFFF", textColor: "#1F2937" },
-    { name: "Red", primaryColor: "#EF4444", backgroundColor: "#FFFFFF", textColor: "#1F2937" },
-    { name: "Teal", primaryColor: "#14B8A6", backgroundColor: "#FFFFFF", textColor: "#1F2937" }
-  ]
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(theme)
-  }
-
-  const applyDefaultTheme = (defaultTheme: any) => {
-    setTheme({
-      primaryColor: defaultTheme.primaryColor,
-      backgroundColor: defaultTheme.backgroundColor,
-      textColor: defaultTheme.textColor
-    })
-  }
-
-  return (
-    <div className="animate-fade-in-up animation-delay-2000">
-      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
-        {t('onboarding.customization')}
-      </h2>
-
-      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-        {/* Default Theme Options */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            {t('onboarding.chooseTheme')}
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {defaultThemes.map((defaultTheme, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => applyDefaultTheme(defaultTheme)}
-                className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors min-h-[44px] md:min-h-[40px]"
-              >
-                <div className="flex items-center space-x-2">
-                  <div 
-                    className="w-4 h-4 rounded-full border-2 border-gray-300"
-                    style={{ backgroundColor: defaultTheme.primaryColor }}
-                  />
-                  <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {defaultTheme.name}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('onboarding.primaryColor')}
-            </label>
-            <input
-              type="color"
-              value={theme.primaryColor}
-              onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })}
-              className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('onboarding.backgroundColor')}
-            </label>
-            <input
-              type="color"
-              value={theme.backgroundColor}
-              onChange={(e) => setTheme({ ...theme, backgroundColor: e.target.value })}
-              className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('onboarding.textColor')}
-            </label>
-            <input
-              type="color"
-              value={theme.textColor}
-              onChange={(e) => setTheme({ ...theme, textColor: e.target.value })}
-              className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            {t('onboarding.preview')}
-          </h3>
-          <div 
-            className="w-full h-24 md:h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
-            style={{ backgroundColor: theme.backgroundColor }}
-          >
-            <div className="text-center">
-              <MessageCircle 
-                className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2" 
-                style={{ color: theme.primaryColor }}
-              />
-              <p style={{ color: theme.textColor }} className="text-xs md:text-sm">
-                Chat Widget Preview
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-          >
-            {loading ? t('common.loading') : t('common.next')}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeData, onComplete }: {
-  selectedPlan: string;
-  setSelectedPlan: (plan: string) => void;
-  companyData: { 
-    name: string; 
-    email: string; 
-    industry: string;
-    website: string;
-    description: string;
-    location: string;
-  };
-  themeData: { primaryColor: string; backgroundColor: string; textColor: string; };
-  onComplete: () => void;
-}) {
-  const { t } = useLanguage()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  
-  console.log('selectedPlan', selectedPlan, loading)
-  const handlePlanSelection = async (plan: string) => {
-    setLoading(true)
-    setError("")
-    
-    try {
-      setSelectedPlan(plan)
-      sessionStorage.setItem('selectedPlan', plan)
-      
-      if (plan === 'free') {
-        // Free plan - complete setup directly
-        await onComplete()
-        return
-      }
-      
-      // For paid plans, store company data in sessionStorage and redirect to payment
-      // Company will be created only after successful payment
-      sessionStorage.setItem('pendingCompanyData', JSON.stringify({
-        name: companyData.name,
-        industry: companyData.industry,
-        website: companyData.website,
-        email: companyData.email,
-        description: companyData.description,
-        location: companyData.location,
-        theme: themeData,
-        plan: plan
-      }))
-      
-      console.log('💳 Triggering payment for plan:', plan)
-      console.log('💳 Company data stored in sessionStorage')
-      
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/payments/create-checkout-session`, {
-        companyName: companyData.name,
-        customerEmail: companyData.email,
-        planId: plan,
-        theme: themeData,
-        // Pass all company data as metadata
-        location: companyData.location,
-        industry: companyData.industry,
-        website: companyData.website,
-        description: companyData.description
-      })
-      
-      const { url } = response.data
-      
-      // Redirect to Stripe checkout
-      window.location.href = url
-      
-    } catch (err: any) {
-      console.error('Payment error:', err)
-      setError(err.message || 'Payment setup failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="animate-fade-in-up animation-delay-2000">
-      <h2 className="text-xl md:text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
-        {t('onboarding.choosePlan')}
-      </h2>
-
-      {error && (
-        <div className="mb-4 p-3 md:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm md:text-base text-red-600 dark:text-red-400">{error}</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        {/* Free Plan */}
-        <PricingCard
-          plan="free"
-          price="$0"
-          features={[
-            "500 messages/month",
-            t('plans.basicCustomization'),
-            t('plans.emailSupport'),
-            t('plans.standardFaqTemplates')
-          ]}
-          onSelect={handlePlanSelection}
-        />
-
-        {/* Starter Plan */}
-        <PricingCard
-          plan="starter"
-          price="$29"
-          features={[
-            "10,000 messages/month",
-            t('plans.prioritySupport'),
-            t('plans.analyticsDashboard'),
-            t('plans.customFaqImport')
-          ]}
-          onSelect={handlePlanSelection}
-        />
-
-        {/* Pro Plan */}
-        <PricingCard
-          plan="pro"
-          price="$99"
-          features={[
-            t('plans.unlimitedMessages'),
-            t('plans.multiLanguageSupport'),
-            t('plans.advancedAnalytics'),
-            t('plans.apiAccess'),
-            t('plans.customIntegrations'),
-            t('plans.translatedFaqTemplates'),
-            t('plans.phoneSupport'),
-            t('plans.whiteLabelOptions'),
-            t('plans.autoLanguageDetection'),
-            t('plans.languageSpecificCustomization'),
-            t('plans.multiLanguageAnalytics'),
-            t('plans.customLanguageSupport')
-          ]}
-          onSelect={handlePlanSelection}
-          isPopular={true}
-        />
-      </div>
-    </div>
-  )
-} 
+ 

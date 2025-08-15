@@ -31,9 +31,24 @@ CREATE INDEX idx_companies_status ON public.companies(status);
 CREATE INDEX IF NOT EXISTS idx_companies_widget_key_hash ON public.companies(widget_key_hash);
 CREATE INDEX IF NOT EXISTS idx_companies_plan ON public.companies(plan);
 
+-- Enable Row Level Security for companies table
+ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+
 -- Allow public read access to companies
 CREATE POLICY "Allow public read access to companies" ON public.companies
 FOR SELECT USING (true);
+
+-- Allow service role to insert companies
+CREATE POLICY "Service role can insert companies" ON public.companies
+FOR INSERT WITH CHECK (true);
+
+-- Allow service role to update companies
+CREATE POLICY "Service role can update companies" ON public.companies
+FOR UPDATE USING (true);
+
+-- Allow service role to delete companies
+CREATE POLICY "Service role can delete companies" ON public.companies
+FOR DELETE USING (true);
 
 
 --Create crawl_sessions table first before FAQs table

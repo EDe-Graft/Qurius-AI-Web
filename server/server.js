@@ -90,7 +90,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           break;
         }
 
-        // Create company with subscription info
+        // Create company with subscription info for starter and pro users
         const companyData = {
           name: companyName,
           email: customerEmail, // createCompany expects 'email' field
@@ -609,39 +609,46 @@ app.post('/api/companies/admin-check', async (req, res) => {
   }
 });
 
-// Create company and profile
-// app.post('/api/companies', async (req, res) => {
-//   try {
-//     const companyData = req.body;
+// Create company and profile for free users
+app.post('/api/companies', async (req, res) => {
+  try {
+    const companyData = req.body;
+    console.log('Creating company:', companyData);
+    const { email } = companyData;
 
-//     //Create auth user first to avoid duplicate users
-//     const userId = await createAuthUser(email)
+    //Create auth user first to avoid duplicate users
+    const userId = await createAuthUser(email)
+    console.log('Auth user created with ID:', userId);
 
-//     //if success, create company
-//     if (userId) {
-//       const { companyId, companyName, email: companyEmail, plan } = await createCompany(companyData)
+    if (!userId) {
+      throw new Error('Failed to create auth user - no user ID returned');
+    }
 
-//       // Update auth user with company id
-//       await updateAuthUser(companyId, userId)
+    let companyId = null;
+    //if success, create company
+    const result = await createCompany(companyData, userId)
+    companyId = result.companyId;
+    const { companyName, email: companyEmail, plan } = result;
 
-//       //Send Welcome Email
-//       await sendWelcomeEmail(companyEmail, companyName, plan)
-//     }
+    // Update auth user with company id
+    await updateAuthUser(companyId, userId)
 
+    //Send Welcome Email
+    await sendWelcomeEmail(companyEmail, companyName, plan)
 
-//     res.json({
-//       success: true,
-//       id: companyId,
-//       company: { ...companyData, id: companyId }
-//     });
-//   } catch (error) {
-//     console.error('Create company error:', error.response?.data || error.message);
-//     res.status(500).json({ 
-//       success: false,
-//       error: 'Failed to create company' 
-//     });
-//   }
-// });
+    res.json({
+      success: true,
+      id: companyId,
+      company: { ...companyData, id: companyId }
+    });
+  } catch (error) {
+    console.error('Create company error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create company' 
+    });
+  }
+});
 
 // Update company
 app.patch('/api/companies/:id', async (req, res) => {

@@ -329,7 +329,7 @@ export async function createCompany(companyData, userId = null) {
       name: toTitleCase(name),
       location: toTitleCase(location),
       description,
-      theme: theme, // Store theme object directly as JSON
+      theme: theme, // Store theme object directly as JSONB
       industry,
       website,
       domain: domain || extractedDomain,
@@ -352,6 +352,7 @@ export async function createCompany(companyData, userId = null) {
       id: userId // Use the auth user ID as the company ID
     };
     
+    console.log('User ID being used for company:', userId);
     console.log('Sending to database:', JSON.stringify(finalCompanyData, null, 2));
     
     const companyResponse = await axios.post(
@@ -368,7 +369,7 @@ export async function createCompany(companyData, userId = null) {
     );
     console.log("Company created:", companyResponse.data)
 
-    const companyId = userId || companyResponse.data[0].id;
+    const companyId = userId;
     return { companyId, companyName: name, email, plan };
 
     } catch (error) {
@@ -383,6 +384,10 @@ export async function createAuthUser(email) {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
     const authUser = {
       email,
       role: 'company_admin',
@@ -390,6 +395,9 @@ export async function createAuthUser(email) {
         role: 'company_admin'
       }
     }
+    
+    console.log('Creating auth user with data:', JSON.stringify(authUser, null, 2));
+    
     const userResponse = await axios.post(
       `${supabaseUrl}/auth/v1/admin/users`,
       authUser,
@@ -403,12 +411,18 @@ export async function createAuthUser(email) {
       }
     );
 
+    console.log('Auth user response:', JSON.stringify(userResponse.data, null, 2));
+    
     const userId = userResponse.data.id;
-    console.log("Auth user created:", userResponse.data)
+    if (!userId) {
+      throw new Error('No user ID returned from auth user creation');
+    }
+    
+    console.log("Auth user created with ID:", userId);
     return userId;
   } catch (error) {
     console.error('❌ Error creating auth user:', error.response?.data || error.message);
-    throw new Error('Failed to create auth user');
+    throw new Error(`Failed to create auth user: ${error.message}`);
   }
 }
 

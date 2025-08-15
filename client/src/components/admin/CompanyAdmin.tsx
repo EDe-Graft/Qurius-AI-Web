@@ -308,7 +308,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           </div>
         )}
 
-        {/* Analytics Dashboard */}
+        {/* Analytics Dashboard for non-free users */}
+        {company?.plan !== 'free' && (
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -324,7 +325,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           <AnalyticsDashboard
             companyId={company?.id}
           />
-        </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -378,6 +380,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             </Button>
           </div>
 
+          {/* Widget Settings for non-free users */}
+          {company?.plan !== 'free' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -402,7 +406,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               Configure Widget
             </Button>
           </div>
+          )}
 
+          {/* Website Crawler for pro users */}
+          {company?.plan === 'pro' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -427,6 +434,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               Crawl Website
             </Button>
           </div>
+          )}
         </div>
 
         {/* Company Information */}
