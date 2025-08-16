@@ -82,7 +82,8 @@ export function Contact() {
   
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-2000">
+    <>
+      <div className="min-h-screen bg-white dark:bg-gray-900 animate-fade-in-up animation-delay-2000">
       {/* Navigation */}
       <Navigation 
       currentPage="contact" 
@@ -340,18 +341,19 @@ export function Contact() {
 
       {/* Footer */}
       <Footer showFullFooter={false} />
-
-      {/* Chat Interface */}
-      {quriusData && (
-        <ChatInterface
-          defaultTheme={defaultTheme}
-          toggleTheme={toggleTheme}
-          isMinimized={isChatMinimized}
-          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-          companyData={quriusData}
-          isThemeChanging={isThemeChanging}
-        />
-      )}
     </div>
+
+    {/* Chat Interface - Rendered at root level */}
+    {quriusData ? (
+      <ChatInterface
+        defaultTheme={defaultTheme}
+        toggleTheme={toggleTheme}
+        isMinimized={isChatMinimized}
+        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+        companyData={quriusData}
+        isThemeChanging={isThemeChanging}
+      />
+    ) : null}
+  </>
   )
 } 

@@ -434,7 +434,7 @@ export function ChatInterface({
           position: 'fixed',
           bottom: '1rem',
           right: '1rem',
-          zIndex: 50,
+          zIndex: 9999,
           maxWidth: '400px',
           maxHeight: '600px',
         }}
@@ -514,7 +514,7 @@ export function ChatInterface({
         bottom: `${window.innerWidth > 768 ? '1rem' : '0'}`,
         right: `${window.innerWidth > 768 ? '1rem' : '50%'}`,
         transform: `${window.innerWidth > 768 ? 'none' : 'translateX(50%)'}`,
-        zIndex: 50,
+        zIndex: 9999,
         borderColor: companyTheme?.borderColor || '#E5E7EB',
         backgroundColor: companyTheme?.backgroundColor || '#FFFFFF',
       }}
