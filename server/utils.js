@@ -32,8 +32,8 @@ export async function getEmbedding(question, answer) {
 export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'openai/gpt-4o-mini';
-  const systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly. If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. If you don't find the information on the website, suggest they contact customer support at ${customerSupportEmail}.`;
+  const model = 'openai/gpt-5-mini';
+  const systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly. If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. If you don't find the information on the website, suggest they contact customer support at ${customerSupportEmail} as a mailto link.`;
   const maxTokens = 300;
   const temperature = 0.7;
 
