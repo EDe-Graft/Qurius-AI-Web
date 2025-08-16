@@ -812,10 +812,11 @@ app.post('/api/faqs/search', async (req, res) => {
         // Check if the best match has high enough confidence
         const bestMatch = faqResponse.data[0];
         console.log('Best match:', bestMatch.similarity);
-        const confidenceThreshold = 0.75; // Adjust this threshold as needed
+        const confidenceThreshold = 0.8; // Adjust this threshold as needed
         
         if (bestMatch.similarity >= confidenceThreshold) {
           console.log('Using FAQ with confidence:', bestMatch.similarity);
+          console.log('FAQ Response:', bestMatch.answer);
           
           // Record FAQ usage
           await recordMessageUsage(companyId, companyName, 'faq', sessionId, question, bestMatch.answer, bestMatch.faq_id, bestMatch.similarity, 'faq');
