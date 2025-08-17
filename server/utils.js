@@ -427,7 +427,7 @@ export async function createAuthUser(email) {
 }
 
 //Update auth user metadata with company id
-export async function updateAuthUser(companyId, userId) {
+export async function updateAuthUser(companyId, userId, companyName) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -435,7 +435,10 @@ export async function updateAuthUser(companyId, userId) {
     const userResponse = await axios.put(
       `${supabaseUrl}/auth/v1/admin/users/${userId}`,
       {
-        user_metadata: { company_id: companyId }
+        user_metadata: {
+           company_id: companyId,
+           company_name: companyName
+       }
       },
       {
         headers: {

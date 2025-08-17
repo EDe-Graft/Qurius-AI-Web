@@ -121,7 +121,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
             console.log('✅ Company created successfully:', companyId);
 
             // Update auth user with company id
-            await updateAuthUser(companyId, userId);
+            await updateAuthUser(companyId, userId, companyName);
             console.log('✅ Auth user updated successfully:', userId);
 
             // Send welcome email with password reset and widget key
@@ -614,7 +614,7 @@ app.post('/api/companies', async (req, res) => {
   try {
     const companyData = req.body;
     console.log('Creating company:', companyData);
-    const { email } = companyData;
+    const { name, email } = companyData;
 
     //Create auth user first to avoid duplicate users
     const userId = await createAuthUser(email)
@@ -631,7 +631,7 @@ app.post('/api/companies', async (req, res) => {
     const { companyName, email: companyEmail, plan } = result;
 
     // Update auth user with company id
-    await updateAuthUser(companyId, userId)
+    await updateAuthUser(companyId, userId, companyName)
 
     //Send Welcome Email
     await sendWelcomeEmail(companyEmail, companyName, plan)
@@ -2080,7 +2080,7 @@ app.post('/api/test/simulate-webhook', async (req, res) => {
         console.log('✅ Company created successfully:', companyId);
 
         // Update auth user with company id
-        await updateAuthUser(companyId, userId);
+        await updateAuthUser(companyId, userId, companyName);
         console.log('✅ Auth user updated successfully:', userId);
 
         // Send welcome email
@@ -2155,7 +2155,7 @@ app.post('/api/test/create-company', async (req, res) => {
       console.log('✅ Test company created successfully:', companyId);
 
       // Update auth user with company id
-      await updateAuthUser(companyId, userId)
+      await updateAuthUser(companyId, userId, companyName)
 
       // Send Welcome Email
       await sendWelcomeEmail(companyEmail, companyName, plan)
