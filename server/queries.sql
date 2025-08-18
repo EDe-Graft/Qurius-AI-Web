@@ -67,19 +67,22 @@ CREATE TABLE public.faqs (
     answer_embedding extensions.vector(768),   -- Use fully qualified vector type
     source VARCHAR(20) DEFAULT 'manual',
     confidence REAL DEFAULT 1.0,
-    
+    crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL,
     relevance_score REAL DEFAULT 1.0, -- Manually adjustable relevance
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add crawl_session_id column
-ALTER TABLE public.faqs ADD COLUMN IF NOT EXISTS crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL;
-
 
 -- Create index for faster queries
 CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON public.faqs(created_at);
+-- Composite index for FAQ search optimization
+CREATE INDEX IF NOT EXISTS idx_faqs_company_confidence ON public.faqs(company_id, confidence DESC);
+
+CREATE INDEX IF NOT EXISTS idx_faqs_question_embedding ON public.faqs USING ivfflat (question_embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_faqs_answer_embedding ON public.faqs USING ivfflat (answer_embedding vector_cosine_ops);
+
 
 -- Enable Row Level Security
 ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
@@ -134,6 +137,8 @@ CREATE INDEX IF NOT EXISTS idx_widget_analytics_rating ON public.widget_analytic
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_response_source ON public.widget_analytics(response_source);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_language ON public.widget_analytics(language);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_theme_mode ON public.widget_analytics(theme_mode);
+-- Index for analytics by company and timestamp (for efficient time-based queries)
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_timestamp ON public.widget_analytics(company_id, timestamp);
 
 -- Enable RLS
 ALTER TABLE public.widget_analytics ENABLE ROW LEVEL SECURITY;
@@ -179,6 +184,8 @@ CREATE INDEX idx_message_usage_company_id ON public.message_usage(company_id);
 CREATE INDEX idx_message_usage_used_at ON public.message_usage(used_at);
 CREATE INDEX idx_message_usage_message_type ON public.message_usage(message_type);
 CREATE INDEX idx_message_usage_session_id ON public.message_usage(session_id);
+-- Index for message usage by company and date (for efficient monthly queries)
+CREATE INDEX IF NOT EXISTS idx_message_usage_company_date ON public.message_usage(company_id, used_at);
 
 -- Enable RLS
 ALTER TABLE public.message_usage ENABLE ROW LEVEL SECURITY;
@@ -196,6 +203,52 @@ CREATE POLICY "Service role can insert message usage" ON public.message_usage
 
 CREATE POLICY "Service role can read all message usage" ON public.message_usage
   FOR SELECT USING (true);
+
+
+-- Company Content Chunks Table
+CREATE TABLE public.company_content_chunks (
+  id SERIAL PRIMARY KEY,
+  company_id UUID REFERENCES companies(id),
+  crawl_session_id UUID REFERENCES crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL,
+  content TEXT NOT NULL,
+  embedding vector(768), -- Jina embedding dimension
+  source VARCHAR(50),
+  chunk_index INTEGER,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for company_content_chunks table for better performance
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_company_id ON public.company_content_chunks(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_source ON public.company_content_chunks(source);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_chunk_index ON public.company_content_chunks(chunk_index);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_created_at ON public.company_content_chunks(created_at);
+
+-- Composite index for content chunks search optimization
+CREATE INDEX IF NOT EXISTS idx_content_chunks_company_source ON public.company_content_chunks(company_id, source);
+-- Vector index for embedding similarity search (crucial for RAG performance)
+CREATE INDEX IF NOT EXISTS idx_content_chunks_embedding ON public.company_content_chunks USING ivfflat (embedding vector_cosine_ops);
+
+
+
+-- Enable Row Level Security for company_content_chunks table
+ALTER TABLE public.company_content_chunks ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for company_content_chunks
+CREATE POLICY "Companies can view their own content chunks" ON public.company_content_chunks
+  FOR SELECT USING (
+    company_id IN (
+      SELECT id FROM public.companies WHERE id = company_id
+    )
+  );
+
+CREATE POLICY "Service role can insert content chunks" ON public.company_content_chunks
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can update content chunks" ON public.company_content_chunks
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Service role can delete content chunks" ON public.company_content_chunks
+  FOR DELETE USING (true);
 
 
 -- ========================================
@@ -223,6 +276,29 @@ BEGIN
         (1 - (f.question_embedding <=> p_query_embedding))::REAL AS similarity
     FROM public.faqs f
     WHERE f.company_id = p_company_id
+    ORDER BY similarity DESC
+    LIMIT p_top_k;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to find relevant content chunks using embeddings
+CREATE OR REPLACE FUNCTION find_relevant_content_chunks(
+    p_company_id UUID, 
+    p_query_embedding extensions.vector(768),
+    p_top_k INTEGER DEFAULT 3
+) RETURNS TABLE (
+    chunk_id INTEGER, 
+    content TEXT, 
+    similarity REAL
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        ccc.id::INTEGER as chunk_id, 
+        ccc.content::TEXT, 
+        (1 - (ccc.embedding <=> p_query_embedding))::REAL AS similarity
+    FROM public.company_content_chunks ccc
+    WHERE ccc.company_id = p_company_id
     ORDER BY similarity DESC
     LIMIT p_top_k;
 END;
@@ -323,6 +399,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to get monthly message usage efficiently
+CREATE OR REPLACE FUNCTION get_monthly_message_usage(
+    p_company_id UUID,
+    p_year INTEGER,
+    p_month INTEGER
+)
+RETURNS TABLE(
+    total_messages INTEGER,
+    faq_messages INTEGER,
+    ai_messages INTEGER,
+    limit_reached_count INTEGER
+) AS $$
+DECLARE
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    -- Calculate date range for the specified month
+    start_date := MAKE_DATE(p_year, p_month, 1);
+    end_date := start_date + INTERVAL '1 month' - INTERVAL '1 day';
+    
+    RETURN QUERY
+    SELECT
+        COUNT(*)::INTEGER as total_messages,
+        COUNT(CASE WHEN message_type = 'faq' THEN 1 END)::INTEGER as faq_messages,
+        COUNT(CASE WHEN message_type = 'ai' THEN 1 END)::INTEGER as ai_messages,
+        COUNT(CASE WHEN message_type = 'limit_reached' THEN 1 END)::INTEGER as limit_reached_count
+    FROM public.message_usage
+    WHERE company_id = p_company_id
+    AND used_at >= start_date
+    AND used_at <= end_date;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Function to check if company has reached message limit
 CREATE OR REPLACE FUNCTION check_message_limit(p_company_id UUID)
 RETURNS TABLE(
@@ -360,6 +469,7 @@ BEGIN
         GREATEST(0, message_limit - current_usage) as messages_remaining;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- Function to record message usage
 CREATE OR REPLACE FUNCTION record_message_usage(
@@ -494,5 +604,179 @@ BEGIN
         current_usage < message_limit as can_send,
         company_record.last_message_date as last_message_date,
         company_record.contact_email as contact_email;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ========================================
+-- SCALABILITY OPTIMIZATIONS
+-- ========================================
+
+-- Function to get company stats efficiently (for dashboard)
+CREATE OR REPLACE FUNCTION get_company_stats(p_company_id UUID)
+RETURNS TABLE(
+    total_faqs BIGINT,
+    total_content_chunks BIGINT,
+    total_analytics BIGINT,
+    last_activity TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        (SELECT COUNT(*) FROM faqs WHERE company_id = p_company_id),
+        (SELECT COUNT(*) FROM company_content_chunks WHERE company_id = p_company_id),
+        (SELECT COUNT(*) FROM widget_analytics WHERE company_id = p_company_id),
+        (SELECT MAX(timestamp) FROM widget_analytics WHERE company_id = p_company_id);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_system_stats()
+RETURNS TABLE(
+    total_companies BIGINT,
+    total_faqs BIGINT,
+    total_content_chunks BIGINT,
+    total_analytics BIGINT,
+    active_companies BIGINT,
+    avg_faqs_per_company NUMERIC,
+    avg_content_chunks_per_company NUMERIC
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        COUNT(*)::BIGINT AS total_companies,
+        (SELECT COUNT(*) FROM faqs)::BIGINT,
+        (SELECT COUNT(*) FROM company_content_chunks)::BIGINT,
+        (SELECT COUNT(*) FROM widget_analytics)::BIGINT,
+        (SELECT COUNT(*) FROM companies WHERE status = 'active')::BIGINT,
+        COALESCE((
+            SELECT ROUND(AVG(faq_count), 2) 
+            FROM (
+                SELECT company_id, COUNT(*)::NUMERIC as faq_count 
+                FROM faqs 
+                GROUP BY company_id
+            ) faq_stats
+        ), 0) AS avg_faqs_per_company,
+        COALESCE((
+            SELECT ROUND(AVG(chunk_count), 2) 
+            FROM (
+                SELECT company_id, COUNT(*)::NUMERIC as chunk_count 
+                FROM company_content_chunks 
+                GROUP BY company_id
+            ) chunk_stats
+        ), 0) AS avg_content_chunks_per_company;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Function to clean up old analytics data (for maintenance)
+CREATE OR REPLACE FUNCTION cleanup_old_analytics(p_months_to_keep INTEGER DEFAULT 12)
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM widget_analytics 
+    WHERE timestamp < NOW() - INTERVAL '1 month' * p_months_to_keep;
+    
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to clean up old message usage data (for maintenance)
+CREATE OR REPLACE FUNCTION cleanup_old_message_usage(p_months_to_keep INTEGER DEFAULT 12)
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM message_usage 
+    WHERE used_at < NOW() - INTERVAL '1 month' * p_months_to_keep;
+    
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get RAG performance metrics
+CREATE OR REPLACE FUNCTION get_rag_performance_metrics(p_company_id UUID DEFAULT NULL)
+RETURNS TABLE(
+    company_id UUID,
+    company_name TEXT,
+    total_searches BIGINT,
+    faq_matches BIGINT,
+    content_matches BIGINT,
+    avg_similarity_score NUMERIC,
+    avg_response_time_ms NUMERIC
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        wa.company_id,
+        c.name as company_name,
+        COUNT(*) as total_searches,
+        COUNT(CASE WHEN wa.response_source = 'faq' THEN 1 END) as faq_matches,
+        COUNT(CASE WHEN wa.response_source = 'ai_with_context' THEN 1 END) as content_matches,
+        ROUND(AVG(wa.confidence_score), 3) as avg_similarity_score,
+        ROUND(AVG(EXTRACT(EPOCH FROM (wa.timestamp - LAG(wa.timestamp) OVER (PARTITION BY wa.session_id ORDER BY wa.timestamp))) * 1000), 2) as avg_response_time_ms
+    FROM widget_analytics wa
+    JOIN companies c ON wa.company_id = c.id
+    WHERE wa.event_type = 'message_received'
+    AND (p_company_id IS NULL OR wa.company_id = p_company_id)
+    GROUP BY wa.company_id, c.name
+    ORDER BY total_searches DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+-- ========================================
+-- PERFORMANCE MONITORING
+-- ========================================
+
+-- Function to get slow queries (requires pg_stat_statements extension)
+-- Uncomment if you have pg_stat_statements enabled
+
+CREATE OR REPLACE FUNCTION get_slow_queries(p_limit INTEGER DEFAULT 10)
+RETURNS TABLE(
+    query TEXT,
+    calls BIGINT,
+    total_time NUMERIC,
+    mean_time NUMERIC,
+    rows BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        query,
+        calls,
+        total_time,
+        mean_time,
+        rows
+    FROM pg_stat_statements
+    ORDER BY mean_time DESC
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Function to get table sizes and row counts
+CREATE OR REPLACE FUNCTION get_table_sizes()
+RETURNS TABLE(
+    table_name TEXT,
+    row_count BIGINT,
+    table_size TEXT,
+    index_size TEXT,
+    total_size TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        schemaname||'.'||tablename as table_name,
+        n_tup_ins + n_tup_upd + n_tup_del as row_count,
+        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as table_size,
+        pg_size_pretty(pg_indexes_size(schemaname||'.'||tablename)) as index_size,
+        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename) + pg_indexes_size(schemaname||'.'||tablename)) as total_size
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+    ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 END;
 $$ LANGUAGE plpgsql;

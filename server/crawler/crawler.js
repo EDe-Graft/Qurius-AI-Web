@@ -1,7 +1,7 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { createClient } from '@supabase/supabase-js'
-import { getEmbedding } from '../utils.js'
+import { getEmbedding, chunkContent } from '../utils.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ path: './.env' })
@@ -292,7 +292,7 @@ class QuriusCrawler {
     
     // Remove duplicates and filter quality
     const uniqueFAQs = this.deduplicateFAQs(faqs)
-    crawlData.faqs = uniqueFAQs.slice(0, 20) // Limit to 20 FAQs
+    crawlData.faqs = uniqueFAQs.slice(0, 25) // Limit to 25 FAQs
     
     console.log(`✅ Extracted ${crawlData.faqs.length} FAQs`)
   }
@@ -354,7 +354,7 @@ class QuriusCrawler {
       const response = await axios.post(endpoint, {
         companyName: crawlData.companyName,
         content: contentText,
-        maxFAQs: 15
+        maxFAQs: 25
       }, {
         headers: {
           'Content-Type': 'application/json'
@@ -407,6 +407,60 @@ class QuriusCrawler {
         throw crawlError
       }
 
+      // Save content chunks with embeddings for RAG
+      if (crawlData.content.length > 0) {
+        console.log(`📝 Processing content chunks for RAG...`)
+        
+        // Combine all content into a single text
+        const allContent = crawlData.content
+          .map(item => item.text)
+          .join('\n')
+          .substring(0, 10000); // Limit content length
+        
+        // Chunk the content
+        const contentChunks = chunkContent(allContent, 500);
+        console.log(`📝 Generated ${contentChunks.length} content chunks`);
+        
+        if (contentChunks.length > 0) {
+          // Generate embeddings for each content chunk
+          const chunkData = await Promise.all(contentChunks.map(async (chunk, index) => {
+            try {
+              const { questionEmbedding } = await getEmbedding(chunk, '');
+              
+              return {
+                company_id: crawlData.companyId,
+                content: chunk,
+                crawl_session_id: crawlData.sessionId,
+                embedding: questionEmbedding,
+                source: 'web_scraped',
+                chunk_index: index
+              };
+            } catch (embeddingError) {
+              console.warn(`⚠️ Failed to generate embeddings for content chunk ${index}:`, embeddingError.message);
+              // Return chunk without embedding if embedding generation fails
+              return {
+                company_id: crawlData.companyId,
+                content: chunk,
+                crawl_session_id: crawlData.sessionId,
+                source: 'web_scraped',
+                chunk_index: index
+              };
+            }
+          }));
+
+          // Save content chunks to database
+          const { error: chunkError } = await supabase
+            .from('company_content_chunks')
+            .insert(chunkData);
+
+          if (chunkError) {
+            console.warn('⚠️ Failed to save content chunks:', chunkError);
+          } else {
+            console.log(`✅ Saved ${chunkData.length} content chunks with embeddings to database`);
+          }
+        }
+      }
+
       // Save FAQs to database with embeddings
       if (crawlData.faqs.length > 0) {
         console.log(`📝 Generating embeddings for ${crawlData.faqs.length} FAQs...`)
@@ -425,7 +479,8 @@ class QuriusCrawler {
               question_embedding: questionEmbedding,
               answer_embedding: answerEmbedding,
               source: faq.source || 'crawler',
-              confidence: faq.confidence || 0.7
+              confidence: faq.confidence || 0.7,
+              crawl_session_id: crawlData.sessionId
             }
           } catch (embeddingError) {
             console.warn(`⚠️ Failed to generate embeddings for FAQ: ${faq.question.substring(0, 50)}...`, embeddingError.message)
@@ -436,7 +491,8 @@ class QuriusCrawler {
               question: faq.question,
               answer: faq.answer,
               source: faq.source || 'crawler',
-              confidence: faq.confidence || 0.7
+              confidence: faq.confidence || 0.7,
+              crawl_session_id: crawlData.sessionId
             }
           }
         }))

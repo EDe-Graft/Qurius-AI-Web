@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, getGeneratedFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, getGeneratedFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
@@ -761,6 +761,7 @@ app.post('/api/faqs/search', async (req, res) => {
     const {id: companyId, name: companyName, website, contact_email } = companyData;
     let sessionId = 'qurius-ai-session';
 
+    console.log('Question:', question);
     console.log('Searching FAQs for company ID:', companyId);
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -785,57 +786,71 @@ app.post('/api/faqs/search', async (req, res) => {
     }
 
     try {
-      // Try semantic search with embeddings
-      const { questionEmbedding } = await getEmbedding(question, '');
-
-      // Search FAQs using vector similarity
-      const faqResponse = await axios.post(
-        `${supabaseUrl}/rest/v1/rpc/find_relevant_faqs`,
-        {
-          p_company_id: companyId,
-          p_query: question,
-          p_query_embedding: questionEmbedding,
-          p_top_k: 5
-        },
-        {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('Semantic search results:', faqResponse.data?.length || 0);
+      // Use RAG search instead of just FAQ search
+      const searchResults = await searchWithRAG(question, companyId, 5);
+      console.log('RAG search results:', searchResults.length);
       
-      if (faqResponse.data && faqResponse.data.length > 0) {
+      if (searchResults.length > 0) {
         // Check if the best match has high enough confidence
-        const bestMatch = faqResponse.data[0];
-        console.log('Best match:', bestMatch.similarity);
-        const confidenceThreshold = 0.8; // Adjust this threshold as needed
+        const bestMatch = searchResults[0];
+        console.log('Best match:', bestMatch);
+        const confidenceThreshold = 0.78; // Adjust this threshold as needed
         
         if (bestMatch.similarity >= confidenceThreshold) {
-          console.log('Using FAQ with confidence:', bestMatch.similarity);
-          console.log('FAQ Response:', bestMatch.answer);
-          
-          // Record FAQ usage
-          await recordMessageUsage(companyId, companyName, 'faq', sessionId, question, bestMatch.answer, bestMatch.faq_id, bestMatch.similarity, 'faq');
-          
-          // Track FAQ match for analytics
-          await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
-          
-          res.json([{ 
-            question: question, 
-            answer: bestMatch.answer, 
-            source: 'faq',
-            faqId: bestMatch.faq_id,
-            confidence: bestMatch.similarity,
-            messagesLeft: messageLimitCheck.messagesLeft
-          }]);
+          if (bestMatch.type === 'faq') {
+            // High confidence FAQ match - use FAQ answer directly
+            console.log('Using FAQ with confidence:', bestMatch.similarity);
+            console.log('FAQ Response:', bestMatch.answer);
+            
+            // Record FAQ usage
+            await recordMessageUsage(companyId, companyName, 'faq', sessionId, question, bestMatch.answer, bestMatch.faq_id, bestMatch.similarity, 'faq');
+            
+            // Track FAQ match for analytics
+            await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
+            
+            res.json([{ 
+              question: question, 
+              answer: bestMatch.answer, 
+              source: 'faq',
+              faqId: bestMatch.faq_id,
+              confidence: bestMatch.similarity,
+              messagesLeft: messageLimitCheck.messagesLeft
+            }]);
+          } else {
+            // High confidence content match - use AI with context
+            console.log('Using content chunk with confidence:', bestMatch.similarity);
+            const aiResponse = await getAIResponse({
+              companyName, 
+              companyWebsite: website, 
+              customerSupportEmail: contact_email, 
+              messageHistory: messages,
+              retrievedContext: searchResults
+            });
+            console.log('AI Response with context:', aiResponse);
+
+            // Record AI usage with context
+            await recordMessageUsage(companyId, companyName, 'ai_with_context', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'high_confidence_content');
+            
+            res.json([{ 
+              question: question, 
+              answer: aiResponse, 
+              source: 'ai_with_context',
+              confidence: bestMatch.similarity,
+              messagesLeft: messageLimitCheck.messagesLeft
+            }]);
+          }
         } else {
-          console.log('FAQ confidence too low:', bestMatch.similarity, 'falling back to AI');
-          const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
-          
+          // Low confidence - use RAG with multiple sources
+          console.log('Low confidence matches, using RAG with multiple sources');
+          const aiResponse = await getAIResponse({
+            companyName, 
+            companyWebsite: website, 
+            customerSupportEmail: contact_email, 
+            messageHistory: messages,
+            retrievedContext: searchResults // Top 5 relevant chunks
+          });
+          console.log('AI Response with RAG context:', aiResponse);
+
           // Record AI usage
           await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'low_confidence');
           
@@ -852,46 +867,56 @@ app.post('/api/faqs/search', async (req, res) => {
           }]);
         }
       } else {
-        // No FAQ found, fallback to AI
-        console.log('No FAQ found, falling back to AI');
+        // No results found, fallback to AI
+        console.log('No RAG results found, falling back to AI');
         const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
-        
+        console.log('AI Response:', aiResponse);
+
         // Record AI usage
-        await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_faq_found');
+        await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_rag_results');
         
         // Track AI fallback
-        await trackAIFallback(companyId, sessionId, 'no_faq_found');
+        await trackAIFallback(companyId, sessionId, 'no_rag_results');
         
         res.json([{ 
           question: question, 
           answer: aiResponse, 
           source: 'ai',
-          fallbackReason: 'no_faq_found',
+          fallbackReason: 'no_rag_results',
           messagesLeft: messageLimitCheck.messagesLeft
         }]);
       }
-    } catch (embeddingError) {
-      console.log('Embedding search failed, falling back to AI:', embeddingError.message);
+    } catch (ragError) {
+      console.log('RAG search failed, falling back to AI:', ragError.message);
       
-      // Fallback to AI when semantic search fails
+      // Fallback to AI when RAG search fails
       const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
+      console.log('AI Response:', aiResponse);
       
       // Record AI usage
-      await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'embedding_error');
+      await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'rag_error');
       
       // Track AI fallback
-      await trackAIFallback(companyId, sessionId, 'embedding_error');
+      await trackAIFallback(companyId, sessionId, 'rag_error');
       
       res.json([{ 
         question: question, 
         answer: aiResponse, 
         source: 'ai',
-        fallbackReason: 'embedding_error',
+        fallbackReason: 'rag_error',
         messagesLeft: messageLimitCheck.messagesLeft
       }]);
     }
   } catch (error) {
-    console.error('FAQ search error:', error.response?.data || error.message);
+    console.error('❌ FAQ search error:', error.response?.data || error.message);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText
+    });
     res.json([]);
   }
 });
@@ -901,7 +926,7 @@ app.post('/api/faqs/search', async (req, res) => {
 // Generate FAQs from content using AI
 app.post('/api/ai/generate-faqs', async (req, res) => {
   try {
-    const { companyName, content, maxFAQs = 10, companyId, saveToDatabase = false } = req.body;
+    const { companyName, content, maxFAQs = 25, companyId, saveToDatabase = false } = req.body;
     
     if (!companyName || !content) {
       return res.status(400).json({ error: 'Missing required fields: companyName, content' });
@@ -973,6 +998,144 @@ app.post('/api/ai/generate-faqs', async (req, res) => {
   } catch (error) {
     console.error('AI FAQ generation error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to generate FAQs' });
+  }
+});
+
+// Test RAG system endpoint for debugging
+app.post('/api/rag/test', async (req, res) => {
+  try {
+    const { question, companyId } = req.body;
+    
+    if (!question || !companyId) {
+      return res.status(400).json({ error: 'Missing required fields: question, companyId' });
+    }
+
+    console.log('🧪 Testing RAG system for question:', question);
+    console.log('🏢 Company ID:', companyId);
+
+    // Test RAG search
+    const searchResults = await searchWithRAG(question, companyId, 5);
+    
+    // Get company info for context
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=name,website,contact_email`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const company = companyResponse.data?.[0] || {};
+
+    // Test AI response with context
+    let aiResponse = null;
+    if (searchResults.length > 0) {
+      aiResponse = await getAIResponse({
+        companyName: company.name || 'Unknown Company',
+        companyWebsite: company.website || '',
+        customerSupportEmail: company.contact_email || '',
+        messageHistory: [],
+        retrievedContext: searchResults.slice(0, 3)
+      });
+    }
+
+    res.json({
+      success: true,
+      question,
+      companyId,
+      searchResults: searchResults.map(result => ({
+        type: result.type,
+        similarity: result.similarity,
+        source: result.source,
+        content: result.type === 'faq' ? 
+          { question: result.question, answer: result.answer } : 
+          { content: result.content.substring(0, 200) + '...' }
+      })),
+      aiResponse,
+      totalResults: searchResults.length,
+      topSimilarity: searchResults.length > 0 ? searchResults[0].similarity : 0
+    });
+  } catch (error) {
+    console.error('❌ RAG test error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'RAG test failed',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Get content chunks for a company
+app.get('/api/companies/:companyId/content-chunks', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    console.log('📄 Getting content chunks for company:', companyId);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Get content chunks
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/company_content_chunks?company_id=eq.${companyId}&order=chunk_index.asc`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const chunks = response.data || [];
+    
+    // Get FAQ count for comparison
+    const faqResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const faqs = faqResponse.data || [];
+
+    res.json({
+      success: true,
+      companyId,
+      contentChunks: chunks.map(chunk => ({
+        id: chunk.id,
+        chunk_index: chunk.chunk_index,
+        content: chunk.content.substring(0, 300) + '...',
+        source: chunk.source,
+        has_embedding: !!chunk.embedding,
+        created_at: chunk.created_at
+      })),
+      summary: {
+        totalChunks: chunks.length,
+        totalFaqs: faqs.length,
+        chunksWithEmbeddings: chunks.filter(c => c.embedding).length,
+        totalContentLength: chunks.reduce((sum, c) => sum + c.content.length, 0)
+      }
+    });
+  } catch (error) {
+    console.error('❌ Content chunks error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch content chunks',
+      details: error.response?.data || error.message 
+    });
   }
 });
 
@@ -2364,3 +2527,73 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
 }); 
+
+// Test API configuration endpoint
+app.get('/api/test/config', async (req, res) => {
+  try {
+    const config = {
+      openRouterKey: process.env.OPEN_ROUTER_API_KEY ? '✅ Configured' : '❌ Missing',
+      jinaApiKey: process.env.JINA_API_KEY ? '✅ Configured' : '❌ Missing',
+      supabaseUrl: process.env.SUPABASE_PROJECT_URL ? '✅ Configured' : '❌ Missing',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY ? '✅ Configured' : '❌ Missing',
+      supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configured' : '❌ Missing',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(config);
+  } catch (error) {
+    console.error('❌ Config test error:', error);
+    res.status(500).json({ error: 'Failed to get configuration status' });
+  }
+});
+
+// Test OpenRouter API endpoint
+app.post('/api/test/openrouter', async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (!process.env.OPEN_ROUTER_API_KEY) {
+      return res.status(500).json({ error: 'OpenRouter API key not configured' });
+    }
+    
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'openai/gpt-5-mini',
+        messages: [
+          {
+            role: 'user',
+            content: message || 'Hello, this is a test message.'
+          }
+        ],
+        max_tokens: 100,
+        temperature: 0.7
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPEN_ROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SOURCE_URL
+        },
+        timeout: 10000
+      }
+    );
+    
+    res.json({
+      success: true,
+      response: response.data.choices[0].message.content,
+      model: response.data.model,
+      usage: response.data.usage
+    });
+  } catch (error) {
+    console.error('❌ OpenRouter test error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'OpenRouter API test failed',
+      details: error.response?.data || error.message,
+      status: error.response?.status
+    });
+  }
+});
+
+// ========================================

@@ -29,15 +29,62 @@ export async function getEmbedding(question, answer) {
 
 
 // Get AI response using OpenAI
-export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory}) {
+export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = []}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-5-mini';
-  const systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly. If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. If you don't find the information on the website, suggest they contact customer support at ${customerSupportEmail} as a mailto link.`;
-  const maxTokens = 300;
+  
+  // Build context-aware system prompt
+  let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.`;
+  
+  // Add retrieved context if available
+  if (retrievedContext && retrievedContext.length > 0) {
+    systemPrompt += `\n\nUse the following company information to answer questions:`;
+    
+    retrievedContext.forEach((context, index) => {
+      if (context.type === 'faq') {
+        systemPrompt += `\n- FAQ: ${context.question} - ${context.answer}`;
+      } else if (context.type === 'content') {
+        systemPrompt += `\n- Company Information: ${context.content}`;
+      }
+    });
+    
+    systemPrompt += `\n\nBase your response on the information provided above. Generate complete sentences and paragraphs only. 
+
+IMPORTANT: When providing contact information, always format it as clickable markdown links:
+- Email addresses: [support@company.com](mailto:support@company.com)
+- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
+- Website links: [Visit our website](https://company.com)
+- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
+
+If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+  } else {
+    // Fallback to original prompt if no context
+    systemPrompt += ` If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. 
+
+IMPORTANT: When providing contact information, always format it as clickable markdown links:
+- Email addresses: [support@company.com](mailto:support@company.com)
+- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
+- Website links: [Visit our website](https://company.com)
+- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
+
+If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+  }
+  
+  const maxTokens = 400; // Increased for more detailed responses with context
   const temperature = 0.7;
 
   try {
+    console.log('🤖 Calling OpenRouter API with:', {
+      model,
+      maxTokens,
+      temperature,
+      messageHistoryLength: messageHistory?.length || 0,
+      retrievedContextLength: retrievedContext?.length || 0,
+      companyName,
+      customerSupportEmail
+    });
+
     const response = await axios.post(
       API_URL,
       {
@@ -57,47 +104,85 @@ export async function getAIResponse({companyName, companyWebsite, customerSuppor
           'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': process.env.SOURCE_URL
-        }
+        },
+        timeout: 30000 // 30 second timeout
       }
     );
 
-    return response.data.choices[0].message.content;
+    console.log('✅ OpenRouter API response received');
+    const aiResponse = response.data.choices[0].message.content;
+    console.log('🤖 AI Response length:', aiResponse?.length || 0);
+    return aiResponse;
   } catch (error) {
-    console.error('OpenAI API error:', error.response?.data || error.message);
-    return "I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance.";
+    console.error('❌ OpenRouter API error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        timeout: error.config?.timeout
+      }
+    });
+    
+    // Check for specific error types
+    if (error.response?.status === 401) {
+      console.error('❌ OpenRouter API key is invalid or missing');
+      return `I apologize, but there's a configuration issue with our AI service. Please contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}) for assistance.`;
+    } else if (error.response?.status === 429) {
+      console.error('❌ OpenRouter API rate limit exceeded');
+      return `I apologize, but our AI service is currently experiencing high demand. Please try again in a few moments or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('❌ OpenRouter API request timed out');
+      return `I apologize, but our AI service is taking longer than expected to respond. Please try again or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error('❌ OpenRouter API connection failed');
+      return `I apologize, but we're unable to connect to our AI service at the moment. Please try again later or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+    }
+    
+    return `I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
   }
 }
 
 // Generate FAQs from crawled content using OpenRouter AI
-export async function getGeneratedFAQs(companyName, content, maxFAQs = 10) {
+export async function getGeneratedFAQs(companyName, content, maxFAQs = 25) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'openai/gpt-4o-mini';
-  const maxTokens = 1500;
-  const temperature = 0.7;
+  const model = 'openai/gpt-5-mini';
+  const maxTokens = 2000; // Increased for more FAQs
+  const temperature = 0.5; // Reduced for more consistent formatting
 
-  const systemPrompt = `You are an expert FAQ generator. Based on the provided content about ${companyName}, generate ${maxFAQs} relevant, high-quality FAQ questions and answers that customers would commonly ask.
+  const systemPrompt = `You are an expert FAQ generator. Your task is to create ${maxFAQs} high-quality FAQ questions and answers based on the provided content about ${companyName}.
 
-Focus on:
+IMPORTANT: You must follow this exact format for each FAQ:
+Q: [Question that ends with a question mark?]
+A: [Complete answer that ends with a period.]
+
+Focus on these topics:
 - Product/service information
-- Common customer inquiries
+- Common customer inquiries  
 - Support and help topics
 - Company policies and procedures
 - Pricing and plans (if mentioned)
 - Technical support questions
-- Do not include any other text or comments in your response.
 
-Format each FAQ exactly as:
-Q: [Clear, specific question. End with a question mark.]
-A: [Comprehensive, helpful answer related to the question. End with a period.]
+Rules:
+1. Every question MUST end with a question mark (?)
+2. Every answer MUST end with a period (.)
+3. Questions should be clear and specific
+4. Answers should be comprehensive and helpful
+5. Do not include any other text, comments, or formatting
+6. Generate exactly ${maxFAQs} FAQ pairs`;
 
-Generate only the FAQs in the specified format, no other text.`;
+  const userPrompt = `Based on this content about ${companyName}, generate ${maxFAQs} FAQ questions and answers:
 
-  const userPrompt = `Generate FAQs based on this content about ${companyName}:
+${content.substring(0, 3000)}
 
-${content.substring(0, 4000)}
-
-Create ${maxFAQs} relevant FAQ pairs that would be most useful for customers.`;
+Remember: Each FAQ must follow the exact format:
+Q: [Question?]
+A: [Answer.]`;
 
   try {
     const response = await axios.post(
@@ -706,5 +791,156 @@ export async function sendMessageLimitReachedEmail(companyEmail, companyName, pl
   } catch (error) {
     console.error('❌ Failed to send message limit reached email:', error);
     return false;
+  }
+}
+
+// Content chunking function for RAG
+export function chunkContent(content, maxChunkSize = 500) {
+  if (!content || typeof content !== 'string') {
+    return [];
+  }
+  
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const chunks = [];
+  let currentChunk = '';
+  
+  for (const sentence of sentences) {
+    const trimmedSentence = sentence.trim();
+    if (!trimmedSentence) continue;
+    
+    if ((currentChunk + ' ' + trimmedSentence).length > maxChunkSize && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = trimmedSentence;
+    } else {
+      currentChunk += (currentChunk ? ' ' : '') + trimmedSentence;
+    }
+  }
+  
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+  
+  return chunks.filter(chunk => chunk.length > 50); // Filter out very short chunks
+}
+
+// Search content chunks using embeddings
+export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/find_relevant_content_chunks`,
+      {
+        p_company_id: companyId,
+        p_query_embedding: queryEmbedding,
+        p_top_k: topK
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data || [];
+  } catch (error) {
+    console.error('Content chunk search error:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+// RAG search function that combines FAQ and content chunk searches
+export async function searchWithRAG(userQuestion, companyId, topK = 5) {
+  try {
+    console.log('🔍 Starting RAG search for:', userQuestion.substring(0, 50) + '...');
+    console.log('🏢 Company ID:', companyId);
+    
+    // Generate embedding for user question
+    const { questionEmbedding } = await getEmbedding(userQuestion, '');
+    console.log('✅ Generated question embedding');
+    
+    // Search FAQs (existing functionality)
+    const faqResults = await searchFAQs(questionEmbedding, companyId, topK);
+    console.log(`📚 Found ${faqResults.length} relevant FAQs`);
+    
+    // Search content chunks (new RAG functionality)
+    const contentResults = await searchContentChunks(questionEmbedding, companyId, topK);
+    console.log(`📄 Found ${contentResults.length} relevant content chunks`);
+    
+    // Combine and rank all results
+    const allResults = [
+      ...faqResults.map(result => ({
+        ...result,
+        type: 'faq',
+        source: 'faq_database'
+      })),
+      ...contentResults.map(result => ({
+        ...result,
+        type: 'content',
+        source: 'company_content'
+      }))
+    ].sort((a, b) => b.similarity - a.similarity)
+    .slice(0, topK); // Get top K most relevant overall
+    
+    console.log(`🎯 RAG search completed. Top ${allResults.length} results found.`);
+    
+    // Log top results for debugging
+    if (allResults.length > 0) {
+      console.log('🏆 Top result:', {
+        type: allResults[0].type,
+        similarity: allResults[0].similarity,
+        content: allResults[0].type === 'faq' ? 
+          allResults[0].question.substring(0, 100) + '...' : 
+          allResults[0].content.substring(0, 100) + '...'
+      });
+    }
+    
+    return allResults;
+    
+  } catch (error) {
+    console.error('❌ RAG search error:', error);
+    console.error('❌ Error details:', error.message);
+    return [];
+  }
+}
+
+// Helper function to search FAQs (extracted from existing logic)
+async function searchFAQs(queryEmbedding, companyId, topK = 3) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/find_relevant_faqs`,
+      {
+        p_company_id: companyId,
+        p_query: '', // Not used in the function, but required
+        p_query_embedding: queryEmbedding,
+        p_top_k: topK
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data || [];
+  } catch (error) {
+    console.error('FAQ search error:', error.response?.data || error.message);
+    return [];
   }
 }

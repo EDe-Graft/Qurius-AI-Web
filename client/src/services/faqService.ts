@@ -19,7 +19,7 @@ class FAQService {
   private BACKEND_URL = config.backendUrl;
 
   // Get FAQ answer using semantic search
-  async getFAQAnswer(userQuestion: string, messages?: Array<{role: string, content: string}>, companyData?: any): Promise<FAQResponse | null> {
+  async getAnswer(userQuestion: string, messages?: Array<{role: string, content: string}>, companyData?: any): Promise<FAQResponse | null> {
     try {
       console.log('🔍 FAQ Search - Context messages:', messages?.length || 0)
       

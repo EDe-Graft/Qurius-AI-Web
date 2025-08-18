@@ -310,7 +310,7 @@ export function ChatInterface({
       console.log('📝 Conversation context:', conversationMessages.length, 'messages')
       
       // Get AI response in English with conversation context
-      const result = await faqService.getFAQAnswer(translatedInput, conversationMessages, companyData)
+      const result = await faqService.getAnswer(translatedInput, conversationMessages, companyData)
       // console.log('✅ FAQ result:', result)
       
       if (result) {
@@ -389,18 +389,35 @@ export function ChatInterface({
           }
         ])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error in handleSendMessage:', error)
       console.error('❌ Error details:', {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : 'Unknown'
+        name: error instanceof Error ? error.name : 'Unknown',
+        response: error.response?.data,
+        status: error.response?.status
       })
+      
+      // Provide more specific error messages based on the error type
+      let errorMessage = 'Sorry, something went wrong. Please try again.';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication error. Please refresh the page and try again.';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      }
       
       setMessages((prev) => [
         ...prev,
         {
-          content: 'Sorry, something went wrong. Please try again.',
+          content: errorMessage,
           isUser: false,
           isMessageStreamed: false,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),

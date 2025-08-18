@@ -18,27 +18,88 @@
   function loadCSS() {
     return new Promise((resolve, reject) => {
       // Check if CSS is already loaded
-      if (document.querySelector(`link[href*="chat-widget.css"]`)) {
+      if (document.querySelector(`link[href*="chat-widget.css"]`) || document.querySelector('#qurius-widget-styles')) {
         resolve();
         return;
       }
       
+      // Try to load external CSS first (for regular websites)
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = CONFIG.cssUrl;
       
       link.onload = () => {
-        console.log('✅ CSS loaded successfully');
+        console.log('✅ External CSS loaded successfully');
         resolve();
       };
       
       link.onerror = (error) => {
-        console.error('Failed to load CSS:', error);
-        reject(new Error('Failed to load CSS'));
+        console.warn('⚠️ External CSS failed to load, trying inline injection...');
+        // Fallback to inline CSS for Wix and other restricted platforms
+        injectInlineCSS();
+        resolve();
       };
       
       document.head.appendChild(link);
     });
+  }
+  
+  // Inject CSS inline for Wix compatibility
+  function injectInlineCSS() {
+    // Check if styles are already injected
+    if (document.querySelector('#qurius-widget-styles')) {
+      return;
+    }
+    
+    const style = document.createElement('style');
+    style.id = 'qurius-widget-styles';
+    style.textContent = `
+      /* Qurius AI Chat Widget Styles */
+      #qurius-chat-widget {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 999999 !important;
+        width: 400px !important;
+        height: 600px !important;
+        max-height: 80vh !important;
+        display: block !important;
+        overflow: visible !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        box-sizing: border-box !important;
+      }
+      
+      #qurius-chat-widget * {
+        box-sizing: border-box !important;
+      }
+      
+      #qurius-chat-widget iframe {
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+      }
+      
+      /* Responsive design */
+      @media (max-width: 480px) {
+        #qurius-chat-widget {
+          width: calc(100vw - 40px) !important;
+          height: calc(100vh - 40px) !important;
+          bottom: 20px !important;
+          right: 20px !important;
+          left: 20px !important;
+        }
+      }
+      
+      /* Hide widget initially */
+      #qurius-chat-widget.hidden {
+        display: none !important;
+      }
+    `;
+    
+    document.head.appendChild(style);
+    console.log('✅ Inline CSS injected successfully');
   }
   
 
