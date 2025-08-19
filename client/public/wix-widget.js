@@ -10,7 +10,7 @@
   
   // Widget state
   let widgetContainer = null;
-  let isOpen = false;
+  let isMinimized = true; // Start minimized like React widget
   let companyData = null;
   
   // Minimal axios implementation for Wix compatibility
@@ -96,6 +96,9 @@
         z-index: 999999 !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         box-sizing: border-box !important;
+        width: 400px !important;
+        height: 600px !important;
+        max-height: 80vh !important;
       }
       
       .qurius-wix-button {
@@ -112,6 +115,10 @@
         justify-content: center !important;
         font-size: 24px !important;
         transition: transform 0.2s !important;
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 999999 !important;
       }
       
       .qurius-wix-button:hover {
@@ -119,8 +126,9 @@
       }
       
       .qurius-wix-chat {
-        width: 350px !important;
-        height: 500px !important;
+        width: 400px !important;
+        height: 600px !important;
+        max-height: 80vh !important;
         background: white !important;
         border-radius: 12px !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
@@ -128,6 +136,10 @@
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 999999 !important;
       }
       
       .qurius-wix-header {
@@ -137,6 +149,8 @@
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
+        border-top-left-radius: 12px !important;
+        border-top-right-radius: 12px !important;
       }
       
       .qurius-wix-header h3 {
@@ -157,6 +171,12 @@
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        border-radius: 4px !important;
+        transition: background-color 0.2s !important;
+      }
+      
+      .qurius-wix-close:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
       }
       
       .qurius-wix-messages {
@@ -164,26 +184,32 @@
         padding: 20px !important;
         overflow-y: auto !important;
         background: #f9fafb !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
       }
       
       .qurius-wix-message {
-        margin-bottom: 15px !important;
         padding: 12px 16px !important;
         border-radius: 12px !important;
         max-width: 80% !important;
         word-wrap: break-word !important;
+        line-height: 1.4 !important;
+        font-size: 14px !important;
       }
       
       .qurius-wix-message.user {
         background: #3b82f6 !important;
         color: white !important;
         margin-left: auto !important;
+        align-self: flex-end !important;
       }
       
       .qurius-wix-message.bot {
         background: white !important;
         color: #374151 !important;
         border: 1px solid #e5e7eb !important;
+        align-self: flex-start !important;
       }
       
       .qurius-wix-input {
@@ -192,6 +218,7 @@
         background: white !important;
         display: flex !important;
         gap: 10px !important;
+        align-items: center !important;
       }
       
       .qurius-wix-input input {
@@ -201,10 +228,16 @@
         border-radius: 6px !important;
         font-size: 14px !important;
         outline: none !important;
+        transition: border-color 0.2s !important;
       }
       
       .qurius-wix-input input:focus {
         border-color: #3b82f6 !important;
+      }
+      
+      .qurius-wix-input input:disabled {
+        background: #f3f4f6 !important;
+        cursor: not-allowed !important;
       }
       
       .qurius-wix-send {
@@ -216,9 +249,11 @@
         cursor: pointer !important;
         font-size: 14px !important;
         font-weight: 500 !important;
+        transition: background-color 0.2s !important;
+        min-width: 60px !important;
       }
       
-      .qurius-wix-send:hover {
+      .qurius-wix-send:hover:not(:disabled) {
         background: #2563eb !important;
       }
       
@@ -232,6 +267,15 @@
         color: #6b7280 !important;
         font-style: italic !important;
         padding: 20px !important;
+        align-self: flex-start !important;
+      }
+      
+      .qurius-wix-welcome {
+        text-align: center !important;
+        color: #6b7280 !important;
+        padding: 20px !important;
+        font-size: 14px !important;
+        line-height: 1.5 !important;
       }
       
       @media (max-width: 480px) {
@@ -241,6 +285,11 @@
           bottom: 20px !important;
           right: 20px !important;
           left: 20px !important;
+        }
+        
+        .qurius-wix-button {
+          bottom: 20px !important;
+          right: 20px !important;
         }
       }
     `;
@@ -254,26 +303,36 @@
     
     widgetContainer = document.createElement('div');
     widgetContainer.className = 'qurius-wix-widget';
-    widgetContainer.innerHTML = `
-      <div class="qurius-wix-chat" style="display: none;">
-        <div class="qurius-wix-header">
-          <h3>${companyData?.name || 'AI Assistant'}</h3>
-          <button class="qurius-wix-close" onclick="window.quriusWixWidget.close()">×</button>
-        </div>
-        <div class="qurius-wix-messages" id="qurius-messages">
-          <div class="qurius-wix-message bot">
-            Hello! I'm here to help. How can I assist you today?
-          </div>
-        </div>
-        <div class="qurius-wix-input">
-          <input type="text" id="qurius-input" placeholder="Type your message..." onkeypress="if(event.key==='Enter') window.quriusWixWidget.sendMessage()">
-          <button class="qurius-wix-send" onclick="window.quriusWixWidget.sendMessage()">Send</button>
+    
+    // Create chat interface (initially hidden)
+    const chatInterface = document.createElement('div');
+    chatInterface.className = 'qurius-wix-chat';
+    chatInterface.style.display = 'none';
+    chatInterface.innerHTML = `
+      <div class="qurius-wix-header">
+        <h3>${companyData?.name || 'AI Assistant'}</h3>
+        <button class="qurius-wix-close" onclick="window.quriusWixWidget.toggle()">×</button>
+      </div>
+      <div class="qurius-wix-messages" id="qurius-messages">
+        <div class="qurius-wix-welcome">
+          Hello! I'm here to help. How can I assist you today?
         </div>
       </div>
-      <button class="qurius-wix-button" onclick="window.quriusWixWidget.toggle()">
-        💬
-      </button>
+      <div class="qurius-wix-input">
+        <input type="text" id="qurius-input" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter') window.quriusWixWidget.sendMessage()">
+        <button class="qurius-wix-send" onclick="window.quriusWixWidget.sendMessage()">Send</button>
+      </div>
     `;
+    
+    // Create chat button (initially visible)
+    const chatButton = document.createElement('button');
+    chatButton.className = 'qurius-wix-button';
+    chatButton.innerHTML = '💬';
+    chatButton.onclick = () => window.quriusWixWidget.toggle();
+    
+    // Add both elements to container
+    widgetContainer.appendChild(chatInterface);
+    widgetContainer.appendChild(chatButton);
     
     document.body.appendChild(widgetContainer);
     return widgetContainer;
@@ -326,6 +385,13 @@
   // Add message to chat
   function addMessage(content, isUser = false) {
     const messagesContainer = document.getElementById('qurius-messages');
+    
+    // Remove welcome message if it exists and this is the first user message
+    const welcomeMessage = messagesContainer.querySelector('.qurius-wix-welcome');
+    if (welcomeMessage && isUser) {
+      welcomeMessage.remove();
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = `qurius-wix-message ${isUser ? 'user' : 'bot'}`;
     messageDiv.textContent = content;
@@ -349,15 +415,28 @@
     },
     
     toggle: function() {
-      const chat = widgetContainer.querySelector('.qurius-wix-chat');
-      isOpen = !isOpen;
-      chat.style.display = isOpen ? 'block' : 'none';
-    },
-    
-    close: function() {
-      const chat = widgetContainer.querySelector('.qurius-wix-chat');
-      isOpen = false;
-      chat.style.display = 'none';
+      const chatInterface = widgetContainer.querySelector('.qurius-wix-chat');
+      const chatButton = widgetContainer.querySelector('.qurius-wix-button');
+      
+      isMinimized = !isMinimized;
+      
+      if (isMinimized) {
+        // Minimize: hide chat, show button
+        chatInterface.style.display = 'none';
+        chatButton.style.display = 'flex';
+        console.log('Widget minimized, chat button visible');
+      } else {
+        // Expand: show chat, hide button
+        chatInterface.style.display = 'flex';
+        chatButton.style.display = 'none';
+        console.log('Widget expanded, chat interface visible');
+        
+        // Focus on input when opened
+        setTimeout(() => {
+          const input = document.getElementById('qurius-input');
+          if (input) input.focus();
+        }, 100);
+      }
     },
     
     sendMessage: async function() {
