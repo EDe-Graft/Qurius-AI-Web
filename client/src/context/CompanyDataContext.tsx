@@ -41,7 +41,7 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
         console.log('🔄 Fetching company data from API...')
 
         // First, get the demo company IDs from backend
-        const backendUrl = import.meta.env.VITE_BACKEND_URL
+        const backendUrl = window.location.hostname === 'qurius.app' ? 'https://qurius-ai.onrender.com' : 'http://localhost:3000'
         const companyIdsResponse = await axios.get(`${backendUrl}/api/demo/company-ids`)
         const { quriusCompanyId, purpleSoftCompanyId } = companyIdsResponse.data
 
