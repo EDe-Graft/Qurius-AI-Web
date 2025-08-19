@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qurius AI Chat Widget</title>
+    <title>Professional AI Chat Widget</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -31,7 +43,7 @@
         }
         
         /* Iframe-specific widget styling */
-        #qurius-chat-widget {
+        #chat-widget {
             width: 100% !important;
             height: 100% !important;
             max-width: none !important;
@@ -44,25 +56,19 @@
         }
         
         /* Override minimized button styling for iframe */
-        #qurius-chat-widget > div[style*="position: fixed"] {
+        .minimized-button {
             position: absolute !important;
             bottom: 20px !important;
             right: 20px !important;
             left: auto !important;
             top: auto !important;
             z-index: 9999 !important;
-        }
-        
-        /* Make minimized button larger in iframe context */
-        #qurius-chat-widget button[class*="text-white"] {
             width: 70px !important;
             height: 70px !important;
-            padding: 20px !important;
-            font-size: 32px !important;
         }
         
         /* Ensure chat interface fills iframe properly */
-        #qurius-chat-widget > div[class*="border border-gray-200"] {
+        .chat-container {
             width: 100% !important;
             height: 100% !important;
             max-width: none !important;
@@ -76,16 +82,6 @@
             margin: 0 !important;
         }
         
-        /* Responsive adjustments for iframe */
-        @media (max-width: 480px) {
-            #qurius-chat-widget button[class*="text-white"] {
-                width: 70px !important;
-                height: 70px !important;
-                padding: 16px !important;
-                font-size: 28px !important;
-            }
-        }
-        
         /* Demo mode styling */
         .demo-mode {
             display: flex;
@@ -93,7 +89,7 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
             color: white;
             text-align: center;
             padding: 20px;
@@ -113,7 +109,7 @@
             line-height: 1.6;
         }
         
-        .demo-mode .demo-button {
+        .demo-button {
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: white;
@@ -126,7 +122,7 @@
             text-decoration: none;
         }
         
-        .demo-mode .demo-button:hover {
+        .demo-button:hover {
             background: rgba(255, 255, 255, 0.3);
             border-color: rgba(255, 255, 255, 0.5);
             transform: translateY(-2px);
@@ -154,119 +150,437 @@
             max-width: 500px;
             line-height: 1.6;
         }
+
+        /* Tailwind dark mode support */
+        .dark {
+            color-scheme: dark;
+        }
+
+        /* Custom scrollbar for messages */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+
+        /* Animation keyframes */
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0, -8px, 0);
+            }
+            70% {
+                transform: translate3d(0, -4px, 0);
+            }
+            90% {
+                transform: translate3d(0, -2px, 0);
+            }
+        }
+
+        .animate-bounce {
+            animation: bounce 1.4s infinite;
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     
-    <!-- Load the React widget -->
-    <script type="module">
-        // Get parameters from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const companyName = urlParams.get('company') || 'AI Assistant';
-        const companyId = urlParams.get('id') || '';
-        const key = urlParams.get('key') || 'demo-2025';
-        const plan = urlParams.get('plan') || 'free';
-        const theme = urlParams.get('theme') || 'light';
-        const demo = urlParams.get('demo') || 'false';
-        
-        // Check if we're in demo mode or have valid parameters
-        const isValidSetup = (companyId && key) || demo === 'true';
-        
-        if (!isValidSetup) {
-            // Show demo mode or error message
-            const root = document.getElementById('root');
-            
-            // Check if this is opened directly in browser (no referrer or same origin)
-            const isDirectAccess = !document.referrer || document.referrer === window.location.href;
-            
-            if (isDirectAccess) {
-                // Show demo mode for direct access
-                root.innerHTML = `
-                    <div class="demo-mode">
-                        <h1>🎯 Qurius AI Chat Widget</h1>
-                        <p>This is a demo of the Qurius AI Chat Widget. To use it on your website, you need to provide valid parameters.</p>
-                        <a href="?demo=true&company=Demo Company&id=demo123&key=demo-key&plan=pro&theme=light" class="demo-button">
-                            🚀 Try Demo Mode
-                        </a>
-                        <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.7;">
-                            For production use, include parameters like:<br>
-                            <code>?company=YourCompany&id=YOUR_ID&key=YOUR_KEY&plan=pro&theme=light</code>
-                        </p>
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        // SVG Icons as components (reverted from Lucide due to UMD compatibility issues)
+        const MessageCircleIcon = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+        );
+
+        const UserIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+        );
+
+        const BotIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2" ry="2"/>
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M12 7v4"/>
+                <line x1="8" y1="16" x2="8" y2="16"/>
+                <line x1="16" y1="16" x2="16" y2="16"/>
+            </svg>
+        );
+
+        const SendIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22,2 15,22 11,13 2,9 22,2"/>
+            </svg>
+        );
+
+        const MoonIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        );
+
+        const SunIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+        );
+
+        const MinimizeIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 14 10 14 10 20"/>
+                <polyline points="20 10 14 10 14 4"/>
+                <line x1="14" y1="10" x2="21" y2="3"/>
+                <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+        );
+
+        const LoaderIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                <line x1="12" y1="2" x2="12" y2="6"/>
+                <line x1="12" y1="18" x2="12" y2="22"/>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                <line x1="2" y1="12" x2="6" y2="12"/>
+                <line x1="18" y1="12" x2="22" y2="12"/>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+            </svg>
+        );
+
+        // Theme Toggle Component
+        const ThemeToggle = ({ theme, toggleTheme }) => (
+            <button
+                onClick={toggleTheme}
+                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md flex items-center justify-center"
+            >
+                {theme === "light" ? (
+                    <MoonIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                ) : (
+                    <SunIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                )}
+            </button>
+        );
+
+        // Message Bubble Component
+        const MessageBubble = ({ message, isUser, timestamp }) => (
+            <div className={`flex gap-3 max-w-4xl mx-auto px-4 py-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    isUser ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                }`}>
+                    {isUser ? <UserIcon /> : <BotIcon />}
+                </div>
+                <div className={`flex-1 space-y-2 ${isUser ? "text-right" : "text-left"}`}>
+                    <div className={`inline-block max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                        isUser
+                            ? "bg-blue-600 text-white rounded-br-md"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md"
+                    }`}>
+                        <div className="whitespace-pre-wrap break-words">{message}</div>
                     </div>
-                `;
-            } else {
-                // Show error for iframe without parameters
-                root.innerHTML = `
-                    <div class="error-message">
-                        <h2>⚠️ Configuration Error</h2>
-                        <p>Missing required parameters for the Qurius AI Chat Widget.</p>
-                        <p>Please provide valid <code>company</code>, <code>id</code>, and <code>key</code> parameters.</p>
-                        <p style="font-size: 0.9rem; margin-top: 1rem;">
-                            Example: <code>?company=MyCompany&id=123&key=abc123&plan=pro&theme=light</code>
-                        </p>
-                    </div>
-                `;
-            }
-        } else {
-            // Valid setup - load the widget
-            console.log('🚀 Loading Qurius AI Chat Widget with parameters:', {
-                companyName,
-                companyId: companyId || 'demo',
-                plan,
-                theme,
-                key,
-                demo: demo === 'true'
-            });
-            
-            // Create widget container
-            const widgetContainer = document.createElement('div');
-            widgetContainer.id = 'qurius-chat-widget';
-            document.getElementById('root').appendChild(widgetContainer);
-            
-            // Load the React widget script
-            const script = document.createElement('script');
-            script.src = window.location.hostname === 'qurius.app' ? '/widget/chat-widget.umd.cjs' : './widget/chat-widget.umd.cjs';
-            script.onload = () => {
-                if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
-                    window.QuriusChatWidget.init(widgetContainer, {
-                        companyName: companyName,
-                        companyId: companyId || 'demo123',
-                        key: key || '',
-                        plan: plan,
-                        theme: theme
-                    });
-                } else {
-                    console.error('❌ QuriusChatWidget not found after script load');
-                    document.getElementById('root').innerHTML = `
-                        <div class="error-message">
-                            <h2>⚠️ Widget Load Error</h2>
-                            <p>Failed to load the Qurius AI Chat Widget.</p>
-                            <p>Please check that the widget files are available.</p>
+                    {timestamp && (
+                        <div className={`text-xs text-gray-500 dark:text-gray-400 px-2 ${isUser ? "text-right" : "text-left"}`}>
+                            {timestamp}
                         </div>
-                    `;
+                    )}
+                </div>
+            </div>
+        );
+
+        // Typing Indicator Component
+        const TypingIndicator = () => (
+            <div className="flex gap-3 max-w-4xl mx-auto px-4 py-6">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <BotIcon />
+                </div>
+                <div className="flex-1">
+                    <div className="inline-block bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-md">
+                        <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{animationDelay: "0.1s"}}></div>
+                            <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" style={{animationDelay: "0.2s"}}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // Chat Input Component
+        const ChatInput = ({ onSendMessage, isLoading, placeholder }) => {
+            const [message, setMessage] = useState("");
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (message.trim() && !isLoading) {
+                    onSendMessage(message.trim());
+                    setMessage("");
                 }
             };
-            
-            script.onerror = () => {
-                console.error('❌ Failed to load widget script');
-                document.getElementById('root').innerHTML = `
-                    <div class="error-message">
-                        <h2>⚠️ Script Load Error</h2>
-                        <p>Failed to load the widget script file.</p>
-                        <p>Please check that <code>chat-widget.umd.cjs</code> is available.</p>
-                    </div>
-                `;
+
+            const handleKeyDown = (e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                }
             };
-            
-            document.head.appendChild(script);
-            
-            // Load CSS
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = window.location.hostname === 'qurius.app' ? '/widget/chat-widget.css' : './widget/chat-widget.css';
-            document.head.appendChild(link);
-        }
+
+            return (
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                    <div className="max-w-4xl mx-auto p-4">
+                        <form onSubmit={handleSubmit} className="relative">
+                            <textarea
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder={placeholder}
+                                disabled={isLoading}
+                                className="min-h-[60px] max-h-[200px] text-sm resize-none pr-12 p-3 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                                rows={1}
+                            />
+                            <button
+                                type="submit"
+                                disabled={!message.trim() || isLoading}
+                                className="absolute right-2 bottom-2 h-8 w-8 p-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 transition-colors duration-200 rounded-md flex items-center justify-center text-white"
+                            >
+                                {isLoading ? <LoaderIcon /> : <SendIcon />}
+                            </button>
+                        </form>
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                            Press Enter to send, Shift + Enter for new line
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main Chat Interface Component
+        const ChatInterface = ({ companyName, theme, toggleTheme, isMinimized, onToggleMinimize }) => {
+            const [messages, setMessages] = useState([
+                {
+                    id: "1",
+                    content: `Hello! I'm your ${companyName} assistant. How can I help you today?`,
+                    isUser: false,
+                    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                },
+            ]);
+            const [isTyping, setIsTyping] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages, isTyping]);
+
+            const handleSendMessage = async (content) => {
+                const userMessage = {
+                    id: Date.now().toString(),
+                    content,
+                    isUser: true,
+                    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                };
+
+                setMessages((prev) => [...prev, userMessage]);
+                setIsTyping(true);
+
+                // Simulate AI response
+                setTimeout(() => {
+                    const aiMessage = {
+                        id: (Date.now() + 1).toString(),
+                        content: `Thank you for your message: "${content}". This is a simulated response from your ${companyName} assistant. In a real implementation, this would be connected to your AI service.`,
+                        isUser: false,
+                        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    };
+                    setMessages((prev) => [...prev, aiMessage]);
+                    setIsTyping(false);
+                }, 1500);
+            };
+
+            if (isMinimized) {
+                return (
+                    <div className="minimized-button">
+                        <button
+                            onClick={onToggleMinimize}
+                            className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                        >
+                            <MessageCircleIcon />
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="chat-container bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                <MessageCircleIcon className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{companyName} Assistant</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Online now</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                            {onToggleMinimize && (
+                                <button
+                                    onClick={onToggleMinimize}
+                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center justify-center"
+                                >
+                                    <MinimizeIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 messages-container">
+                        <div className="py-4">
+                            {messages.map((message) => (
+                                <MessageBubble
+                                    key={message.id}
+                                    message={message.content}
+                                    isUser={message.isUser}
+                                    timestamp={message.timestamp}
+                                />
+                            ))}
+                            {isTyping && <TypingIndicator />}
+                        </div>
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Input */}
+                    <ChatInput
+                        onSendMessage={handleSendMessage}
+                        isLoading={isTyping}
+                        placeholder={`Ask ${companyName} anything...`}
+                    />
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            // Get parameters from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const companyName = urlParams.get('company') || 'AI Assistant';
+            const companyId = urlParams.get('id') || '';
+            const key = urlParams.get('key') || 'demo-2025';
+            const plan = urlParams.get('plan') || 'free';
+            const initialTheme = urlParams.get('theme') || 'light';
+            const demo = urlParams.get('demo') || 'false';
+
+            const [theme, setTheme] = useState(initialTheme);
+            const [isMinimized, setIsMinimized] = useState(true);
+
+            const toggleTheme = () => {
+                setTheme(prev => prev === 'light' ? 'dark' : 'light');
+            };
+
+            // Check if we're in demo mode or have valid parameters
+            const isValidSetup = (companyId && key) || demo === 'true';
+
+            useEffect(() => {
+                // Apply theme to document
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }, [theme]);
+
+            if (!isValidSetup) {
+                // Check if this is opened directly in browser
+                const isDirectAccess = !document.referrer || document.referrer === window.location.href;
+
+                if (isDirectAccess) {
+                    // Show demo mode for direct access
+                    return (
+                        <div className="demo-mode">
+                            <h1>💬 Professional AI Chat Widget</h1>
+                            <p>This is a demo of the Professional AI Chat Widget. To use it on your website, you need to provide valid parameters.</p>
+                            <a href="?demo=true&company=Demo Company&id=demo123&key=demo-key&plan=pro&theme=light" className="demo-button">
+                                🚀 Try Demo Mode
+                            </a>
+                            <p style={{marginTop: '2rem', fontSize: '0.9rem', opacity: 0.7}}>
+                                For production use, include parameters like:<br />
+                                <code>?company=YourCompany&id=YOUR_ID&key=YOUR_KEY&plan=pro&theme=light</code>
+                            </p>
+                        </div>
+                    );
+                } else {
+                    // Show error for iframe without parameters
+                    return (
+                        <div className="error-message">
+                            <h2>⚠️ Configuration Error</h2>
+                            <p>Missing required parameters for the Professional AI Chat Widget.</p>
+                            <p>Please provide valid <code>company</code>, <code>id</code>, and <code>key</code> parameters.</p>
+                            <p style={{fontSize: '0.9rem', marginTop: '1rem'}}>
+                                Example: <code>?company=MyCompany&id=123&key=abc123&plan=pro&theme=light</code>
+                            </p>
+                        </div>
+                    );
+                }
+            }
+
+            return (
+                <div id="chat-widget" className={theme === 'dark' ? 'dark' : ''}>
+                    <ChatInterface
+                        companyName={companyName}
+                        theme={theme}
+                        toggleTheme={toggleTheme}
+                        isMinimized={isMinimized}
+                        onToggleMinimize={() => setIsMinimized(!isMinimized)}
+                    />
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
-</html> 
+</html>

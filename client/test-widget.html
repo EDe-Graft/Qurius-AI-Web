@@ -500,9 +500,45 @@
 
     <!-- Widget Demo Embed Script -->
     <!-- <script src="https://qurius.app/embed.js" data-company="Mob House Djs" data-id="d6ceb0db-8992-4767-a93d-d1789809f4e9" data-key="5ef10eb99da3a314cbcd1ca21ca80fc7d7f2c4407421ab00adcb423cd9b67a05" data-plan="pro" data-theme="light"></script> -->
-    <script src="https://qurius.app/embed.js" data-company="HealthPlus Medical" data-id="166f1c7e-e800-4813-9217-af195c4ff405" data-key="demo-2025-healthplusmedical" data-plan="pro" data-theme="light"></script>
+    <!-- <script src="https://qurius.app/embed.js" data-company="HealthPlus Medical" data-id="166f1c7e-e800-4813-9217-af195c4ff405" data-key="demo-2025-healthplusmedical" data-plan="pro" data-theme="light"></script> -->
     <!-- <script src="https://qurius.app/embed.js" data-company="Qurius AI" data-id="180d1a0e-8e86-4edb-8162-afef3e8505b1" data-key="8e3fea56bf0712684fec3fbe9c2d3c214ceda7af8213657c44702c2197b92ce4" data-plan="pro" data-theme="light"></script> -->
     
+<!-- Add this to Wix Custom Code -->
+<script>
+    window.addEventListener('load', function() {
+      // Create floating iframe container
+      const iframeContainer = document.createElement('div');
+      iframeContainer.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 400px;
+        height: 600px;
+        z-index: 999999;
+        border-radius: 12px;
+        overflow: hidden;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      `;
+      
+      // Create iframe
+      const iframe = document.createElement('iframe');
+      iframe.src = 'public/widget-iframe.html?company=HealthPlus Medical&id=166f1c7e-e800-4813-9217-af195c4ff405&key=demo-2025-healthplusmedical&plan=pro&theme=light';
+      iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 12px;
+      `;
+      iframe.allow = 'microphone; camera';
+      
+      // Add to page
+      iframeContainer.appendChild(iframe);
+      document.body.appendChild(iframeContainer);
+    });
+    </script>
+
     <script>
         console.log('🏥 HealthPlus Medical Demo Website Loaded!');
         console.log('Look for the chat widget in the bottom-right corner');
