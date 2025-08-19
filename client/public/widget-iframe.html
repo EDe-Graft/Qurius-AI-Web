@@ -22,6 +22,7 @@
         #root {
             height: 100%;
             width: 100%;
+            position: relative;
         }
         
         /* Hide scrollbars for iframe */
@@ -29,7 +30,7 @@
             display: none;
         }
         
-        /* Ensure widget fits iframe perfectly */
+        /* Iframe-specific widget styling */
         #qurius-chat-widget {
             width: 100% !important;
             height: 100% !important;
@@ -40,6 +41,118 @@
             right: auto !important;
             left: auto !important;
             top: auto !important;
+        }
+        
+        /* Override minimized button styling for iframe */
+        #qurius-chat-widget > div[style*="position: fixed"] {
+            position: absolute !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            left: auto !important;
+            top: auto !important;
+            z-index: 9999 !important;
+        }
+        
+        /* Make minimized button larger in iframe context */
+        #qurius-chat-widget button[class*="text-white"] {
+            width: 70px !important;
+            height: 70px !important;
+            padding: 20px !important;
+            font-size: 32px !important;
+        }
+        
+        /* Ensure chat interface fills iframe properly */
+        #qurius-chat-widget > div[class*="border border-gray-200"] {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            position: relative !important;
+            bottom: auto !important;
+            right: auto !important;
+            left: auto !important;
+            top: auto !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* Responsive adjustments for iframe */
+        @media (max-width: 480px) {
+            #qurius-chat-widget button[class*="text-white"] {
+                width: 70px !important;
+                height: 70px !important;
+                padding: 16px !important;
+                font-size: 28px !important;
+            }
+        }
+        
+        /* Demo mode styling */
+        .demo-mode {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .demo-mode h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .demo-mode p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        
+        .demo-mode .demo-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .demo-mode .demo-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .error-message h2 {
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+        
+        .error-message p {
+            margin-bottom: 1rem;
+            max-width: 500px;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -55,33 +168,104 @@
         const key = urlParams.get('key') || '';
         const plan = urlParams.get('plan') || 'free';
         const theme = urlParams.get('theme') || 'light';
+        const demo = urlParams.get('demo') || 'false';
         
-        // Create widget container
-        const widgetContainer = document.createElement('div');
-        widgetContainer.id = 'qurius-chat-widget';
-        document.getElementById('root').appendChild(widgetContainer);
+        // Check if we're in demo mode or have valid parameters
+        const isValidSetup = (companyId && key) || demo === 'true';
         
-        // Load the React widget script
-        const script = document.createElement('script');
-        script.src = '/widget/chat-widget.umd.cjs';
-        script.onload = () => {
-            if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
-                window.QuriusChatWidget.init(widgetContainer, {
-                    companyName: companyName,
-                    companyId: companyId,
-                    key: key,
-                    plan: plan,
-                    theme: theme
-                });
+        if (!isValidSetup) {
+            // Show demo mode or error message
+            const root = document.getElementById('root');
+            
+            // Check if this is opened directly in browser (no referrer or same origin)
+            const isDirectAccess = !document.referrer || document.referrer === window.location.href;
+            
+            if (isDirectAccess) {
+                // Show demo mode for direct access
+                root.innerHTML = `
+                    <div class="demo-mode">
+                        <h1>🎯 Qurius AI Chat Widget</h1>
+                        <p>This is a demo of the Qurius AI Chat Widget. To use it on your website, you need to provide valid parameters.</p>
+                        <a href="?demo=true&company=Demo Company&id=demo123&key=demo-key&plan=pro&theme=light" class="demo-button">
+                            🚀 Try Demo Mode
+                        </a>
+                        <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.7;">
+                            For production use, include parameters like:<br>
+                            <code>?company=YourCompany&id=YOUR_ID&key=YOUR_KEY&plan=pro&theme=light</code>
+                        </p>
+                    </div>
+                `;
+            } else {
+                // Show error for iframe without parameters
+                root.innerHTML = `
+                    <div class="error-message">
+                        <h2>⚠️ Configuration Error</h2>
+                        <p>Missing required parameters for the Qurius AI Chat Widget.</p>
+                        <p>Please provide valid <code>company</code>, <code>id</code>, and <code>key</code> parameters.</p>
+                        <p style="font-size: 0.9rem; margin-top: 1rem;">
+                            Example: <code>?company=MyCompany&id=123&key=abc123&plan=pro&theme=light</code>
+                        </p>
+                    </div>
+                `;
             }
-        };
-        document.head.appendChild(script);
-        
-        // Load CSS
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = '/widget/chat-widget.css';
-        document.head.appendChild(link);
+        } else {
+            // Valid setup - load the widget
+            console.log('🚀 Loading Qurius AI Chat Widget with parameters:', {
+                companyName,
+                companyId: companyId || 'demo',
+                plan,
+                theme,
+                demo: demo === 'true'
+            });
+            
+            // Create widget container
+            const widgetContainer = document.createElement('div');
+            widgetContainer.id = 'qurius-chat-widget';
+            document.getElementById('root').appendChild(widgetContainer);
+            
+            // Load the React widget script
+            const script = document.createElement('script');
+            script.src = './widget/chat-widget.umd.cjs';
+            script.onload = () => {
+                if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
+                    window.QuriusChatWidget.init(widgetContainer, {
+                        companyName: companyName,
+                        companyId: companyId || 'demo123',
+                        key: key || 'demo-key',
+                        plan: plan,
+                        theme: theme
+                    });
+                } else {
+                    console.error('❌ QuriusChatWidget not found after script load');
+                    document.getElementById('root').innerHTML = `
+                        <div class="error-message">
+                            <h2>⚠️ Widget Load Error</h2>
+                            <p>Failed to load the Qurius AI Chat Widget.</p>
+                            <p>Please check that the widget files are available.</p>
+                        </div>
+                    `;
+                }
+            };
+            
+            script.onerror = () => {
+                console.error('❌ Failed to load widget script');
+                document.getElementById('root').innerHTML = `
+                    <div class="error-message">
+                        <h2>⚠️ Script Load Error</h2>
+                        <p>Failed to load the widget script file.</p>
+                        <p>Please check that <code>chat-widget.umd.cjs</code> is available.</p>
+                    </div>
+                `;
+            };
+            
+            document.head.appendChild(script);
+            
+            // Load CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = './widget/chat-widget.css';
+            document.head.appendChild(link);
+        }
     </script>
 </body>
 </html> 
