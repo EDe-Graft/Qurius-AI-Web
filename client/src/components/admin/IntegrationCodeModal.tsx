@@ -61,12 +61,13 @@ window.addEventListener('load', function() {
     right: 20px;
     width: 400px;
     height: 600px;
-    z-index: 999999;
+    z-index: 9999;
     border-radius: 12px;
     overflow: hidden;
     background: transparent;
     border: none;
     box-shadow: none;
+    pointer-events: none;
   \`;
   
   // Create iframe
@@ -77,12 +78,26 @@ window.addEventListener('load', function() {
     height: 100%;
     border: none;
     border-radius: 12px;
+    pointer-events: auto;
   \`;
   iframe.allow = 'microphone; camera';
   
   // Add to page
   iframeContainer.appendChild(iframe);
   document.body.appendChild(iframeContainer);
+  
+  // Add click-through prevention for the container area only
+  iframeContainer.addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+  
+  // Allow clicks outside the iframe to pass through
+  document.addEventListener('click', function(e) {
+    if (!iframeContainer.contains(e.target)) {
+      // Click is outside iframe, let it pass through
+      return true;
+    }
+  });
 });
 </script>`
       }
