@@ -165,7 +165,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const companyName = urlParams.get('company') || 'AI Assistant';
         const companyId = urlParams.get('id') || '';
-        const key = urlParams.get('key') || '';
+        const key = urlParams.get('key') || 'demo-2025';
         const plan = urlParams.get('plan') || 'free';
         const theme = urlParams.get('theme') || 'light';
         const demo = urlParams.get('demo') || 'false';
@@ -215,6 +215,7 @@
                 companyId: companyId || 'demo',
                 plan,
                 theme,
+                key,
                 demo: demo === 'true'
             });
             
@@ -225,13 +226,13 @@
             
             // Load the React widget script
             const script = document.createElement('script');
-            script.src = './widget/chat-widget.umd.cjs';
+            script.src = window.location.hostname === 'qurius.app' ? '/widget/chat-widget.umd.cjs' : './widget/chat-widget.umd.cjs';
             script.onload = () => {
                 if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
                     window.QuriusChatWidget.init(widgetContainer, {
                         companyName: companyName,
                         companyId: companyId || 'demo123',
-                        key: key || 'demo-key',
+                        key: key || '',
                         plan: plan,
                         theme: theme
                     });
@@ -263,7 +264,7 @@
             // Load CSS
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = './widget/chat-widget.css';
+            link.href = window.location.hostname === 'qurius.app' ? '/widget/chat-widget.css' : './widget/chat-widget.css';
             document.head.appendChild(link);
         }
     </script>
