@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qurius AI Chat Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: transparent;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #root {
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* Hide scrollbars for iframe */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Ensure widget fits iframe perfectly */
+        #qurius-chat-widget {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            position: relative !important;
+            bottom: auto !important;
+            right: auto !important;
+            left: auto !important;
+            top: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Load the React widget -->
+    <script type="module">
+        // Get parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const companyName = urlParams.get('company') || 'AI Assistant';
+        const companyId = urlParams.get('id') || '';
+        const key = urlParams.get('key') || '';
+        const plan = urlParams.get('plan') || 'free';
+        const theme = urlParams.get('theme') || 'light';
+        
+        // Create widget container
+        const widgetContainer = document.createElement('div');
+        widgetContainer.id = 'qurius-chat-widget';
+        document.getElementById('root').appendChild(widgetContainer);
+        
+        // Load the React widget script
+        const script = document.createElement('script');
+        script.src = '/widget/chat-widget.umd.cjs';
+        script.onload = () => {
+            if (window.QuriusChatWidget && window.QuriusChatWidget.init) {
+                window.QuriusChatWidget.init(widgetContainer, {
+                    companyName: companyName,
+                    companyId: companyId,
+                    key: key,
+                    plan: plan,
+                    theme: theme
+                });
+            }
+        };
+        document.head.appendChild(script);
+        
+        // Load CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/widget/chat-widget.css';
+        document.head.appendChild(link);
+    </script>
+</body>
+</html> 
