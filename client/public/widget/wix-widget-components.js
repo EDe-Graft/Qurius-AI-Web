@@ -249,7 +249,8 @@ const WixWidgetComponents = {
                     className="h-16 w-16 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110"
                     style={{ 
                         backgroundColor: companyTheme?.primaryColor || '#3B82F6',
-                        pointerEvents: 'auto'
+                        pointerEvents: 'auto',
+                        transition: 'all 0.2s ease-in-out'
                     }}
                 >
                     <WixWidgetComponents.icons.MessageCircleIcon />

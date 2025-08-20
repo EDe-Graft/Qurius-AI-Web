@@ -620,6 +620,22 @@
                 timestamp: Date.now()
               }, '*');
             });
+
+            //send hover message to iframe
+            buttonOverlay.addEventListener('mouseenter', function(e) {
+              iframe.contentWindow.postMessage({
+                type: 'button-hover',
+                timestamp: Date.now()
+              }, '*');
+            });
+
+            //send hover end message to iframe
+            buttonOverlay.addEventListener('mouseleave', function(e) {
+              iframe.contentWindow.postMessage({
+                type: 'button-hover-end',
+                timestamp: Date.now()
+              }, '*');
+            });
             
             // Remove existing overlay if any
             const existingOverlay = document.getElementById('button-overlay');

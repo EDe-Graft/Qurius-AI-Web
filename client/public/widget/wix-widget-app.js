@@ -26,7 +26,7 @@ const WixWidgetApp = () => {
                 const unifiedData = await WIX_WIDGET_PARAMS.getUnifiedCompanyData(params);
                 
                 if (unifiedData) {
-                    console.log('✅ Unified company data loaded:', unifiedData);
+                    // console.log('✅ Unified company data loaded:', unifiedData);
                     setCompanyData(unifiedData);
                 } else {
                     console.warn('⚠️ Failed to load unified data, using URL params');
@@ -85,6 +85,29 @@ const WixWidgetApp = () => {
                 if (isMinimized) {
                     console.log('🔄 Expanding widget from parent click');
                     setIsMinimized(false);
+                }
+            }
+            
+            // Handle button hover messages
+            if (event.data && event.data.type === 'button-hover') {
+                console.log('🎯 Button hover message received from parent');
+                // Apply hover styling to minimized button
+                const minimizedButton = document.querySelector('.wix-minimized-button button');
+                if (minimizedButton) {
+                    minimizedButton.style.transform = 'scale(1.05)';
+                    minimizedButton.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.3)';
+                    minimizedButton.style.filter = 'brightness(1.1)';
+                }
+            }
+            
+            if (event.data && event.data.type === 'button-hover-end') {
+                console.log('🎯 Button hover end message received from parent');
+                // Remove hover styling from minimized button
+                const minimizedButton = document.querySelector('.wix-minimized-button button');
+                if (minimizedButton) {
+                    minimizedButton.style.transform = 'scale(1)';
+                    minimizedButton.style.boxShadow = '';
+                    minimizedButton.style.filter = '';
                 }
             }
         };
