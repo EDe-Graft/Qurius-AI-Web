@@ -36,7 +36,7 @@ export function QuickQuestions({
     setError(null)
     
     try {
-      const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const apiUrl = window.location.hostname === 'localhost'
         ? 'http://localhost:3000'
         : 'https://qurius.app'
       

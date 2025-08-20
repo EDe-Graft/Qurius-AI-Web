@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
 import { ChatInput } from "./ChatInput"
-import { QuickQuestions } from "./QuickQuestions"
+// import { QuickQuestions } from "./QuickQuestions"
 import { useLanguage } from "@/context/LanguageContext"
 import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
@@ -57,7 +57,7 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
-  const [showQuickQuestions, setShowQuickQuestions] = useState(false)
+  // const [showQuickQuestions, setShowQuickQuestions] = useState(false)
 
 
   // Add this function inside your ChatInterface component
@@ -219,7 +219,7 @@ export function ChatInterface({
       const timer = setTimeout(() => {
         setIsVisible(true)
         // Show quick questions when chat is opened
-        setShowQuickQuestions(true)
+        // setShowQuickQuestions(true)
         // Scroll to bottom after chat is visible and ready
         setTimeout(() => {
           restoreScrollPosition() // restore scroll position
@@ -229,7 +229,7 @@ export function ChatInterface({
     } else {
       // When minimized, hide immediately
       setIsVisible(false)
-      setShowQuickQuestions(false)
+      // setShowQuickQuestions(false)
     }
   }, [isMinimized])
 
@@ -277,7 +277,7 @@ export function ChatInterface({
     console.log('🚀 Starting message processing:', content)
 
     // Hide quick questions when a message is sent
-    setShowQuickQuestions(false)
+    // setShowQuickQuestions(false)
 
     const userMessage: Message = {
       content,
@@ -449,9 +449,9 @@ export function ChatInterface({
   }
 
   // Handle quick question click
-  const handleQuickQuestionClick = (question: string) => {
-    handleSendMessage(question)
-  }
+  // const handleQuickQuestionClick = (question: string) => {
+  //   handleSendMessage(question)
+  // }
 
   // Generate hover color from primary color
   const hoverColor = companyTheme?.primaryColor ? darkenColor(companyTheme.primaryColor, 20) : undefined;
@@ -713,7 +713,7 @@ export function ChatInterface({
       )}
 
       {/* Quick Questions */}
-      <div className="transition-opacity duration-300 ease-in-out">
+      {/* <div className="transition-opacity duration-300 ease-in-out">
         <QuickQuestions
           companyId={companyId || ''}
           companyName={companyName}
@@ -721,7 +721,7 @@ export function ChatInterface({
           companyTheme={companyTheme}
           isVisible={showQuickQuestions && messages.length <= 1}
         />
-      </div>
+      </div> */}
 
       {/* Input */}
       <ChatInput
