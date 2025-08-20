@@ -52,6 +52,7 @@ function AIMessageBubble({
   companyTheme, 
   isLastAiMessage, 
   companyName, 
+  companyId,
   onRatingChange, 
   onStreamingComplete
 }: {
@@ -64,6 +65,7 @@ function AIMessageBubble({
   companyTheme?: any
   isLastAiMessage?: boolean
   companyName?: string
+  companyId?: string
   onRatingChange?: (rating: 'like' | 'dislike' | null) => void
   onStreamingComplete?: (messageIndex: number) => void
 }) {
@@ -132,6 +134,7 @@ function AIMessageBubble({
         // Submit positive rating immediately
         await AnalyticsService.trackRating(
           companyName,
+          companyId || 'unknown',
           rating,
           message,
           'ai', // Assuming AI response for now
@@ -152,6 +155,7 @@ function AIMessageBubble({
     try {
       await AnalyticsService.trackRating(
         companyName,
+        companyId || 'unknown',
         -1, // Negative rating
         message,
         'ai', // Assuming AI response for now
@@ -320,7 +324,7 @@ function AIMessageBubble({
 }
 
 // Main MessageBubble Component - now acts as a router
-export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, onRatingChange, onStreamingComplete }: MessageBubbleProps) {
+export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, companyId, onRatingChange, onStreamingComplete }: MessageBubbleProps) {
   if (isUser) {
     return (
       <UserMessageBubble 
@@ -341,6 +345,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
         companyTheme={companyTheme}
         isLastAiMessage={isLastAiMessage}
         companyName={companyName}
+        companyId={companyId}
         onRatingChange={onRatingChange}
         onStreamingComplete={onStreamingComplete}
       />

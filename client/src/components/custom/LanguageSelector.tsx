@@ -7,9 +7,10 @@ interface LanguageSelectorProps {
   className?: string
   variant?: 'dropdown' | 'buttons'
   companyName?: string
+  companyId?: string
 }
 
-export function LanguageSelector({ className = '', variant = 'dropdown', companyName }: LanguageSelectorProps) {
+export function LanguageSelector({ className = '', variant = 'dropdown', companyName, companyId }: LanguageSelectorProps) {
   const { currentLanguage, setLanguage, isLanguageChanging } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -17,7 +18,7 @@ export function LanguageSelector({ className = '', variant = 'dropdown', company
     setLanguage(language)
     setIsOpen(false)
     if (companyName) {
-      AnalyticsService.trackLanguageChange(companyName, language)
+      AnalyticsService.trackLanguageChange(companyName, companyId || '', language)
     }
   }
 

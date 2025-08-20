@@ -591,6 +591,7 @@ export function ChatInterface({
               variant="dropdown" 
               className="scale-65" 
               companyName={companyName}
+              companyId={companyId || ''}
             />
           )}
           {verifiedPlan !== 'free' && (
@@ -648,6 +649,7 @@ export function ChatInterface({
                 skipStreaming={message.isMessageStreamed === true} // Pass this prop to MessageBubble
                 isLastAiMessage={isLastAiMessage} // Stream last AI messages
                 companyName={companyName} // Pass company name for analytics
+                companyId={companyId || ''} // Pass company ID for analytics
                 companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
                 onRatingChange={(rating) => handleRatingChange(index, rating)} // Pass the new handler with message index
                 onStreamingComplete={handleStreamingComplete} // Pass the new handler
