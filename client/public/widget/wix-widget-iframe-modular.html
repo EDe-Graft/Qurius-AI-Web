@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wix AI Chat Widget (Modular)</title>
+    
+    <!-- React, Babel, Tailwind CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="wix-widget-styles.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Load modular files in correct order -->
+    <script src="wix-widget-config.js"></script>
+    <script src="wix-widget-analytics.js"></script>
+    <script src="wix-widget-api.js"></script>
+    
+    <!-- Load JSX files with Babel processing -->
+    <script type="text/babel" src="wix-widget-components.js"></script>
+    <script type="text/babel" src="wix-widget-app.js"></script>
+    
+    <!-- Render the app -->
+    <script type="text/babel">
+        // Render the modular app
+        ReactDOM.render(<WixWidgetApp />, document.getElementById('root'));
+    </script>
+</body>
+</html> 

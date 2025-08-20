@@ -72,7 +72,7 @@ window.addEventListener('load', function() {
   
   // Create iframe
   const iframe = document.createElement('iframe');
-  iframe.src = 'https://qurius.app/widget-iframe.html?company=${encodeURIComponent(companyName)}&id=${companyId}&key=${widgetKey}&plan=${plan}&theme=light';
+  iframe.src = 'https://qurius.app/wix-widget-iframe.html?company=${encodeURIComponent(companyName)}&id=${companyId}&key=${widgetKey}&plan=${plan}&theme=light';
   iframe.style.cssText = \`
     width: 100%;
     height: 100%;

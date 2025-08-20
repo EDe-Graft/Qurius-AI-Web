@@ -503,9 +503,14 @@
     <!-- <script src="https://qurius.app/embed.js" data-company="HealthPlus Medical" data-id="166f1c7e-e800-4813-9217-af195c4ff405" data-key="demo-2025-healthplusmedical" data-plan="pro" data-theme="light"></script> -->
     <!-- <script src="https://qurius.app/embed.js" data-company="Qurius AI" data-id="180d1a0e-8e86-4edb-8162-afef3e8505b1" data-key="8e3fea56bf0712684fec3fbe9c2d3c214ceda7af8213657c44702c2197b92ce4" data-plan="pro" data-theme="light"></script> -->
     
-<!-- Add this to Wix Custom Code -->
-<script>
+    <!-- Wix Widget -->
+    <!-- <script src="https://qurius.app/wix-widget.js" data-company="HealthPlus Medical" data-id="166f1c7e-e800-4813-9217-af195c4ff405" data-key="demo-2025-healthplusmedical" data-plan="pro" data-theme="light"></script> -->
+
+    <!-- Add this to Wix Custom Code -->
+    <script>
     window.addEventListener('load', function() {
+      console.log('🚀 Page loaded, creating iframe widget');
+      
       // Create floating iframe container
       const iframeContainer = document.createElement('div');
       iframeContainer.style.cssText = `
@@ -518,24 +523,165 @@
         border-radius: 12px;
         overflow: hidden;
         background: transparent;
+        background-color: transparent;
         border: none;
         box-shadow: none;
+        pointer-events: none;
       `;
+      
+      console.log('📦 Iframe container created with pointer-events: none');
       
       // Create iframe
       const iframe = document.createElement('iframe');
-      iframe.src = 'https://qurius.app/widget-iframe.html?company=HealthPlus Medical&id=166f1c7e-e800-4813-9217-af195c4ff405&key=demo-2025-healthplusmedical&plan=pro&theme=light';
+      iframe.src = 'public/widget/wix-widget-iframe-modular.html?company=HealthPlus Medical&id=166f1c7e-e800-4813-9217-af195c4ff405&key=demo-2025-healthplusmedical&plan=pro&theme=light';
       iframe.style.cssText = `
         width: 100%;
         height: 100%;
         border: none;
         border-radius: 12px;
+        background: transparent !important;
+        background-color: transparent !important;
       `;
       iframe.allow = 'microphone; camera';
+      
+      console.log('🖼️ Iframe created, src:', iframe.src);
+      
+      // Track iframe loading
+      iframe.onload = function() {
+        console.log('✅ Iframe loaded successfully');
+        console.log('🔍 Iframe contentWindow:', iframe.contentWindow);
+        console.log('🔍 Iframe contentDocument:', iframe.contentDocument);
+      };
+      
+      iframe.onerror = function() {
+        console.error('❌ Iframe failed to load');
+      };
       
       // Add to page
       iframeContainer.appendChild(iframe);
       document.body.appendChild(iframeContainer);
+      console.log('📄 Iframe added to page');
+      
+      // Listen for messages from iframe to update pointer events
+      window.addEventListener('message', function(event) {
+        // console.log('📨 Message received:', event.data);
+        // console.log('📨 Message source:', event.source);
+        // console.log('📨 Iframe contentWindow:', iframe.contentWindow);
+        
+        // Verify the message is from our iframe
+        if (event.source !== iframe.contentWindow) {
+        //   console.log('⚠️ Message ignored - source mismatch');
+          return;
+        }
+        
+        // Handle widget state changes
+        if (event.data && event.data.type === 'widget-minimized-state') {
+          const isMinimized = event.data.isMinimized;
+          console.log('🔄 Widget minimized state changed:', isMinimized);
+          console.log('🔄 Previous pointer-events:', iframeContainer.style.pointerEvents);
+          
+          if (isMinimized) {
+            // When minimized: Set container to none, but allow button clicks
+            iframeContainer.style.pointerEvents = 'none';
+            
+            // Add a click handler to the iframe container that only responds to button clicks
+            iframeContainer.addEventListener('click', handleIframeClick, true);
+            
+            // Alternative: Use CSS to make only the button clickable
+            iframe.style.cssText = `
+              width: 100%;
+              height: 100%;
+              border: none;
+              border-radius: 12px;
+              background: transparent !important;
+              background-color: transparent !important;
+              pointer-events: none;
+            `;
+            
+            // Add a transparent overlay div that only responds to button clicks
+            const buttonOverlay = document.createElement('div');
+            buttonOverlay.id = 'button-overlay';
+            buttonOverlay.style.cssText = `
+              position: absolute;
+              bottom: 16px;
+              right: 15px;
+              width: 64px;
+              height: 64px;
+              border-radius: 50%;
+              z-index: 1000000;
+              pointer-events: auto;
+              cursor: pointer;
+            `;
+            buttonOverlay.addEventListener('click', function(e) {
+              console.log('🎯 Button overlay clicked!');
+              // Send click message to iframe
+              iframe.contentWindow.postMessage({
+                type: 'button-click',
+                timestamp: Date.now()
+              }, '*');
+            });
+            
+            // Remove existing overlay if any
+            const existingOverlay = document.getElementById('button-overlay');
+            if (existingOverlay) {
+              existingOverlay.remove();
+            }
+            
+            iframeContainer.appendChild(buttonOverlay);
+            
+          } else {
+            // When expanded: Remove all restrictions
+            iframeContainer.style.pointerEvents = 'auto';
+            iframe.style.cssText = `
+              width: 100%;
+              height: 100%;
+              border: none;
+              border-radius: 12px;
+              background: transparent !important;
+              background-color: transparent !important;
+            `;
+            
+            // Remove click handler
+            iframeContainer.removeEventListener('click', handleIframeClick, true);
+            
+            // Remove button overlay
+            const existingOverlay = document.getElementById('button-overlay');
+            if (existingOverlay) {
+              existingOverlay.remove();
+            }
+          }
+          
+          // console.log('✅ Iframe container pointer-events set to:', isMinimized ? 'none' : 'auto');
+          // console.log('✅ Current pointer-events:', iframeContainer.style.pointerEvents);
+        }
+      });
+      
+      // Function to handle iframe clicks when minimized
+      function handleIframeClick(e) {
+        // Check if click is in the button area (bottom-right corner)
+        const rect = iframeContainer.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        
+        // Button area: bottom-right 64x64px
+        const buttonArea = {
+          left: rect.width - 84, // 20px margin from right
+          right: rect.width - 20,
+          top: rect.height - 84,  // 20px margin from bottom
+          bottom: rect.height - 20
+        };
+        
+        if (clickX >= buttonArea.left && clickX <= buttonArea.right &&
+            clickY >= buttonArea.top && clickY <= buttonArea.bottom) {
+          console.log('🎯 Button area clicked!');
+          // Send click message to iframe
+          iframe.contentWindow.postMessage({
+            type: 'button-click',
+            timestamp: Date.now()
+          }, '*');
+        }
+      }
+
     });
     </script>
 
