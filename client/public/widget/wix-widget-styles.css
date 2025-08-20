@@ -25,9 +25,31 @@ html, body {
     background-color: transparent !important;
 }
 
-/* Hide scrollbars for iframe */
-::-webkit-scrollbar {
-    display: none;
+/* Custom scrollbar styling for iframe content - only for messages container */
+.messages-container > div::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-container > div::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages-container > div::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+}
+
+.messages-container > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.8);
+}
+
+/* Dark mode scrollbar - only for messages container */
+.dark .messages-container > div::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .messages-container > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.8);
 }
 
 /* Wix widget specific styling */
@@ -47,6 +69,23 @@ html, body {
     justify-content: center !important;
     background-color: transparent !important;
     background-image: none !important;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    #wix-chat-widget {
+        border-radius: 0 !important;
+    }
+    
+    .wix-chat-container {
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    
+    .wix-minimized-button {
+        bottom: 20px !important;
+        right: 20px !important;
+    }
 }
 
 
@@ -82,6 +121,66 @@ html, body {
     overflow: hidden !important;
     background: transparent !important;
     background-color: transparent !important;
+}
+
+/* Messages container scrollbar styling */
+.messages-container {
+    overflow: hidden !important;
+}
+
+.messages-container > div {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+/* Firefox scrollbar */
+.messages-container > div::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-container > div::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages-container > div::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+}
+
+.messages-container > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.8);
+}
+
+/* Dark mode scrollbar for messages */
+.dark .messages-container > div {
+    scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
+.dark .messages-container > div::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .messages-container > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.8);
+}
+
+/* Hide scrollbars on floating button and its container */
+.messages-container .absolute {
+    overflow: hidden !important;
+}
+
+.messages-container .absolute button {
+    overflow: hidden !important;
+}
+
+.messages-container .absolute::-webkit-scrollbar {
+    display: none !important;
+}
+
+.messages-container .absolute button::-webkit-scrollbar {
+    display: none !important;
 }
 
 

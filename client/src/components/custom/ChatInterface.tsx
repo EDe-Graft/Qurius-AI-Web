@@ -41,7 +41,7 @@ export function ChatInterface({
   const [isVisible, setIsVisible] = useState(false)
 
   // destructure company data
-  const { name: companyName, plan: verifiedPlan, logo_url: logoUrl } = companyData || {}
+  const { name: companyName, plan: verifiedPlan, logo_url: logoUrl, id: companyId } = companyData || {}
 
   // Compute the translated welcome message
   const getWelcomeMessage = () => {
@@ -154,7 +154,7 @@ export function ChatInterface({
       
       // Track language change event
       if (companyName) {
-        AnalyticsService.trackLanguageChange(companyName, currentLanguage)
+        AnalyticsService.trackLanguageChange(companyName, companyId || '', currentLanguage)
       }
   }, [currentLanguage]) // Reset when language changes
 
@@ -164,7 +164,7 @@ export function ChatInterface({
       setIsInitialLoading(true)
       //get company theme from service
       console.log('🔄 Fetching company theme via service...')
-      ThemeService.getCompanyTheme(companyName, isDark)
+      ThemeService.getCompanyTheme(companyName, companyId || '', isDark)
         .then((theme) => {
           setCompanyTheme(theme)
           setTimeout(() => {
@@ -192,7 +192,7 @@ export function ChatInterface({
   // Track widget view when component mounts
   useEffect(() => {
     if (companyName) {
-      AnalyticsService.trackWidgetView(companyName)
+    AnalyticsService.trackWidgetView(companyName, companyId || '')
     }
   }, [companyName])
 
@@ -200,9 +200,9 @@ export function ChatInterface({
   useEffect(() => {
     if (companyName) {
       if (isMinimized) {
-        AnalyticsService.trackWidgetClose(companyName)
+          AnalyticsService.trackWidgetClose(companyName, companyId || '')
       } else {
-        AnalyticsService.trackWidgetOpen(companyName)
+        AnalyticsService.trackWidgetOpen(companyName, companyId || '')
       }
     }
   }, [isMinimized, companyName])
@@ -287,7 +287,7 @@ export function ChatInterface({
 
     // Track message sent
     if (companyName) {
-      AnalyticsService.trackMessageSent(companyName, content)
+      AnalyticsService.trackMessageSent(companyName, companyId || '', content)
     }
 
     try {
@@ -338,7 +338,7 @@ export function ChatInterface({
           
           // Track limit reached event
           if (companyName) {
-            AnalyticsService.trackMessageReceived(companyName, limitMessage.content, 'limit_reached')
+            AnalyticsService.trackMessageReceived(companyName, companyId || '', limitMessage.content, 'limit_reached')
           }
           return
         }
@@ -366,7 +366,7 @@ export function ChatInterface({
         
         // Track message received with correct source
         if (companyName) {
-          AnalyticsService.trackMessageReceived(companyName, translatedResponse, result.source)
+          AnalyticsService.trackMessageReceived(companyName, companyId || '', translatedResponse, result.source)
         }
         
         // Log remaining messages if available
@@ -600,7 +600,7 @@ export function ChatInterface({
                 toggleTheme()
                 //track theme change after toggle
                 if (companyName) {
-                  AnalyticsService.trackThemeChange(companyName, defaultTheme)
+                  AnalyticsService.trackThemeChange(companyName, companyId || '', defaultTheme)
                 }
               }
             }

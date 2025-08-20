@@ -213,11 +213,62 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
         },
     ]);
     const [isTyping, setIsTyping] = useState(false);
+    const [userScrolled, setUserScrolled] = useState(false);
+    const [isStreaming, setIsStreaming] = useState(false);
+    const [isAtBottom, setIsAtBottom] = useState(true);
+    const [savedScrollPosition, setSavedScrollPosition] = useState(0);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+
+    // Optimized scroll functions
+    const restoreScrollPosition = () => {
+        if (messagesContainerRef.current && savedScrollPosition > 0) {
+            messagesContainerRef.current.scrollTop = savedScrollPosition;
+        }
+    };
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
     };
+
+    const handleScroll = () => {
+        if (messagesContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+            const isAtBottomNow = scrollHeight - scrollTop - clientHeight < 10;
+            
+            setIsAtBottom(isAtBottomNow);
+            
+            // If user scrolls up while streaming, disable auto-scroll
+            if (isStreaming && !isAtBottomNow) {
+                setUserScrolled(true);
+            }
+            
+            // If user scrolls back to bottom, re-enable auto-scroll
+            if (isAtBottomNow) {
+                setUserScrolled(false);
+            }
+        }
+    };
+
+    const handleStreamingChange = (streaming) => {
+        setIsStreaming(streaming);
+        if (streaming) {
+            setUserScrolled(false);
+        }
+    };
+
+    // Auto-scroll during streaming if user hasn't scrolled
+    useEffect(() => {
+        if (isStreaming && !userScrolled) {
+            const interval = setInterval(() => {
+                scrollToBottom();
+            }, 50);
+            
+            return () => clearInterval(interval);
+        }
+    }, [isStreaming, userScrolled]);
 
     useEffect(() => {
         scrollToBottom();
@@ -233,6 +284,11 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
 
         setMessages((prev) => [...prev, userMessage]);
         setIsTyping(true);
+        
+        // Scroll to bottom after user message is added
+        setTimeout(() => {
+            scrollToBottom();
+        }, 0);
 
         try {
             // Get AI response using API service
@@ -264,14 +320,20 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
     }
 
     return (
-        <div className="wix-chat-container bg-transparent dark:bg-gray-900 border border-gray-200 dark:border-gray-700  rounded-lg flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
+        <div className="wix-chat-container bg-transparent dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
             {/* Header */}
             <WixWidgetComponents.ChatHeader 
                 companyName={companyName}
                 logoUrl={logoUrl}
                 theme={theme}
                 toggleTheme={toggleTheme}
-                onToggleMinimize={onToggleMinimize}
+                onToggleMinimize={() => {
+                    // Save scroll position when minimizing
+                    if (messagesContainerRef.current) {
+                        setSavedScrollPosition(messagesContainerRef.current.scrollTop);
+                    }
+                    onToggleMinimize();
+                }}
                 companyTheme={companyTheme}
             />
 
@@ -280,7 +342,11 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
                 messages={messages}
                 isTyping={isTyping}
                 messagesEndRef={messagesEndRef}
+                messagesContainerRef={messagesContainerRef}
+                onScroll={handleScroll}
+                isAtBottom={isAtBottom}
                 companyTheme={companyTheme}
+                onScrollToBottom={scrollToBottom}
             />
 
             {/* Input */}

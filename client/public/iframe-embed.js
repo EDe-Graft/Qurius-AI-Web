@@ -47,9 +47,12 @@
                 return 'public/widget/wix-widget-iframe-modular.html';
             }
         })(),
-        widgetWidth: '400px',
-        widgetHeight: '600px',
-        buttonSize: '64px'
+        // Responsive dimensions
+        widgetWidth: window.innerWidth > 768 ? '400px' : '100vw',
+        widgetHeight: window.innerWidth > 768 ? '600px' : '100vh',
+        buttonSize: '64px',
+        // Mobile breakpoint
+        mobileBreakpoint: 768
     };
     
     // Create widget iframe
@@ -57,7 +60,24 @@
         // Create floating iframe container
         const iframeContainer = document.createElement('div');
         iframeContainer.id = 'qurius-widget-container';
-        iframeContainer.style.cssText = `
+        // Responsive positioning
+        const isMobile = window.innerWidth <= WIDGET_CONFIG.mobileBreakpoint;
+        const containerStyles = isMobile ? `
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999999;
+            border-radius: 0;
+            overflow: hidden;
+            background: transparent;
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+            pointer-events: none;
+            transition: all 0.3s ease-in-out;
+        ` : `
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -73,6 +93,8 @@
             pointer-events: none;
             transition: all 0.3s ease-in-out;
         `;
+        
+        iframeContainer.style.cssText = containerStyles;
         
         console.log('📦 Iframe container created');
         
@@ -145,7 +167,20 @@
                     // Add a transparent overlay div that only responds to button clicks
                     const buttonOverlay = document.createElement('div');
                     buttonOverlay.id = 'qurius-button-overlay';
-                    buttonOverlay.style.cssText = `
+                    
+                    // Responsive button positioning
+                    const isMobile = window.innerWidth <= WIDGET_CONFIG.mobileBreakpoint;
+                    const buttonStyles = isMobile ? `
+                        position: absolute;
+                        bottom: 20px;
+                        right: 20px;
+                        width: ${WIDGET_CONFIG.buttonSize};
+                        height: ${WIDGET_CONFIG.buttonSize};
+                        border-radius: 50%;
+                        z-index: 1000000;
+                        pointer-events: auto;
+                        cursor: pointer;
+                    ` : `
                         position: absolute;
                         bottom: 16px;
                         right: 15px;
@@ -156,6 +191,8 @@
                         pointer-events: auto;
                         cursor: pointer;
                     `;
+                    
+                    buttonOverlay.style.cssText = buttonStyles;
                     
                     buttonOverlay.addEventListener('click', function(e) {
                         console.log('🎯 Button overlay clicked!');
@@ -265,8 +302,59 @@
                     widget.parentNode.removeChild(widget);
                     console.log('🗑️ Qurius Widget destroyed');
                 }
+            },
+            // Add responsive handling
+            updateResponsiveLayout: function() {
+                const isMobile = window.innerWidth <= WIDGET_CONFIG.mobileBreakpoint;
+                const container = document.getElementById('qurius-widget-container');
+                const iframe = document.getElementById('qurius-widget-iframe');
+                
+                if (container && iframe) {
+                    if (isMobile) {
+                        container.style.cssText = `
+                            position: fixed;
+                            bottom: 0;
+                            right: 0;
+                            width: 100vw;
+                            height: 100vh;
+                            z-index: 999999;
+                            border-radius: 0;
+                            overflow: hidden;
+                            background: transparent;
+                            background-color: transparent;
+                            border: none;
+                            box-shadow: none;
+                            pointer-events: none;
+                            transition: all 0.3s ease-in-out;
+                        `;
+                    } else {
+                        container.style.cssText = `
+                            position: fixed;
+                            bottom: 20px;
+                            right: 20px;
+                            width: 400px;
+                            height: 600px;
+                            z-index: 999999;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            background: transparent;
+                            background-color: transparent;
+                            border: none;
+                            box-shadow: none;
+                            pointer-events: none;
+                            transition: all 0.3s ease-in-out;
+                        `;
+                    }
+                }
             }
         };
+        
+        // Add window resize listener for responsive behavior
+        window.addEventListener('resize', function() {
+            if (window.quriusWidget && window.quriusWidget.updateResponsiveLayout) {
+                window.quriusWidget.updateResponsiveLayout();
+            }
+        });
     }
     
     // Initialize when DOM is ready

@@ -303,21 +303,45 @@ const WixWidgetComponents = {
     ),
 
     // Messages Container Component
-    MessagesContainer: ({ messages, isTyping, messagesEndRef, companyTheme }) => (
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 messages-container">
-            <div className="py-4">
-                {messages.map((message) => (
-                    <WixWidgetComponents.MessageBubble
-                        key={message.id}
-                        message={message.content}
-                        isUser={message.isUser}
-                        timestamp={message.timestamp}
-                        companyTheme={companyTheme}
-                    />
-                ))}
-                {isTyping && <WixWidgetComponents.TypingIndicator />}
+    MessagesContainer: ({ messages, isTyping, messagesEndRef, messagesContainerRef, onScroll, isAtBottom, companyTheme, onScrollToBottom }) => (
+        <div className="relative flex-1 bg-white dark:bg-gray-900 messages-container">
+            <div 
+                ref={messagesContainerRef}
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+                onScroll={onScroll}
+            >
+                <div className="py-4">
+                    {messages.map((message) => (
+                        <WixWidgetComponents.MessageBubble
+                            key={message.id}
+                            message={message.content}
+                            isUser={message.isUser}
+                            timestamp={message.timestamp}
+                            companyTheme={companyTheme}
+                        />
+                    ))}
+                    {isTyping && <WixWidgetComponents.TypingIndicator />}
+                </div>
+                <div ref={messagesEndRef} />
             </div>
-            <div ref={messagesEndRef} />
+            
+            {/* Floating Scroll to Bottom Button */}
+            {!isAtBottom && !isTyping && onScrollToBottom && (
+                <div className="absolute bottom-4 right-4 z-10 overflow-hidden">
+                    <button
+                        onClick={onScrollToBottom}
+                        className="h-10 w-10 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 p-0 hover:opacity-80 focus:scale-102 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center overflow-hidden"
+                        style={{ 
+                            backgroundColor: companyTheme?.primaryColor || '#3B82F6',
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                        <span className="sr-only">Scroll to bottom</span>
+                    </button>
+                </div>
+            )}
         </div>
     )
 };
