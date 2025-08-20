@@ -12,7 +12,7 @@ const WIX_WIDGET_CONFIG = {
     defaultTheme: 'light',
     defaultCompanyName: 'AI Assistant',
     defaultPlan: 'free',
-    defaultKey: 'demo-2025',
+    defaultKey: '',
     
     // Widget dimensions
     widgetWidth: '400px',

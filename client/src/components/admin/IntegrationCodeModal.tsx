@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X, Copy, Check, RefreshCw, Globe, Monitor } from 'lucide-react';
+import { Download, X, Copy, Check, RefreshCw, Monitor } from 'lucide-react';
 import axios from 'axios';
 
 // Get backend URL from environment
@@ -20,7 +20,6 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isWixUser, setIsWixUser] = useState(false);
-  const [selectedWixMethod, setSelectedWixMethod] = useState<'widget' | 'iframe'>('widget');
 
   // Scroll to top when modal opens with loading screen
   useEffect(() => {
@@ -46,61 +45,8 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
     }
 
     if (isWixUser) {
-      if (selectedWixMethod === 'widget') {
-        // Wix Widget Embed (using wix-widget.js)
-        return `<script src="https://qurius.app/wix-widget.js" data-company="${companyName}" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="light"></script>`
-      } else {
-        // Wix Iframe Method
-        return `<script>
-window.addEventListener('load', function() {
-  // Create floating iframe container
-  const iframeContainer = document.createElement('div');
-  iframeContainer.style.cssText = \`
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 400px;
-    height: 600px;
-    z-index: 9999;
-    border-radius: 12px;
-    overflow: hidden;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    pointer-events: none;
-  \`;
-  
-  // Create iframe
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://qurius.app/wix-widget-iframe.html?company=${encodeURIComponent(companyName)}&id=${companyId}&key=${widgetKey}&plan=${plan}&theme=light';
-  iframe.style.cssText = \`
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 12px;
-    pointer-events: auto;
-  \`;
-  iframe.allow = 'microphone; camera';
-  
-  // Add to page
-  iframeContainer.appendChild(iframe);
-  document.body.appendChild(iframeContainer);
-  
-  // Add click-through prevention for the container area only
-  iframeContainer.addEventListener('click', function(e) {
-    e.stopPropagation();
-  });
-  
-  // Allow clicks outside the iframe to pass through
-  document.addEventListener('click', function(e) {
-    if (!iframeContainer.contains(e.target)) {
-      // Click is outside iframe, let it pass through
-      return true;
-    }
-  });
-});
-</script>`
-      }
+      // Wix Iframe Embed (using iframe-embed.js)
+      return `<script src="https://qurius.app/iframe-embed.js" data-company="${companyName}" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="light"></script>`
     }
 
     // Standard embed for non-Wix users
@@ -248,51 +194,21 @@ window.addEventListener('load', function() {
               </div>
             )}
 
-            {/* Wix Integration Options */}
+            {/* Wix Integration Info */}
             {isWixUser && widgetKey && (
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-3">
-                  🎯 Wix Integration Options
+                  🎯 Wix Integration Method
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="wix-widget"
-                      name="wix-method"
-                      value="widget"
-                      checked={selectedWixMethod === 'widget'}
-                      onChange={(e) => setSelectedWixMethod(e.target.value as 'widget' | 'iframe')}
-                      className="text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="wix-widget" className="flex items-center space-x-2 cursor-pointer">
-                      <Globe className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm text-purple-800 dark:text-purple-200">
-                        <strong>Widget Embed</strong> - Uses wix-widget.js (Recommended)
-                      </span>
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="wix-iframe"
-                      name="wix-method"
-                      value="iframe"
-                      checked={selectedWixMethod === 'iframe'}
-                      onChange={(e) => setSelectedWixMethod(e.target.value as 'widget' | 'iframe')}
-                      className="text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="wix-iframe" className="flex items-center space-x-2 cursor-pointer">
-                      <Monitor className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm text-purple-800 dark:text-purple-200">
-                        <strong>Iframe Method</strong> - Floating frame approach
-                      </span>
-                    </label>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Monitor className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm text-purple-800 dark:text-purple-200">
+                    <strong>Iframe Embed</strong> - Uses iframe-embed.js for optimal Wix compatibility
+                  </span>
                 </div>
                 <div className="mt-3 text-xs text-purple-700 dark:text-purple-300">
-                  <p><strong>Widget Embed:</strong> Better performance, native Wix integration</p>
-                  <p><strong>Iframe Method:</strong> Full React widget experience, more features</p>
+                  <p><strong>Features:</strong> Full React widget experience, hover effects, company theming, and seamless Wix integration</p>
+                  <p><strong>Compatibility:</strong> Works with all Wix site types and custom domains</p>
                 </div>
               </div>
             )}
@@ -333,9 +249,9 @@ window.addEventListener('load', function() {
                   <>
                     <li>• Copy the code above</li>
                     <li>• Paste it into your Wix site's Custom Code section</li>
-                    <li>• For Widget Embed: Add to &lt;head&gt; or before &lt;/body&gt;</li>
-                    <li>• For Iframe Method: Add to Custom Code in page settings</li>
+                    <li>• Add to &lt;head&gt; or before &lt;/body&gt; tag</li>
                     <li>• The widget will automatically appear on your Wix site</li>
+                    <li>• Features: hover effects, company theming, and seamless integration</li>
                     <li>• If you need to regenerate your key, any previous keys will stop working</li>
                   </>
                 ) : (
