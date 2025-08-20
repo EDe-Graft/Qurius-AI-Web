@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
 import { ChatInput } from "./ChatInput"
+import { QuickQuestions } from "./QuickQuestions"
 import { useLanguage } from "@/context/LanguageContext"
 import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
@@ -56,6 +57,7 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
+  const [showQuickQuestions, setShowQuickQuestions] = useState(false)
 
 
   // Add this function inside your ChatInterface component
@@ -216,6 +218,8 @@ export function ChatInterface({
       // After 300ms, make it visible with smooth transition and scroll to saved position
       const timer = setTimeout(() => {
         setIsVisible(true)
+        // Show quick questions when chat is opened
+        setShowQuickQuestions(true)
         // Scroll to bottom after chat is visible and ready
         setTimeout(() => {
           restoreScrollPosition() // restore scroll position
@@ -225,6 +229,7 @@ export function ChatInterface({
     } else {
       // When minimized, hide immediately
       setIsVisible(false)
+      setShowQuickQuestions(false)
     }
   }, [isMinimized])
 
@@ -270,6 +275,9 @@ export function ChatInterface({
   // Handle send message
   const handleSendMessage = async (content: string) => {
     console.log('🚀 Starting message processing:', content)
+
+    // Hide quick questions when a message is sent
+    setShowQuickQuestions(false)
 
     const userMessage: Message = {
       content,
@@ -381,7 +389,7 @@ export function ChatInterface({
         setMessages((prev) => [
           ...prev,
           {
-            content: 'Sorry, I encountered an error. Please try again.',
+            content: 'Sorry, I don\'t know the answer to that. Please contact customer support at ' + companyData?.contact_email + '.',
             isUser: false,
             liked: null,
             isMessageStreamed: false,
@@ -438,6 +446,11 @@ export function ChatInterface({
         ? { ...message, isMessageStreamed: true }
         : message
     ))
+  }
+
+  // Handle quick question click
+  const handleQuickQuestionClick = (question: string) => {
+    handleSendMessage(question)
   }
 
   // Generate hover color from primary color
@@ -698,6 +711,17 @@ export function ChatInterface({
           </Button>
         </div>
       )}
+
+      {/* Quick Questions */}
+      <div className="animate-fade-in-up animation-delay-100">
+        <QuickQuestions
+          companyId={companyId || ''}
+          companyName={companyName}
+          onQuestionClick={handleQuickQuestionClick}
+          companyTheme={companyTheme}
+          isVisible={showQuickQuestions && messages.length <= 1}
+        />
+      </div>
 
       {/* Input */}
       <ChatInput
