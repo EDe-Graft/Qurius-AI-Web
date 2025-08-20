@@ -864,6 +864,24 @@ app.post('/api/faqs/search', async (req, res) => {
             // Track FAQ match for analytics
             await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
             
+            // Increment FAQ popularity
+            try {
+              await axios.post(
+                `${supabaseUrl}/rest/v1/rpc/increment_faq_popularity`,
+                { p_faq_id: bestMatch.faq_id },
+                {
+                  headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+              console.log('✅ FAQ popularity incremented for FAQ ID:', bestMatch.faq_id);
+            } catch (popularityError) {
+              console.warn('⚠️ Failed to increment FAQ popularity (function may not exist):', popularityError.message);
+            }
+            
             res.json([{ 
               question: question, 
               answer: bestMatch.answer, 
@@ -1830,6 +1848,77 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
     console.error('❌ Error fetching FAQs:', error.response?.data || error.message);
     res.status(500).json({ 
       error: 'Failed to fetch FAQs',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Get popular FAQs for quick questions
+app.get('/api/companies/:companyId/popular-faqs', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { limit = 5 } = req.query;
+
+    console.log('🔥 Fetching popular FAQs for company:', companyId, 'limit:', limit);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Call the get_popular_faqs function
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_popular_faqs`,
+      {
+        p_company_id: companyId,
+        p_limit: parseInt(limit)
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    let popularFaqs = response.data || [];
+
+    // If no popular FAQs exist, get random FAQs
+    if (popularFaqs.length === 0) {
+      console.log('📝 No popular FAQs found, getting random FAQs');
+      try {
+        const randomResponse = await axios.post(
+          `${supabaseUrl}/rest/v1/rpc/get_random_faqs`,
+          {
+            p_company_id: companyId,
+            p_limit: parseInt(limit)
+          },
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        popularFaqs = randomResponse.data || [];
+      } catch (randomError) {
+        console.log('⚠️ Random FAQs function not available, returning empty array');
+        popularFaqs = [];
+      }
+    }
+
+    console.log('✅ Popular FAQs fetched successfully:', popularFaqs.length, 'items');
+
+    res.json(popularFaqs);
+
+  } catch (error) {
+    console.error('❌ Error fetching popular FAQs:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch popular FAQs',
       details: error.response?.data || error.message 
     });
   }

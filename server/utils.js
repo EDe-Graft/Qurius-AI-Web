@@ -57,10 +57,10 @@ IMPORTANT: When providing contact information, always format it as clickable mar
 - Website links: [Visit our website](https://company.com)
 - Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
 
-If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}].`;
   } else {
     // Fallback to original prompt if no context
-    systemPrompt += ` If you don't know something specific about the company look it up on the company website ${companyWebsite} if available and relevant. 
+    systemPrompt += ` If you don't know something specific about the company look it up on the company website [${companyWebsite}] if available and relevant. 
 
 IMPORTANT: When providing contact information, always format it as clickable markdown links:
 - Email addresses: [support@company.com](mailto:support@company.com)
@@ -68,7 +68,7 @@ IMPORTANT: When providing contact information, always format it as clickable mar
 - Website links: [Visit our website](https://company.com)
 - Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
 
-If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}].`;
   }
   
   const maxTokens = 400; // Increased for more detailed responses with context

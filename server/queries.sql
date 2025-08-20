@@ -69,6 +69,8 @@ CREATE TABLE public.faqs (
     confidence REAL DEFAULT 1.0,
     crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL,
     relevance_score REAL DEFAULT 1.0, -- Manually adjustable relevance
+    popularity_count INTEGER DEFAULT 0, -- Track how often this FAQ is matched/used
+    last_used TIMESTAMP WITH TIME ZONE, -- Track when this FAQ was last used
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -79,6 +81,7 @@ CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON public.faqs(created_at);
 -- Composite index for FAQ search optimization
 CREATE INDEX IF NOT EXISTS idx_faqs_company_confidence ON public.faqs(company_id, confidence DESC);
+CREATE INDEX IF NOT EXISTS idx_faqs_popularity ON public.faqs(company_id, popularity_count DESC, last_used DESC);
 
 CREATE INDEX IF NOT EXISTS idx_faqs_question_embedding ON public.faqs USING ivfflat (question_embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS idx_faqs_answer_embedding ON public.faqs USING ivfflat (answer_embedding vector_cosine_ops);
@@ -470,6 +473,67 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Function to increment FAQ popularity when matched
+CREATE OR REPLACE FUNCTION increment_faq_popularity(p_faq_id UUID)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.faqs 
+    SET 
+        popularity_count = popularity_count + 1,
+        last_used = CURRENT_TIMESTAMP
+    WHERE id = p_faq_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get popular FAQs for quick questions
+CREATE OR REPLACE FUNCTION get_popular_faqs(
+    p_company_id UUID,
+    p_limit INTEGER DEFAULT 5
+) RETURNS TABLE (
+    id UUID,
+    question TEXT,
+    answer TEXT,
+    popularity_count INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        f.id,
+        f.question,
+        f.answer,
+        f.popularity_count
+    FROM public.faqs f
+    WHERE f.company_id = p_company_id
+    AND f.popularity_count > 0
+    ORDER BY f.popularity_count DESC, f.last_used DESC
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get random FAQs when no popular ones exist
+CREATE OR REPLACE FUNCTION get_random_faqs(
+    p_company_id UUID,
+    p_limit INTEGER DEFAULT 5
+) RETURNS TABLE (
+    id UUID,
+    question TEXT,
+    answer TEXT,
+    popularity_count INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        f.id,
+        f.question,
+        f.answer,
+        f.popularity_count
+    FROM public.faqs f
+    WHERE f.company_id = p_company_id
+    ORDER BY RANDOM()
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Function to record message usage
 CREATE OR REPLACE FUNCTION record_message_usage(
