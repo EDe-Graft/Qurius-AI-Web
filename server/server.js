@@ -308,9 +308,9 @@ app.get('/api/translate/api-key', (req, res) => {
 });
 
 // Get company theme
-app.get('/api/companies/:name/theme', async (req, res) => {
+app.get('/api/companies/:companyName/:companyId/theme', async (req, res) => {
   try {
-    const { name } = req.params;
+    const { companyName, companyId } = req.params;
     
     // Make API call to Supabase to get company theme
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -320,8 +320,10 @@ app.get('/api/companies/:name/theme', async (req, res) => {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
+    console.log('Getting company theme for:', companyName, companyId);
+    
     const response = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=theme,logo_url&name=eq.${encodeURIComponent(name)}`,
+      `${supabaseUrl}/rest/v1/companies?select=theme,logo_url&id=eq.${companyId}`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -525,6 +527,60 @@ app.get('/api/companies/:id/', async (req, res) => {
   } catch (error) {
     console.error('Get company error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch company' });
+  }
+});
+
+// Get full company data for wix widget (without analytics for performance)
+app.get('/api/companies/:id/widget-data', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    console.log('🔍 Getting widget data for company ID:', id);
+
+    // Get company data
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (companyResponse.data && companyResponse.data.length > 0) {
+      const companyData = companyResponse.data[0];
+
+      const {widget_key_hash, stripe_customer_id, stripe_subscription_id, subscription_start_date, ...relevantCompanyData} = companyData;
+      
+      // Return full company data with parsed theme
+      res.json({
+        success: true,
+        company: {
+          ...relevantCompanyData,
+          theme: parseTheme(companyData.theme)
+        }
+      });
+    } else {
+      console.log('❌ Company not found:', id);
+      res.status(404).json({ 
+        success: false,
+        error: 'Company not found' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Widget company data error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch company data' 
+    });
   }
 });
 
@@ -1166,7 +1222,13 @@ app.post('/api/embeddings', async (req, res) => {
 // Analytics endpoints
 app.post('/api/analytics/widget-view', async (req, res) => {
   try {
-    const { companyName, pageUrl, userAgent, timestamp } = req.body;
+    const { companyName, companyId, pageUrl, userAgent, timestamp } = req.body;
+    
+    // Validate companyId
+    if (!companyId || companyId === 'undefined' || companyId === 'null' || companyId === '') {
+      console.warn('⚠️ Invalid companyId for widget view tracking:', companyId);
+      return res.status(400).json({ error: 'Invalid company ID' });
+    }
         
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1177,7 +1239,7 @@ app.post('/api/analytics/widget-view', async (req, res) => {
 
     // Get company ID
     const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -1190,16 +1252,14 @@ app.post('/api/analytics/widget-view', async (req, res) => {
     console.log('🔍 Company response:', companyResponse.data);
 
     if (!companyResponse.data || companyResponse.data.length === 0) {
-      console.log('❌ Company not found:', companyName);
+      console.log('❌ Company not found:', companyName, 'ID:', companyId);
       return res.status(404).json({ error: 'Company not found' });
     }
-
-    const companyId = companyResponse.data[0].id;
-    console.log('✅ Found company ID:', companyId);
 
     // Record widget view
     const viewData = {
       company_id: companyId,
+      company_name: companyName,
       event_type: 'widget_view',
       page_url: pageUrl,
       user_agent: userAgent,
@@ -1207,7 +1267,7 @@ app.post('/api/analytics/widget-view', async (req, res) => {
       session_id: req.body.sessionId || null
     };
 
-    // console.log('📝 Inserting view data:', viewData);
+    console.log('📝 Inserting view data:', viewData);
 
     const insertResponse = await axios.post(
       `${supabaseUrl}/rest/v1/widget_analytics`,
@@ -1235,6 +1295,7 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
   try {
     const { 
       companyName, 
+      companyId,
       eventType, 
       message, 
       response, 
@@ -1250,7 +1311,13 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
       confidenceScore
     } = req.body;
     
-    console.log('📊 Widget interaction received:', { companyName, eventType });
+    // Validate companyId
+    if (!companyId || companyId === 'undefined' || companyId === 'null' || companyId === '') {
+      console.warn('⚠️ Invalid companyId for widget interaction tracking:', companyId);
+      return res.status(400).json({ error: 'Invalid company ID' });
+    }
+    
+    console.log('📊 Widget interaction received:', { companyName, eventType, companyId });
     
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1261,7 +1328,7 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
 
     // Get company ID
     const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -1272,17 +1339,17 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
     );
 
     if (!companyResponse.data || companyResponse.data.length === 0) {
-      console.error('❌ Company not found:', companyName);
+      console.error('❌ Company not found:', companyName, 'ID:', companyId);
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    const companyId = companyResponse.data[0].id;
-    console.log('✅ Company ID found:', companyId);
+    // const companyId = companyResponse.data[0].id;
+    // console.log('✅ Company ID found:', companyId);
 
     // Record widget interaction with enhanced data
     const interactionData = {
-      company_name: companyName,
       company_id: companyId,
+      company_name: companyName,
       event_type: eventType,
       message: message || null,
       response: response || null,

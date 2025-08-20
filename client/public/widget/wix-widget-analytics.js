@@ -22,31 +22,45 @@ const WixWidgetAnalytics = {
     },
 
     // Track widget view
-    async trackWidgetView(companyName, pageUrl) {
+    async trackWidgetView(companyName, companyId, pageUrl) {
         try {
             const pageInfo = this.getPageInfo();
             
+            // Validate companyId before sending
+            if (!companyId || companyId === 'undefined' || companyId === 'null') {
+                console.warn('⚠️ Invalid companyId for widget view tracking:', companyId);
+                return;
+            }
+            
             await this.makeAnalyticsRequest(WIX_WIDGET_CONFIG.endpoints.analytics.widgetView, {
                 companyName,
+                companyId,
                 pageUrl: pageUrl || pageInfo.pageUrl,
                 userAgent: pageInfo.userAgent,
                 sessionId: pageInfo.sessionId,
                 timestamp: pageInfo.timestamp
             });
             
-            console.log('📊 Widget view tracked for:', companyName);
+            console.log('📊 Widget view tracked for:', companyName, 'ID:', companyId);
         } catch (error) {
             console.error('Failed to track widget view:', error);
         }
     },
 
     // Track widget interaction
-    async trackWidgetInteraction(companyName, eventType, message, response, additionalData = {}) {
+    async trackWidgetInteraction(companyName, companyId, eventType, message, response, additionalData = {}) {
         try {
             const pageInfo = this.getPageInfo();
             
+            // Validate companyId before sending
+            if (!companyId || companyId === 'undefined' || companyId === 'null') {
+                console.warn('⚠️ Invalid companyId for widget interaction tracking:', companyId);
+                return;
+            }
+            
             await this.makeAnalyticsRequest(WIX_WIDGET_CONFIG.endpoints.analytics.widgetInteraction, {
                 companyName,
+                companyId,
                 eventType,
                 message,
                 response,
@@ -55,24 +69,31 @@ const WixWidgetAnalytics = {
                 ...additionalData
             });
             
-            console.log('📊 Widget interaction tracked:', eventType);
+            console.log('📊 Widget interaction tracked:', eventType, 'for company:', companyName);
         } catch (error) {
             console.error('Failed to track widget interaction:', error);
         }
     },
 
     // Track message sent
-    async trackMessageSent(companyName, message) {
-        await this.trackWidgetInteraction(companyName, 'message_sent', message);
+    async trackMessageSent(companyName, companyId, message) {
+        await this.trackWidgetInteraction(companyName, companyId, 'message_sent', message);
     },
 
     // Track message received
-    async trackMessageReceived(companyName, response, responseSource, faqId, confidenceScore, aiFallbackReason) {
+    async trackMessageReceived(companyName, companyId, response, responseSource, faqId, confidenceScore, aiFallbackReason) {
         try {
             const pageInfo = this.getPageInfo();
             
+            // Validate companyId before sending
+            if (!companyId || companyId === 'undefined' || companyId === 'null') {
+                console.warn('⚠️ Invalid companyId for message received tracking:', companyId);
+                return;
+            }
+            
             await this.makeAnalyticsRequest(WIX_WIDGET_CONFIG.endpoints.analytics.widgetInteraction, {
                 companyName,
+                companyId,
                 eventType: 'message_received',
                 response,
                 responseSource,
@@ -88,24 +109,24 @@ const WixWidgetAnalytics = {
     },
 
     // Track widget open/close
-    async trackWidgetOpen(companyName) {
-        await this.trackWidgetInteraction(companyName, 'widget_opened');
+    async trackWidgetOpen(companyName, companyId) {
+        await this.trackWidgetInteraction(companyName, companyId, 'widget_opened');
     },
 
-    async trackWidgetClose(companyName) {
-        await this.trackWidgetInteraction(companyName, 'widget_closed');
+    async trackWidgetClose(companyName, companyId) {
+        await this.trackWidgetInteraction(companyName, companyId, 'widget_closed');
     },
 
     // Track theme change
-    async trackThemeChange(companyName, themeMode) {
-        await this.trackWidgetInteraction(companyName, 'theme_changed', undefined, undefined, {
+    async trackThemeChange(companyName, companyId, themeMode) {
+        await this.trackWidgetInteraction(companyName, companyId, 'theme_changed', undefined, undefined, {
             themeMode
         });
     },
 
     // Track error
-    async trackError(companyName, errorType, errorMessage, additionalData = {}) {
-        await this.trackWidgetInteraction(companyName, 'error', undefined, undefined, {
+    async trackError(companyName, companyId, errorType, errorMessage, additionalData = {}) {
+        await this.trackWidgetInteraction(companyName, companyId, 'error', undefined, undefined, {
             errorType,
             errorMessage,
             ...additionalData

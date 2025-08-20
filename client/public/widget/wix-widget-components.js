@@ -1,9 +1,10 @@
 // Wix Widget React Components
+
 const WixWidgetComponents = {
     // SVG Icons
     icons: {
         MessageCircleIcon: () => (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
             </svg>
         ),
@@ -79,7 +80,7 @@ const WixWidgetComponents = {
     ThemeToggle: ({ theme, toggleTheme }) => (
         <button
             onClick={toggleTheme}
-            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md flex items-center justify-center"
+            className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md flex items-center justify-center"
         >
             {theme === "light" ? (
                 <WixWidgetComponents.icons.MoonIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -90,19 +91,25 @@ const WixWidgetComponents = {
     ),
 
     // Message Bubble Component
-    MessageBubble: ({ message, isUser, timestamp }) => (
+    MessageBubble: ({ message, isUser, timestamp, companyTheme }) => (
         <div className={`flex gap-3 max-w-4xl mx-auto px-4 py-6 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                isUser ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-            }`}>
+            <div 
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    isUser ? "text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                }`}
+                style={isUser ? { backgroundColor: companyTheme?.primaryColor || '#3B82F6' } : {}}
+            >
                 {isUser ? <WixWidgetComponents.icons.UserIcon /> : <WixWidgetComponents.icons.BotIcon />}
             </div>
             <div className={`flex-1 space-y-2 ${isUser ? "text-right" : "text-left"}`}>
-                <div className={`inline-block max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                    isUser
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md"
-                }`}>
+                <div 
+                    className={`inline-block max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                        isUser
+                            ? "text-white rounded-br-md"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md"
+                    }`}
+                    style={isUser ? { backgroundColor: companyTheme?.primaryColor || '#3B82F6' } : {}}
+                >
                     <div className="whitespace-pre-wrap break-words">{message}</div>
                 </div>
                 {timestamp && (
@@ -133,7 +140,7 @@ const WixWidgetComponents = {
     ),
 
     // Chat Input Component
-    ChatInput: ({ onSendMessage, isLoading, placeholder }) => {
+    ChatInput: ({ onSendMessage, isLoading, placeholder, companyTheme }) => {
         const [message, setMessage] = React.useState("");
 
         const handleSubmit = (e) => {
@@ -161,13 +168,26 @@ const WixWidgetComponents = {
                             onKeyDown={handleKeyDown}
                             placeholder={placeholder}
                             disabled={isLoading}
-                            className="min-h-[60px] max-h-[200px] text-sm resize-none pr-12 p-3 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                            className="min-h-[60px] max-h-[200px] text-sm resize-none pr-12 p-3 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                            style={{
+                                '--focus-ring-color': companyTheme?.primaryColor || '#3B82F6',
+                                outline: 'none'
+                            }}
+                            onFocus={(e) => {
+                                if (companyTheme?.primaryColor) {
+                                    e.target.style.boxShadow = `0 0 0 3px ${companyTheme.primaryColor}`;
+                                }
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.boxShadow = '';
+                            }}
                             rows={1}
                         />
                         <button
                             type="submit"
                             disabled={!message.trim() || isLoading}
-                            className="absolute right-2 bottom-2 h-8 w-8 mb-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 transition-colors duration-200 rounded-md flex items-center justify-center text-white"
+                            className="absolute right-2 bottom-2 h-8 w-8 mb-1 hover:opacity-80 disabled:bg-gray-300 dark:disabled:bg-gray-600 transition-all duration-200 rounded-md flex items-center justify-center text-white"
+                            style={{ backgroundColor: companyTheme?.primaryColor || '#3B82F6' }}
                         >
                             {isLoading ? <WixWidgetComponents.icons.LoaderIcon /> : <WixWidgetComponents.icons.SendIcon />}
                         </button>
@@ -208,7 +228,7 @@ const WixWidgetComponents = {
     ),
 
     // Minimized Button Component
-    MinimizedButton: ({ onToggleMinimize }) => {
+    MinimizedButton: ({ onToggleMinimize, companyTheme }) => {
         console.log('🎯 MinimizedButton component rendered');
         
         const handleClick = (e) => {
@@ -226,8 +246,11 @@ const WixWidgetComponents = {
             <div className="wix-minimized-button">
                 <button
                     onClick={handleClick}
-                    className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-                    style={{ pointerEvents: 'auto' }}
+                    className="h-16 w-16 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110"
+                    style={{ 
+                        backgroundColor: companyTheme?.primaryColor || '#3B82F6',
+                        pointerEvents: 'auto'
+                    }}
                 >
                     <WixWidgetComponents.icons.MessageCircleIcon />
                 </button>
@@ -236,11 +259,28 @@ const WixWidgetComponents = {
     },
 
     // Chat Header Component
-    ChatHeader: ({ companyName, theme, toggleTheme, onToggleMinimize }) => (
+    ChatHeader: ({ companyName, theme, toggleTheme, onToggleMinimize, logoUrl, companyTheme }) => (
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <WixWidgetComponents.icons.MessageCircleIcon className="w-4 h-4 text-white" />
+                <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: companyTheme?.primaryColor || '#3B82F6' }}
+                >
+                    {logoUrl ? (
+                        <img 
+                            src={logoUrl} 
+                            alt={`${companyName} logo`}
+                            className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                            }}
+                        />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center ${logoUrl ? 'hidden' : 'flex'}`}>
+                        <WixWidgetComponents.icons.MessageCircleIcon />
+                    </div>
                 </div>
                 <div>
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{companyName} Assistant</h3>
@@ -252,7 +292,7 @@ const WixWidgetComponents = {
                 {onToggleMinimize && (
                     <button
                         onClick={onToggleMinimize}
-                        className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center justify-center"
+                        className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center justify-center"
                     >
                         <WixWidgetComponents.icons.MinimizeIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     </button>
@@ -262,7 +302,7 @@ const WixWidgetComponents = {
     ),
 
     // Messages Container Component
-    MessagesContainer: ({ messages, isTyping, messagesEndRef }) => (
+    MessagesContainer: ({ messages, isTyping, messagesEndRef, companyTheme }) => (
         <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 messages-container">
             <div className="py-4">
                 {messages.map((message) => (
@@ -271,6 +311,7 @@ const WixWidgetComponents = {
                         message={message.content}
                         isUser={message.isUser}
                         timestamp={message.timestamp}
+                        companyTheme={companyTheme}
                     />
                 ))}
                 {isTyping && <WixWidgetComponents.TypingIndicator />}

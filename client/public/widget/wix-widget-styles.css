@@ -85,38 +85,6 @@ html, body {
 }
 
 
-/* #wix-chat-widget.minimized .wix-minimized-button {
-    display: block !important;
-    pointer-events: auto !important; 
-}
-
-
-/* But keep the button itself visible */
-/*.wix-minimized-button button {
-    background: #2563eb !important; 
-    background-color: #2563eb !important;
-    background-image: none !important;
-}
-
-.wix-minimized-button button:hover {
-    background: #1d4ed8 !important; 
-    background-color: #1d4ed8 !important;
-    background-image: none !important;
-}
-
-
-.dark .wix-minimized-button * {
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-}
-
-.dark .wix-minimized-button button {
-    background: #2563eb !important;
-    background-color: #2563eb !important;
-    background-image: none !important;
-} */
-
 /* Demo mode styling */
 .demo-mode {
     display: flex;
@@ -260,12 +228,12 @@ html, body {
 }
 
 /* Focus states for accessibility */
-button:focus,
-input:focus,
+/* button:focus, */
+/* input:focus,
 textarea:focus {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
-}
+} */
 
 /* Loading states */
 .loading {

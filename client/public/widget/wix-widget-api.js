@@ -75,7 +75,8 @@ const WixWidgetAPI = {
             console.log('🤖 Sending message to API:', message.substring(0, 50) + '...');
             
             // Track message sent
-            await WixWidgetAnalytics.trackMessageSent(companyData.name, message);
+            const {name: companyName, id: companyId} = companyData;
+            await WixWidgetAnalytics.trackMessageSent(companyName, companyId, message);
             
             const response = await this.axios.post(
                 WIX_WIDGET_CONFIG.apiUrl + WIX_WIDGET_CONFIG.endpoints.search, 
@@ -97,7 +98,8 @@ const WixWidgetAPI = {
                     
                     // Track limit reached
                     await WixWidgetAnalytics.trackMessageReceived(
-                        companyData.name, 
+                        companyName, 
+                        companyId, 
                         limitMessage, 
                         'limit_reached',
                         undefined,
@@ -112,7 +114,8 @@ const WixWidgetAPI = {
                 
                 // Track successful response with source
                 await WixWidgetAnalytics.trackMessageReceived(
-                    companyData.name, 
+                    companyName, 
+                    companyId, 
                     answer, 
                     result.source || 'ai',
                     result.faqId,
@@ -127,7 +130,8 @@ const WixWidgetAPI = {
             
             // Track fallback response
             await WixWidgetAnalytics.trackMessageReceived(
-                companyData.name, 
+                companyName, 
+                companyId, 
                 fallbackMessage, 
                 'ai',
                 undefined,
@@ -153,7 +157,8 @@ const WixWidgetAPI = {
             
             // Track error response
             await WixWidgetAnalytics.trackMessageReceived(
-                companyData.name, 
+                companyName, 
+                companyId, 
                 errorMessage, 
                 'ai',
                 undefined,
@@ -168,7 +173,7 @@ const WixWidgetAPI = {
     // Validate API connection
     async testConnection() {
         try {
-            const response = await this.axios.get(WIX_WIDGET_CONFIG.apiUrl + '/health');
+            const response = await this.axios.get(WIX_WIDGET_CONFIG.apiUrl + '/api/health');
             return {
                 success: true,
                 status: response.status,
@@ -262,6 +267,138 @@ const WixWidgetAPI = {
                 console.warn('⚠️ API connection test failed:', result.error);
             }
         });
+    },
+
+    // Theme service
+    theme: {
+        // Get company theme from API
+        async getCompanyTheme(companyName, companyId, isDark = false) {
+            try {
+                console.log('🎨 Fetching theme for company:', companyName, 'ID:', companyId);
+                
+                const response = await this.axios.get(
+                    `${WIX_WIDGET_CONFIG.apiUrl}/api/companies/${encodeURIComponent(companyName)}/${companyId}/theme`
+                );
+                
+                if (response.data && response.data.company) {
+                    const company = response.data.company;
+                    const theme = company.theme || {};
+                    const logoUrl = company.logo_url || '';
+                    
+                    console.log('✅ Theme fetched successfully:', theme);
+                    
+                    return {
+                        primaryColor: theme.primaryColor || '#3B82F6',
+                        backgroundColor: isDark ? '#1e2939' : '#F3F4F6',
+                        textColor: isDark ? '#F9FAFB' : '#1F2937',
+                        borderColor: isDark ? '#374151' : '#E5E7EB',
+                        accentColor: '#10B981',
+                        logoUrl: logoUrl
+                    };
+                } else {
+                    console.warn('⚠️ No theme data found, using default');
+                    return this.getDefaultTheme(isDark);
+                }
+            } catch (error) {
+                console.error('❌ Failed to fetch company theme:', error);
+                return this.getDefaultTheme(isDark);
+            }
+        },
+
+        // Get default theme
+        getDefaultTheme(isDark = false) {
+            return {
+                primaryColor: '#3B82F6',
+                backgroundColor: isDark ? '#1e2939' : '#F3F4F6',
+                textColor: isDark ? '#F9FAFB' : '#1F2937',
+                borderColor: isDark ? '#374151' : '#E5E7EB',
+                accentColor: '#10B981',
+                logoUrl: ''
+            };
+        },
+
+        // Apply theme to widget elements
+        applyTheme(theme) {
+            try {
+                console.log('🎨 Applying theme:', theme);
+                
+                // Create CSS variables for the theme
+                const cssVars = `
+                    :root {
+                        --widget-primary-color: ${theme.primaryColor};
+                        --widget-background-color: ${theme.backgroundColor};
+                        --widget-text-color: ${theme.textColor};
+                        --widget-border-color: ${theme.borderColor};
+                        --widget-accent-color: ${theme.accentColor};
+                    }
+                `;
+                
+                // Remove existing theme style if any
+                const existingStyle = document.getElementById('widget-theme-style');
+                if (existingStyle) {
+                    existingStyle.remove();
+                }
+                
+                // Add new theme style
+                const styleElement = document.createElement('style');
+                styleElement.id = 'widget-theme-style';
+                styleElement.textContent = cssVars;
+                document.head.appendChild(styleElement);
+                
+                // Apply theme to specific elements
+                this.applyThemeToElements(theme);
+                
+                console.log('✅ Theme applied successfully');
+            } catch (error) {
+                console.error('❌ Failed to apply theme:', error);
+            }
+        },
+
+        // Apply theme to specific widget elements
+        applyThemeToElements(theme) {
+            // Apply to minimized button
+            const minimizedButton = document.querySelector('.wix-minimized-button button');
+            if (minimizedButton) {
+                minimizedButton.style.backgroundColor = theme.primaryColor;
+                minimizedButton.style.borderColor = theme.primaryColor;
+            }
+            
+            // Apply to chat header
+            const chatHeader = document.querySelector('.wix-chat-header');
+            if (chatHeader) {
+                chatHeader.style.backgroundColor = theme.primaryColor;
+                chatHeader.style.color = '#FFFFFF';
+            }
+            
+            // Apply to send button
+            const sendButton = document.querySelector('.wix-send-button');
+            if (sendButton) {
+                sendButton.style.backgroundColor = theme.primaryColor;
+                sendButton.style.borderColor = theme.primaryColor;
+            }
+            
+            // Apply to input border
+            const chatInput = document.querySelector('.wix-chat-input input');
+            if (chatInput) {
+                chatInput.style.borderColor = theme.borderColor;
+                chatInput.style.backgroundColor = theme.backgroundColor;
+                chatInput.style.color = theme.textColor;
+            }
+            
+            // Apply to message bubbles
+            const userMessages = document.querySelectorAll('.wix-message.user');
+            userMessages.forEach(msg => {
+                msg.style.backgroundColor = theme.primaryColor;
+                msg.style.color = '#FFFFFF';
+            });
+            
+            const aiMessages = document.querySelectorAll('.wix-message.ai');
+            aiMessages.forEach(msg => {
+                msg.style.backgroundColor = theme.backgroundColor;
+                msg.style.color = theme.textColor;
+                msg.style.borderColor = theme.borderColor;
+            });
+        }
     }
 };
 

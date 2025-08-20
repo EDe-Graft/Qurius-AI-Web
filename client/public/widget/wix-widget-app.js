@@ -5,10 +5,41 @@ const WixWidgetApp = () => {
     // Get parameters from URL
     const params = WIX_WIDGET_PARAMS.getParams();
     const validation = WIX_WIDGET_PARAMS.validateParams(params);
-    const companyData = WIX_WIDGET_PARAMS.getCompanyData(params);
+    
+    // Initialize with URL params data, will be updated with full data
+    const [companyData, setCompanyData] = useState(WIX_WIDGET_PARAMS.getCompanyData(params));
+    const [isLoading, setIsLoading] = useState(true);
+
+    //destructuring companyData
+    const {name: companyName, id: companyId} = companyData;
 
     const [theme, setTheme] = useState(params.theme);
     const [isMinimized, setIsMinimized] = useState(true);
+
+    // Fetch unified company data on mount
+    useEffect(() => {
+        const fetchCompanyData = async () => {
+            try {
+                console.log('🚀 Fetching unified company data on mount...');
+                setIsLoading(true);
+                
+                const unifiedData = await WIX_WIDGET_PARAMS.getUnifiedCompanyData(params);
+                
+                if (unifiedData) {
+                    console.log('✅ Unified company data loaded:', unifiedData);
+                    setCompanyData(unifiedData);
+                } else {
+                    console.warn('⚠️ Failed to load unified data, using URL params');
+                }
+            } catch (error) {
+                console.error('❌ Error loading unified company data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCompanyData();
+    }, []);
 
     // Initialize services
     useEffect(() => {
@@ -25,13 +56,13 @@ const WixWidgetApp = () => {
         }
     }, [theme, isMinimized]);
 
-    // Track widget view on mount
+    // Track widget view on mount (after data is loaded)
     useEffect(() => {
-        console.log('🔍 Widget mount effect triggered');
-        console.log('📊 Initial state:', { isMinimized, validation: validation.isValid, companyName: companyData.name });
-        
-        if (validation.isValid && companyData.name && companyData.name !== WIX_WIDGET_CONFIG.defaultCompanyName) {
-            WixWidgetAnalytics.trackWidgetView(companyData.name);
+        if (!isLoading && validation.isValid && companyName && companyName !== WIX_WIDGET_CONFIG.defaultCompanyName) {
+            console.log('🔍 Widget mount effect triggered');
+            console.log('📊 Initial state:', { isMinimized, validation: validation.isValid, companyName: companyName });
+            
+            WixWidgetAnalytics.trackWidgetView(companyName, companyId);
         }
         
         // Send initial minimized state to parent
@@ -64,15 +95,15 @@ const WixWidgetApp = () => {
         return () => {
             window.removeEventListener('message', handleParentMessage);
         };
-    }, [validation.isValid, companyData.name, isMinimized]);
+    }, [validation.isValid, companyName, isMinimized, isLoading]);
 
     const toggleTheme = async () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
         setTheme(newTheme);
         
         // Track theme change
-        if (companyData.name && companyData.name !== WIX_WIDGET_CONFIG.defaultCompanyName) {
-            await WixWidgetAnalytics.trackThemeChange(companyData.name, newTheme);
+        if (companyName && companyName !== WIX_WIDGET_CONFIG.defaultCompanyName) {
+            await WixWidgetAnalytics.trackThemeChange(companyName, companyId, newTheme);
         }
     };
 
@@ -97,11 +128,11 @@ const WixWidgetApp = () => {
         }
         
         // Track widget open/close
-        if (companyData.name && companyData.name !== WIX_WIDGET_CONFIG.defaultCompanyName) {
+        if (companyName && companyName !== WIX_WIDGET_CONFIG.defaultCompanyName) {
             if (newMinimizedState) {
-                await WixWidgetAnalytics.trackWidgetClose(companyData.name);
+                await WixWidgetAnalytics.trackWidgetClose(companyName, companyId);
             } else {
-                await WixWidgetAnalytics.trackWidgetOpen(companyData.name);
+                await WixWidgetAnalytics.trackWidgetOpen(companyName, companyId);
             }
         }
     };
@@ -122,14 +153,23 @@ const WixWidgetApp = () => {
 
     return (
         <div id="wix-chat-widget" className={`${isMinimized ? 'minimized' : ''}`}>
-            <WixWidgetChatInterface
-                companyName={companyData.name}
-                theme={theme}
-                toggleTheme={toggleTheme}
-                isMinimized={isMinimized}
-                onToggleMinimize={handleToggleMinimize}
-                companyData={companyData}
-            />
+            {isLoading ? (
+                <div className="wix-minimized-button">
+                    <div className="h-16 w-16 rounded-full shadow-lg flex items-center justify-center"
+                         style={{ backgroundColor: companyData?.theme?.primaryColor || '#3B82F6' }}>
+                        <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                </div>
+            ) : (
+                <WixWidgetChatInterface
+                    companyName={companyName}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                    isMinimized={isMinimized}
+                    onToggleMinimize={handleToggleMinimize}
+                    companyData={companyData}
+                />
+            )}
         </div>
     );
 };
@@ -137,6 +177,9 @@ const WixWidgetApp = () => {
 // Chat Interface Component
 const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, onToggleMinimize, companyData }) => {
     const { useState, useRef, useEffect } = React;
+
+    //destructuring companyData
+    const {logo_url: logoUrl, theme: companyTheme} = companyData;
 
     const [messages, setMessages] = useState([
         {
@@ -194,7 +237,7 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
     };
 
     if (isMinimized) {
-        return <WixWidgetComponents.MinimizedButton onToggleMinimize={onToggleMinimize} />;
+        return <WixWidgetComponents.MinimizedButton onToggleMinimize={onToggleMinimize} companyTheme={companyTheme} />;
     }
 
     return (
@@ -202,9 +245,11 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
             {/* Header */}
             <WixWidgetComponents.ChatHeader 
                 companyName={companyName}
+                logoUrl={logoUrl}
                 theme={theme}
                 toggleTheme={toggleTheme}
                 onToggleMinimize={onToggleMinimize}
+                companyTheme={companyTheme}
             />
 
             {/* Messages */}
@@ -212,6 +257,7 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
                 messages={messages}
                 isTyping={isTyping}
                 messagesEndRef={messagesEndRef}
+                companyTheme={companyTheme}
             />
 
             {/* Input */}
@@ -219,6 +265,7 @@ const WixWidgetChatInterface = ({ companyName, theme, toggleTheme, isMinimized, 
                 onSendMessage={handleSendMessage}
                 isLoading={isTyping}
                 placeholder={`Ask ${companyName} anything...`}
+                companyTheme={companyTheme}
             />
         </div>
     );

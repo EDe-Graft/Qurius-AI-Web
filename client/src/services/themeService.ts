@@ -18,10 +18,10 @@ export class ThemeService {
     };
   }
 
-  static async getCompanyTheme(companyName: string, isDark: boolean): Promise<CompanyTheme> {
+  static async getCompanyTheme(companyName: string, companyId: string, isDark: boolean): Promise<CompanyTheme> {
     try {
       // Make API call to backend to get company theme
-        const response = await axios.get(`${this.BACKEND_URL}/api/companies/${encodeURIComponent(companyName)}/theme`, {
+        const response = await axios.get(`${this.BACKEND_URL}/api/companies/${companyName}/${companyId}/theme`, {
         headers: {
           'Content-Type': 'application/json',
         },
