@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
 import { ChatInput } from "./ChatInput"
-// import { QuickQuestions } from "./QuickQuestions"
+  // import { QuickQuestions } from "./QuickQuestions"
 import { useLanguage } from "@/context/LanguageContext"
 import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
@@ -526,7 +526,7 @@ export function ChatInterface({
     <div
       className={cn(
         "border border-gray-200 dark:border-gray-700",
-        "rounded-lg sm:rounded-lg shadow-2xl flex flex-col overflow-hidden",
+        "rounded-lg shadow-2xl flex flex-col overflow-hidden",
         "transition-all duration-300 ease-in-out",
         "relative", // Add relative positioning for spinner overlay
         "bg-white dark:bg-gray-900",
@@ -535,15 +535,15 @@ export function ChatInterface({
         "opacity-100"
       )}
       style={{
-        width: window.innerWidth > 768 ? '400px' : '100vw',
-        height: window.innerWidth > 768 ? '600px' : '100vh',
+        width: '100%',
+        height: '100%',
         maxWidth: '400px',
         maxHeight: '600px',
         boxSizing: 'border-box',
         position: 'fixed',
-        bottom: window.innerWidth > 768 ? '1rem' : '0',
-        right: window.innerWidth > 768 ? '1rem' : '0',
-        transform: window.innerWidth > 768 ? 'none' : 'none',
+        bottom: `${window.innerWidth > 768 ? '1rem' : '0'}`,
+        right: `${window.innerWidth > 768 ? '1rem' : '50%'}`,
+        transform: `${window.innerWidth > 768 ? 'none' : 'translateX(50%)'}`,
         zIndex: 9999,
         borderColor: companyTheme?.borderColor || '#E5E7EB',
         backgroundColor: companyTheme?.backgroundColor || '#FFFFFF',
@@ -713,7 +713,7 @@ export function ChatInterface({
       )}
 
       {/* Quick Questions */}
-      {/* <div className="transition-opacity duration-300 ease-in-out">
+      {/* <div className="animate-fade-in-up animation-delay-100">
         <QuickQuestions
           companyId={companyId || ''}
           companyName={companyName}
