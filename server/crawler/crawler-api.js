@@ -1,12 +1,58 @@
 import express from 'express'
 import axios from 'axios'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
 import QuriusCrawler from './crawler.js'
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 dotenv.config({ path: './.env' })
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
 const router = express.Router()
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../uploads')
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true })
+    }
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 5 // Maximum 5 files
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain',
+      'text/markdown'
+    ]
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only PDF, Word, and text files are allowed.'), false)
+    }
+  }
+})
 
 // Initialize crawler with Puppeteer support
 const crawler = new QuriusCrawler({
@@ -351,6 +397,45 @@ router.post('/save-faqs', async (req, res) => {
     console.error('Save FAQs error:', error)
     res.status(500).json({
       error: 'Internal server error'
+    })
+  }
+})
+
+// New endpoint for document upload and processing
+router.post('/upload-documents', upload.array('documents', 5), async (req, res) => {
+  try {
+    const { companyId } = req.body
+    
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company ID is required'
+      })
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No documents uploaded'
+      })
+    }
+
+    console.log(`📄 Processing ${req.files.length} uploaded documents for company ${companyId}`)
+
+    // Process uploaded documents
+    const result = await crawler.processUploadedDocuments(companyId, req.files)
+    
+    res.json({
+      success: true,
+      message: `Successfully processed ${req.files.length} documents`,
+      crawlSession: result
+    })
+
+  } catch (error) {
+    console.error('❌ Document upload processing failed:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process uploaded documents'
     })
   }
 })

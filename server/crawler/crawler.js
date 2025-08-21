@@ -3,9 +3,15 @@ import * as cheerio from 'cheerio'
 import { createClient } from '@supabase/supabase-js'
 import { getEmbedding, chunkContent, generateFAQs } from '../utils.js'
 import dotenv from 'dotenv'
+import fs from 'fs'
+import path from 'path'
 
 // Puppeteer will be imported dynamically when needed
 let puppeteer = null
+
+// Document processing libraries (will be imported dynamically)
+let pdfParse = null
+let mammoth = null
 
 dotenv.config({ path: './.env' })
 
@@ -1083,6 +1089,357 @@ class QuriusCrawler {
       }
       
       throw error
+    }
+  }
+
+  /**
+   * Process uploaded documents instead of crawling websites
+   */
+  async processUploadedDocuments(companyId, files) {
+    try {
+      console.log(`📄 Starting document processing for company ${companyId}`)
+      
+      // Get company info
+      const { data: company } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .single()
+
+      if (!company) {
+        throw new Error('Company not found')
+      }
+
+      // Create initial crawl session record for document processing
+      const { data: initialSession, error: sessionError } = await supabase
+        .from('crawl_sessions')
+        .insert({
+          company_id: companyId,
+          company_name: company.name,
+          base_url: 'document_upload',
+          pages_crawled: files.length,
+          content_extracted: 0,
+          faqs_generated: 0,
+          status: 'running',
+          crawl_date: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (sessionError) {
+        console.error('❌ Failed to create crawl session:', sessionError)
+        throw sessionError
+      }
+
+      // Initialize crawl data
+      const crawlData = {
+        companyId,
+        companyName: company.name,
+        baseUrl: 'document_upload',
+        sessionId: initialSession?.id,
+        pages: [],
+        content: [],
+        faqs: [],
+        metadata: {
+          totalPages: files.length,
+          totalContent: 0,
+          crawlDate: new Date().toISOString()
+        }
+      }
+
+      // Process each uploaded file
+      for (const file of files) {
+        console.log(`📄 Processing file: ${file.originalname}`)
+        const fileContent = await this.extractDocumentContent(file)
+        
+        if (fileContent && fileContent.length > 0) {
+          crawlData.content.push(...fileContent)
+          console.log(`✅ Extracted ${fileContent.length} content items from ${file.originalname}`)
+        }
+      }
+      
+      console.log(`📊 Document processing completed summary:`)
+      console.log(`  - Total files processed: ${files.length}`)
+      console.log(`  - Total content items: ${crawlData.content.length}`)
+      console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+      
+      // Extract existing FAQs from documents (if any)
+      await this.extractFAQs(crawlData)
+      
+      // Save raw content chunks first
+      await this.saveCrawlResults(crawlData)
+      
+      // Generate AI FAQs for admin preview
+      const aiFAQs = await this.generateAIFAQs(crawlData)
+      crawlData.aiGeneratedFAQs = aiFAQs
+      
+      console.log(`🤖 AI FAQ generation completed: ${aiFAQs.length} FAQs ready for admin review`)
+      
+      // Store AI-generated FAQs in crawl session for admin preview
+      if (aiFAQs.length > 0) {
+        try {
+          const { error: updateError } = await supabase
+            .from('crawl_sessions')
+            .update({
+              ai_generated_faqs: aiFAQs,
+              ai_faqs_count: aiFAQs.length
+            })
+            .eq('id', crawlData.sessionId)
+
+          if (updateError) {
+            console.warn('⚠️ Failed to store AI-generated FAQs in session:', updateError)
+          } else {
+            console.log(`✅ Stored ${aiFAQs.length} AI-generated FAQs in crawl session for admin review`)
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to store AI-generated FAQs:', error.message)
+        }
+      }
+      
+      console.log(`✅ Document processing completed for ${company.name}`)
+      return crawlData
+      
+    } catch (error) {
+      console.error('❌ Document processing failed:', error.message)
+      
+      // Update session to failed if we have a session ID
+      if (crawlData?.sessionId) {
+        try {
+          await supabase
+            .from('crawl_sessions')
+            .update({
+              status: 'failed',
+              error_message: error.message,
+              completed_date: new Date().toISOString()
+            })
+            .eq('id', crawlData.sessionId)
+        } catch (statusError) {
+          console.error('❌ Failed to update crawl status on error:', statusError)
+        }
+      }
+      
+      throw error
+    }
+  }
+
+  /**
+   * Extract content from uploaded document files
+   */
+  async extractDocumentContent(file) {
+    try {
+      console.log(`🔍 Extracting content from: ${file.originalname} (${file.mimetype})`)
+      
+      const filePath = file.path
+      const fileExtension = path.extname(file.originalname).toLowerCase()
+      
+      let extractedText = ''
+      
+      // Extract text based on file type
+      switch (fileExtension) {
+        case '.pdf':
+          extractedText = await this.extractPDFContent(filePath)
+          break
+        case '.docx':
+          extractedText = await this.extractDOCXContent(filePath)
+          break
+        case '.doc':
+          extractedText = await this.extractDOCContent(filePath)
+          break
+        case '.txt':
+        case '.md':
+          extractedText = await this.extractTextContent(filePath)
+          break
+        default:
+          console.warn(`⚠️ Unsupported file type: ${fileExtension}`)
+          return []
+      }
+      
+      if (!extractedText || extractedText.trim().length === 0) {
+        console.warn(`⚠️ No text extracted from ${file.originalname}`)
+        return []
+      }
+      
+      // Clean the extracted text
+      const cleanedText = this.cleanTextContent(extractedText)
+      
+      if (cleanedText.length < 50) {
+        console.warn(`⚠️ Text too short after cleaning: ${cleanedText.length} chars`)
+        return []
+      }
+      
+      // Create content chunks from the document
+      const content = []
+      
+      // Split document into sections based on headers or natural breaks
+      const sections = this.splitDocumentIntoSections(cleanedText)
+      
+      sections.forEach((section, index) => {
+        if (section.text.length > 100) {
+          content.push({
+            type: 'document_section',
+            text: section.text,
+            source: file.originalname,
+            priority: section.priority || 'medium',
+            section_title: section.title || `Section ${index + 1}`
+          })
+        }
+      })
+      
+      console.log(`📄 Extracted ${content.length} sections from ${file.originalname}`)
+      return content
+      
+    } catch (error) {
+      console.error(`❌ Failed to extract content from ${file.originalname}:`, error.message)
+      return []
+    }
+  }
+
+  /**
+   * Extract text from PDF files
+   */
+  async extractPDFContent(filePath) {
+    try {
+      if (!pdfParse) {
+        pdfParse = (await import('pdf-parse')).default
+      }
+      
+      const dataBuffer = fs.readFileSync(filePath)
+      const data = await pdfParse(dataBuffer)
+      return data.text
+    } catch (error) {
+      console.error('❌ PDF extraction failed:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Extract text from DOCX files
+   */
+  async extractDOCXContent(filePath) {
+    try {
+      if (!mammoth) {
+        mammoth = (await import('mammoth')).default
+      }
+      
+      const result = await mammoth.extractRawText({ path: filePath })
+      return result.value
+    } catch (error) {
+      console.error('❌ DOCX extraction failed:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Extract text from DOC files (legacy Word format)
+   */
+  async extractDOCContent(filePath) {
+    try {
+      if (!mammoth) {
+        mammoth = (await import('mammoth')).default
+      }
+      
+      const result = await mammoth.extractRawText({ path: filePath })
+      return result.value
+    } catch (error) {
+      console.error('❌ DOC extraction failed:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Extract text from plain text files
+   */
+  async extractTextContent(filePath) {
+    try {
+      return fs.readFileSync(filePath, 'utf8')
+    } catch (error) {
+      console.error('❌ Text file extraction failed:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Split document text into meaningful sections
+   */
+  splitDocumentIntoSections(text) {
+    const sections = []
+    
+    // Split by common document section markers
+    const sectionPatterns = [
+      /\n\s*[A-Z][A-Z\s]{2,}\n/g, // ALL CAPS HEADERS
+      /\n\s*\d+\.\s+[A-Z][^\n]*\n/g, // Numbered sections
+      /\n\s*[A-Z][a-z\s]{2,}:\n/g, // Title: format
+      /\n\s*[A-Z][a-z\s]{2,}\n/g, // Regular headers
+    ]
+    
+    let currentText = text
+    let sectionIndex = 0
+    
+    // Try to split by headers first
+    for (const pattern of sectionPatterns) {
+      const matches = [...currentText.matchAll(pattern)]
+      
+      if (matches.length > 1) {
+        // Split by headers
+        const parts = currentText.split(pattern)
+        
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i].trim()
+          if (part.length > 100) {
+            const title = i < matches.length ? matches[i]?.[0]?.trim() : `Section ${sectionIndex + 1}`
+            sections.push({
+              title: title,
+              text: part,
+              priority: this.determineSectionPriority(title)
+            })
+            sectionIndex++
+          }
+        }
+        break
+      }
+    }
+    
+    // If no headers found, split by paragraphs
+    if (sections.length === 0) {
+      const paragraphs = text.split(/\n\s*\n/)
+      
+      paragraphs.forEach((paragraph, index) => {
+        const trimmed = paragraph.trim()
+        if (trimmed.length > 100) {
+          sections.push({
+            title: `Paragraph ${index + 1}`,
+            text: trimmed,
+            priority: 'medium'
+          })
+        }
+      })
+    }
+    
+    return sections
+  }
+
+  /**
+   * Determine priority based on section title
+   */
+  determineSectionPriority(title) {
+    const highPriorityKeywords = [
+      'overview', 'introduction', 'summary', 'executive', 'key', 'important',
+      'main', 'primary', 'essential', 'critical', 'core', 'fundamental'
+    ]
+    
+    const lowPriorityKeywords = [
+      'appendix', 'references', 'bibliography', 'footnotes', 'endnotes',
+      'glossary', 'index', 'table of contents', 'legal', 'disclaimer'
+    ]
+    
+    const titleLower = title.toLowerCase()
+    
+    if (highPriorityKeywords.some(keyword => titleLower.includes(keyword))) {
+      return 'high'
+    } else if (lowPriorityKeywords.some(keyword => titleLower.includes(keyword))) {
+      return 'low'
+    } else {
+      return 'medium'
     }
   }
 

@@ -419,10 +419,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Website Crawler
+                  Content Processor
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Auto-generate FAQs from your website
+                  Auto-generate FAQs from your website or uploaded documents
                 </p>
               </div>
             </div>
@@ -431,7 +431,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               className="mt-4 w-full"
               variant="outline"
             >
-              Crawl Website
+              Process Content
             </Button>
           </div>
           )}

@@ -719,12 +719,12 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               </div>
               <div className="ml-4">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Website Crawler
+                  Content Processor
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {selectedCompany 
-                    ? `Auto-generate FAQs from ${selectedCompany.name}'s website`
-                    : 'Auto-generate FAQs from company websites'
+                    ? `Auto-generate FAQs from ${selectedCompany.name}'s website or documents`
+                    : 'Auto-generate FAQs from company websites or uploaded documents'
                   }
                 </p>
               </div>
@@ -735,11 +735,11 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
                 className="mt-4 w-full"
                 variant="outline"
               >
-                Crawl Website
+                Process Content
               </Button>
             ) : (
               <p className="text-xs text-gray-500 mt-2">
-                Select a company from the dropdown above to crawl their website
+                Select a company from the dropdown above to process their content
               </p>
             )}
           </div>
