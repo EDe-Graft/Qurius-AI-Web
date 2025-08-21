@@ -8,8 +8,13 @@ dotenv.config({ path: './.env' })
 const router = express.Router()
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-// Initialize crawler
-const crawler = new QuriusCrawler()
+// Initialize crawler with Puppeteer support
+const crawler = new QuriusCrawler({
+  enablePuppeteer: true,
+  puppeteerTimeout: 30000,
+  maxPages: 50,
+  maxDepth: 3
+})
 
 /**
  * Start crawling for a company
@@ -242,6 +247,112 @@ router.post('/generate-faqs', async (req, res) => {
   }
 })
 
+/**
+ * Save approved FAQs from admin preview
+ * POST /api/crawler/save-faqs
+ */
+router.post('/save-faqs', async (req, res) => {
+  try {
+    const { companyId, faqs } = req.body
 
+    if (!companyId || !faqs || !Array.isArray(faqs)) {
+      return res.status(400).json({
+        error: 'Missing required fields: companyId, faqs (array)'
+      })
+    }
+
+    // Get company info
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', companyId)
+      .single()
+
+    if (companyError || !company) {
+      return res.status(404).json({
+        error: 'Company not found'
+      })
+    }
+
+    // Get the latest crawl session
+    const { data: latestSession, error: sessionError } = await supabase
+      .from('crawl_sessions')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('crawl_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (sessionError) {
+      return res.status(500).json({
+        error: 'Failed to get crawl session'
+      })
+    }
+
+    if (faqs.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No FAQs to save',
+        savedCount: 0
+      })
+    }
+
+    // Generate embeddings and prepare FAQ data
+    const { getEmbedding } = await import('../utils.js')
+    const faqData = await Promise.all(faqs.map(async (faq) => {
+      try {
+        const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
+        
+        return {
+          company_id: companyId,
+          company_name: company.name,
+          question: faq.question,
+          answer: faq.answer,
+          question_embedding: questionEmbedding,
+          answer_embedding: answerEmbedding,
+          source: 'ai_generated_approved',
+          confidence: 0.9, // High confidence for approved FAQs
+          crawl_session_id: latestSession?.id
+        }
+      } catch (embeddingError) {
+        console.warn(`Failed to generate embeddings for FAQ: ${faq.question.substring(0, 50)}...`, embeddingError.message)
+        // Return FAQ without embeddings if embedding generation fails
+        return {
+          company_id: companyId,
+          company_name: company.name,
+          question: faq.question,
+          answer: faq.answer,
+          source: 'ai_generated_approved',
+          confidence: 0.9,
+          crawl_session_id: latestSession?.id
+        }
+      }
+    }))
+
+    // Save FAQs to database
+    const { error: insertError } = await supabase
+      .from('faqs')
+      .insert(faqData)
+
+    if (insertError) {
+      console.error('Failed to save approved FAQs:', insertError)
+      return res.status(500).json({
+        error: 'Failed to save FAQs to database'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully saved ${faqs.length} approved FAQs`,
+      savedCount: faqs.length
+    })
+
+  } catch (error) {
+    console.error('Save FAQs error:', error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
+})
 
 export default router 

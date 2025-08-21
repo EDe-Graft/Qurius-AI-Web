@@ -212,11 +212,15 @@ CREATE POLICY "Service role can read all message usage" ON public.message_usage
 CREATE TABLE public.company_content_chunks (
   id SERIAL PRIMARY KEY,
   company_id UUID REFERENCES companies(id),
+  company_name TEXT,
   crawl_session_id UUID REFERENCES crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL,
   content TEXT NOT NULL,
   embedding vector(768), -- Jina embedding dimension
   source VARCHAR(50),
   chunk_index INTEGER,
+  content_type VARCHAR(50), -- 'main_content', 'section', 'paragraph', 'heading_with_context', 'list_item'
+  priority VARCHAR(20), -- 'high', 'medium', 'low'
+  source_url TEXT, -- URL where this content was found
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -225,9 +229,12 @@ CREATE INDEX IF NOT EXISTS idx_company_content_chunks_company_id ON public.compa
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_source ON public.company_content_chunks(source);
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_chunk_index ON public.company_content_chunks(chunk_index);
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_created_at ON public.company_content_chunks(created_at);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_content_type ON public.company_content_chunks(content_type);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_priority ON public.company_content_chunks(priority);
 
 -- Composite index for content chunks search optimization
 CREATE INDEX IF NOT EXISTS idx_content_chunks_company_source ON public.company_content_chunks(company_id, source);
+CREATE INDEX IF NOT EXISTS idx_content_chunks_company_priority ON public.company_content_chunks(company_id, priority);
 -- Vector index for embedding similarity search (crucial for RAG performance)
 CREATE INDEX IF NOT EXISTS idx_content_chunks_embedding ON public.company_content_chunks USING ivfflat (embedding vector_cosine_ops);
 
@@ -284,24 +291,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to find relevant content chunks using embeddings
+-- Function to find relevant content chunks using embeddings with priority filtering
 CREATE OR REPLACE FUNCTION find_relevant_content_chunks(
     p_company_id UUID, 
     p_query_embedding extensions.vector(768),
-    p_top_k INTEGER DEFAULT 3
+    p_top_k INTEGER DEFAULT 3,
+    p_priority VARCHAR(20) DEFAULT NULL
 ) RETURNS TABLE (
     chunk_id INTEGER, 
     content TEXT, 
-    similarity REAL
+    similarity REAL,
+    content_type VARCHAR(50),
+    priority VARCHAR(20),
+    source_url TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
         ccc.id::INTEGER as chunk_id, 
         ccc.content::TEXT, 
-        (1 - (ccc.embedding <=> p_query_embedding))::REAL AS similarity
+        (1 - (ccc.embedding <=> p_query_embedding))::REAL AS similarity,
+        ccc.content_type::VARCHAR(50),
+        ccc.priority::VARCHAR(20),
+        ccc.source_url::TEXT
     FROM public.company_content_chunks ccc
     WHERE ccc.company_id = p_company_id
+    AND (p_priority IS NULL OR ccc.priority = p_priority)
     ORDER BY similarity DESC
     LIMIT p_top_k;
 END;

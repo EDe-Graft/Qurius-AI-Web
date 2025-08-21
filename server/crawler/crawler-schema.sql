@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS public.crawl_sessions (
     pages_crawled INTEGER DEFAULT 0,
     content_extracted INTEGER DEFAULT 0,
     faqs_generated INTEGER DEFAULT 0,
+    ai_faqs_count INTEGER DEFAULT 0,
+    ai_generated_faqs JSONB,
     status VARCHAR(20) DEFAULT 'running', -- 'running', 'completed', 'failed'
     error_message TEXT,
     crawl_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

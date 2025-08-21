@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, getGeneratedFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
@@ -1009,7 +1009,7 @@ app.post('/api/ai/generate-faqs', async (req, res) => {
     console.log(`🤖 Generating FAQs for ${companyName}...`);
 
     // Generate FAQs using OpenRouter AI
-    const faqs = await getGeneratedFAQs(companyName, content, maxFAQs);
+    const faqs = await generateFAQs(companyName, content, maxFAQs);
     console.log(`✅ Generated ${faqs.length} FAQs for ${companyName}`);
 
     // Optionally save to database with embeddings

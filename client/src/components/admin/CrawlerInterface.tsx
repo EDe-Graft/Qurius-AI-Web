@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import axios from 'axios'
+import { FAQPreviewModal } from './FAQPreviewModal'
 
 interface CrawlerInterfaceProps {
   companyId: string
@@ -49,6 +50,11 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previouslyCrawledUrl, setPreviouslyCrawledUrl] = useState<string | null>(null)
+  
+  // FAQ Preview Modal State
+  const [showFAQPreview, setShowFAQPreview] = useState(false)
+  const [generatedFAQs, setGeneratedFAQs] = useState<Array<{ question: string; answer: string }>>([])
+  const [savingFAQs, setSavingFAQs] = useState(false)
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
@@ -132,6 +138,48 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
     }
   }
 
+  const checkForGeneratedFAQs = async () => {
+    try {
+      // Get the latest crawl session to check for generated FAQs
+      const response = await axios.get(`${BACKEND_URL}/api/crawler/status/${companyId}`)
+      if (response.data.success && response.data.crawlSession) {
+        const session = response.data.crawlSession
+        
+        // Check if this session has AI-generated FAQs
+        if (session.ai_generated_faqs && session.ai_generated_faqs.length > 0) {
+          setGeneratedFAQs(session.ai_generated_faqs)
+          setShowFAQPreview(true)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check for generated FAQs:', error)
+    }
+  }
+
+  const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
+    setSavingFAQs(true)
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/crawler/save-faqs`, {
+        companyId,
+        faqs: approvedFAQs
+      })
+      
+      if (response.data.success) {
+        // Reload FAQs to show the newly saved ones
+        await loadCrawledFAQs()
+        setShowFAQPreview(false)
+        setGeneratedFAQs([])
+      } else {
+        throw new Error(response.data.error || 'Failed to save FAQs')
+      }
+    } catch (error: any) {
+      console.error('Failed to save approved FAQs:', error)
+      alert(`Failed to save FAQs: ${error.response?.data?.error || error.message}`)
+    } finally {
+      setSavingFAQs(false)
+    }
+  }
+
   const startCrawl = async () => {
     if (!websiteUrl.trim()) {
       setError('Please enter a website URL')
@@ -184,10 +232,19 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           const session = response.data.crawlSession
           setCrawlSessions([session])
 
-          if (session.status === 'completed' || session.status === 'failed') {
+          if (session.status === 'completed') {
             clearInterval(interval)
-            setIsCrawling(false) // Stop loading animation when crawl finishes
-            loadCrawledFAQs() // Reload FAQs when crawl completes
+            setIsCrawling(false)
+            
+            // Check for AI-generated FAQs to review
+            await checkForGeneratedFAQs()
+            
+            // Reload existing FAQs
+            loadCrawledFAQs()
+          } else if (session.status === 'failed') {
+            clearInterval(interval)
+            setIsCrawling(false)
+            loadCrawledFAQs()
           }
         } else {
           // If no session found, stop polling and loading
@@ -402,6 +459,16 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           </CardContent>
         </Card>
       )}
+
+      {/* FAQ Preview Modal */}
+      <FAQPreviewModal
+        isOpen={showFAQPreview}
+        onClose={() => setShowFAQPreview(false)}
+        generatedFAQs={generatedFAQs}
+        onSaveApproved={handleSaveApprovedFAQs}
+        companyName={companyName}
+        isLoading={savingFAQs}
+      />
     </div>
   )
 } 

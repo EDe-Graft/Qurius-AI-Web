@@ -1,8 +1,11 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { createClient } from '@supabase/supabase-js'
-import { getEmbedding, chunkContent } from '../utils.js'
+import { getEmbedding, chunkContent, generateFAQs } from '../utils.js'
 import dotenv from 'dotenv'
+
+// Puppeteer will be imported dynamically when needed
+let puppeteer = null
 
 dotenv.config({ path: './.env' })
 
@@ -18,12 +21,21 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 class QuriusCrawler {
-  constructor() {
+  constructor(options = {}) {
     this.visitedUrls = new Set()
-    this.maxPages = 50 // Maximum pages to crawl per site
-    this.maxDepth = 3 // Maximum depth for crawling
-    this.delay = 1000 // Delay between requests (ms)
-    this.userAgent = 'Qurius-AI-Crawler/1.0'
+    this.maxPages = options.maxPages || 25 // Maximum pages to crawl per site
+    this.maxDepth = options.maxDepth || 1 // Maximum depth for crawling
+    this.delay = options.delay || 1000 // Delay between requests (ms)
+    this.userAgent = options.userAgent || 'Qurius-AI-Crawler/1.0'
+    this.enablePuppeteer = options.enablePuppeteer !== false // Enable Puppeteer by default
+    this.puppeteerTimeout = options.puppeteerTimeout || 30000 // Puppeteer timeout in ms
+    
+    // Performance optimization settings
+    this.skipLargeAssets = options.skipLargeAssets !== false // Skip images, videos, etc.
+    this.maxContentLength = options.maxContentLength || 8000 // Max content length for processing
+    this.minContentLength = options.minContentLength || 50 // Minimum content length to keep
+    this.enableTextCleaning = options.enableTextCleaning !== false // Enable text cleaning
+    this.requestTimeout = options.requestTimeout || 10000 // HTTP request timeout
   }
 
   /**
@@ -84,11 +96,44 @@ class QuriusCrawler {
       // Start crawling
       await this.crawlPages(baseUrl, crawlData, 0)
       
-      // Process and extract FAQs
+      console.log(`📊 Crawling completed summary:`)
+      console.log(`  - Total pages crawled: ${crawlData.pages.length}`)
+      console.log(`  - Total content items: ${crawlData.content.length}`)
+      console.log(`  - Content types found:`, [...new Set(crawlData.content.map(c => c.type))])
+      console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+      
+      // Extract existing FAQs from website (not generate new ones)
       await this.extractFAQs(crawlData)
       
-      // Save results
+      // Save raw content chunks first
       await this.saveCrawlResults(crawlData)
+      
+      // Generate AI FAQs for admin preview
+      const aiFAQs = await this.generateAIFAQs(crawlData)
+      crawlData.aiGeneratedFAQs = aiFAQs
+      
+      console.log(`🤖 AI FAQ generation completed: ${aiFAQs.length} FAQs ready for admin review`)
+      
+      // Store AI-generated FAQs in crawl session for admin preview
+      if (aiFAQs.length > 0) {
+        try {
+          const { error: updateError } = await supabase
+            .from('crawl_sessions')
+            .update({
+              ai_generated_faqs: aiFAQs,
+              ai_faqs_count: aiFAQs.length
+            })
+            .eq('id', crawlData.sessionId)
+
+          if (updateError) {
+            console.warn('⚠️ Failed to store AI-generated FAQs in session:', updateError)
+          } else {
+            console.log(`✅ Stored ${aiFAQs.length} AI-generated FAQs in crawl session for admin review`)
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to store AI-generated FAQs:', error.message)
+        }
+      }
       
       console.log(`✅ Crawl completed for ${company.name}`)
       return crawlData
@@ -138,15 +183,39 @@ class QuriusCrawler {
         headers: {
           'User-Agent': this.userAgent
         },
-        timeout: 10000
+        timeout: this.requestTimeout
       })
 
       const $ = cheerio.load(response.data)
       
-      // Extract page data
+      // Extract page data with Cheerio first
       const pageData = this.extractPageContent($, url)
-      crawlData.pages.push(pageData)
-      crawlData.content.push(...pageData.content)
+      
+      // Check if Cheerio extraction failed (no content extracted)
+      if (pageData.content.length === 0) {
+        console.log(`⚠️ Cheerio extraction failed - no content found, trying Puppeteer...`)
+        
+        // Try Puppeteer as fallback for SPAs
+        const spaPageData = await this.extractPageContentSPA(url)
+        
+        if (spaPageData && spaPageData.content.length > 0) {
+          console.log(`✅ Puppeteer extraction successful - found ${spaPageData.content.length} content items`)
+          crawlData.pages.push(spaPageData)
+          crawlData.content.push(...spaPageData.content)
+        } else {
+          console.log(`❌ Both Cheerio and Puppeteer extraction failed for ${url}`)
+          crawlData.pages.push(pageData) // Still add the empty page data
+        }
+      } else {
+        console.log(`✅ Cheerio extraction successful - found ${pageData.content.length} content items`)
+        crawlData.pages.push(pageData)
+        crawlData.content.push(...pageData.content)
+      }
+      
+      console.log(`📊 Page data summary for ${url}:`)
+      console.log(`  - Page added to crawlData.pages (total: ${crawlData.pages.length})`)
+      console.log(`  - Content items added to crawlData.content (total: ${crawlData.content.length})`)
+      console.log(`  - Page content items: ${pageData.content.length}`)
       
       // Find links for further crawling
       const links = this.extractLinks($, url)
@@ -165,53 +234,260 @@ class QuriusCrawler {
   }
 
   /**
-   * Extract content from a single page
+   * Clean and optimize HTML content for faster processing
+   */
+  cleanHTML($) {
+    console.log('🧹 Starting HTML cleaning and optimization...')
+    
+    // Remove large media assets and non-content elements
+    const selectorsToRemove = [
+      // Media assets (skip large files)
+      'img', 'video', 'audio', 'iframe', 'embed', 'object', 'canvas',
+      // Navigation and layout
+      'nav', 'header', 'footer', '.nav', '.header', '.footer', '.sidebar', '.menu', '.navigation',
+      // UI elements
+      '.breadcrumb', '.pagination', '.social-share', '.share-buttons', '.social-media',
+      // Ads and marketing
+      '.ads', '.advertisement', '.banner', '.popup', '.modal', '.overlay', '.newsletter-signup',
+      // Comments and user content
+      '.comments', '.comment-section', '.related-posts',
+      // Metadata and info
+      '.tags', '.categories', '.author-info', '.date', '.time', '.location',
+      // Contact and utility
+      '.contact-info', '.phone', '.email', '.address', '.map', '.calendar',
+      // Interactive elements
+      '.search', '.filter', '.sort', '.load-more', '.infinite-scroll',
+      // Loading and UI states
+      '.lazy-load', '.skeleton', '.loading', '.spinner', '.progress', '.status',
+      // Notifications and alerts
+      '.notification', '.alert', '.warning', '.error', '.success', '.info', '.tooltip',
+      // Scripts and styles
+      'script', 'style', 'link[rel="stylesheet"]', 'meta', 'link',
+      // Common boilerplate classes
+      '.cookie-notice', '.help', '.faq', '.accordion', '.tab', '.widget', '.plugin',
+      '.gallery', '.carousel', '.slider', '.lightbox', '.fancybox'
+    ]
+    
+    selectorsToRemove.forEach(selector => {
+      $(selector).remove()
+    })
+    
+    // Remove elements with common boilerplate text patterns
+    $('*').each((i, el) => {
+      const $el = $(el)
+      const text = $el.text().trim().toLowerCase()
+      
+      // Remove elements with common boilerplate text
+      const boilerplatePatterns = [
+        'cookie', 'privacy', 'terms', 'conditions', 'copyright', 'all rights reserved',
+        'subscribe', 'newsletter', 'sign up', 'follow us', 'share this',
+        'loading', 'please wait', 'error', 'success', 'warning',
+        'menu', 'navigation', 'search', 'filter', 'sort',
+        'previous', 'next', 'first', 'last', 'page', 'of',
+        'back to top', 'scroll to top', 'close', 'cancel', 'dismiss',
+        'click here', 'learn more', 'read more', 'view all', 'see all'
+      ]
+      
+      if (boilerplatePatterns.some(pattern => text.includes(pattern))) {
+        $el.remove()
+      }
+    })
+    
+    console.log('✅ HTML cleaned - removed boilerplate elements and large assets')
+  }
+
+  /**
+   * Clean and optimize extracted text content
+   */
+  cleanTextContent(text) {
+    if (!text || typeof text !== 'string') return ''
+    
+    return text
+      // Remove extra whitespace
+      .replace(/\s+/g, ' ')
+      // Remove common HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      // Remove common boilerplate text patterns
+      .replace(/(cookie|privacy|terms|conditions|copyright|all rights reserved)/gi, '')
+      .replace(/(subscribe|newsletter|sign up|follow us|share this)/gi, '')
+      .replace(/(loading|please wait|error|success|warning)/gi, '')
+      .replace(/(menu|navigation|search|filter|sort)/gi, '')
+      .replace(/(previous|next|first|last|page|of)/gi, '')
+      .replace(/(back to top|scroll to top|close|cancel|dismiss)/gi, '')
+      .replace(/(click here|learn more|read more|view all|see all)/gi, '')
+      // Remove excessive punctuation
+      .replace(/[.!?]{2,}/g, '.')
+      .replace(/[,]{2,}/g, ',')
+      // Clean up spacing around punctuation
+      .replace(/\s+([.!?,])/g, '$1')
+      .replace(/([.!?,])\s+/g, '$1 ')
+      // Remove leading/trailing whitespace
+      .trim()
+  }
+
+  /**
+   * Extract content from a single page using Cheerio (static HTML)
    */
   extractPageContent($, url) {
-    // Remove script and style elements
-    $('script, style, nav, footer, header').remove()
+    console.log(`🔍 Extracting content from: ${url}`)
+    
+    // Clean HTML first for better performance
+    this.cleanHTML($)
     
     const title = $('title').text().trim()
     const description = $('meta[name="description"]').attr('content') || ''
     
-    // Extract main content
+    console.log(`📄 Page title: ${title}`)
+    console.log(`📝 Page description: ${description}`)
+    
+    // Debug: Check what elements exist on the page
+    console.log(`🔍 Debug - Page structure analysis:`)
+    console.log(`  - Body text length: ${$('body').text().trim().length} chars`)
+    console.log(`  - Main elements found: ${$('main').length}`)
+    console.log(`  - Article elements found: ${$('article').length}`)
+    console.log(`  - Section elements found: ${$('section').length}`)
+    console.log(`  - Div elements found: ${$('div').length}`)
+    console.log(`  - Paragraph elements found: ${$('p').length}`)
+    console.log(`  - Heading elements found: ${$('h1, h2, h3, h4, h5, h6').length}`)
+    console.log(`  - List elements found: ${$('ul, ol').length}`)
+    
+    // Debug: Show first 500 chars of body text
+    const bodyText = $('body').text().trim()
+    console.log(`  - Body text preview: "${bodyText.substring(0, 500)}..."`)
+    
+    // Check if this is a React/SPA app
+    const hasReactRoot = $('[id*="root"], [id*="app"], [id*="main"]').length > 0
+    const hasReactScripts = $('script[src*="react"], script[src*="bundle"], script[src*="main"]').length > 0
+    const hasMinimalContent = bodyText.length < 200 && $('div').length > 10
+    
+    if (hasReactRoot || hasReactScripts || hasMinimalContent) {
+      console.log(`⚠️ Detected potential SPA/React app - content may be loaded dynamically`)
+      console.log(`  - React root elements: ${hasReactRoot}`)
+      console.log(`  - React scripts: ${hasReactScripts}`)
+      console.log(`  - Minimal content with many divs: ${hasMinimalContent}`)
+    }
+    
+    // Extract main content with better structure
     const content = []
     
-    // Get text from main content areas
+    // Get text from main content areas (prioritize these)
     $('main, article, .content, .main, #content, #main').each((i, el) => {
-      const text = $(el).text().trim()
-      if (text.length > 50) { // Only significant content
+      const rawText = $(el).text().trim()
+      const cleanedText = this.cleanTextContent(rawText)
+      
+      if (cleanedText.length > 100) { // Increased minimum length for better chunks
         content.push({
-          type: 'main',
-          text: text,
-          source: url
+          type: 'main_content',
+          text: cleanedText,
+          source: url,
+          priority: 'high'
         })
+        console.log(`📄 Found main content (${cleanedText.length} chars, cleaned from ${rawText.length})`)
       }
     })
     
-    // Get text from paragraphs
+    // Get text from sections and divs with meaningful content
+    $('section, div').each((i, el) => {
+      const rawText = $(el).text().trim()
+      const cleanedText = this.cleanTextContent(rawText)
+      
+      if (cleanedText.length > 150 && cleanedText.length < 2000) { // Reasonable chunk size
+        content.push({
+          type: 'section',
+          text: cleanedText,
+          source: url,
+          priority: 'medium'
+        })
+        console.log(`📄 Found section content (${cleanedText.length} chars, cleaned from ${rawText.length})`)
+      }
+    })
+    
+    // Get text from paragraphs (for detailed content)
     $('p').each((i, el) => {
       const text = $(el).text().trim()
-      if (text.length > 20) {
+      if (text.length > 50) { // Increased minimum for better quality
         content.push({
           type: 'paragraph',
           text: text,
-          source: url
+          source: url,
+          priority: 'medium'
         })
+        console.log(`📄 Found paragraph content (${text.length} chars)`)
       }
     })
     
-    // Get headings
+    // Get headings with context
     $('h1, h2, h3, h4, h5, h6').each((i, el) => {
-      const text = $(el).text().trim()
-      if (text.length > 5) {
+      const heading = $(el).text().trim()
+      if (heading.length > 5) {
+        // Get next sibling content for context
+        const nextContent = $(el).next().text().trim()
+        const combinedText = nextContent.length > 20 ? 
+          `${heading}: ${nextContent}` : heading
+        
         content.push({
-          type: 'heading',
-          text: text,
-          source: url
+          type: 'heading_with_context',
+          text: combinedText,
+          source: url,
+          priority: 'high'
         })
+        console.log(`📄 Found heading with context (${combinedText.length} chars)`)
       }
     })
+    
+    // Get list items (often contain valuable information)
+    $('ul li, ol li').each((i, el) => {
+      const text = $(el).text().trim()
+      if (text.length > 30) {
+        content.push({
+          type: 'list_item',
+          text: text,
+          source: url,
+          priority: 'medium'
+        })
+        console.log(`📄 Found list item content (${text.length} chars)`)
+      }
+    })
+    
+    console.log(`📊 Content extraction summary for ${url}:`)
+    console.log(`  - Total content items extracted: ${content.length}`)
+    console.log(`  - Content types:`, content.map(c => c.type))
+    console.log(`  - Total text length: ${content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+    
+    // Fallback: If no content extracted, try to get any meaningful text
+    if (content.length === 0) {
+      console.log(`⚠️ No content extracted with standard selectors - trying fallback extraction`)
+      
+      // Get all text from body and split into meaningful chunks
+      const allText = $('body').text().trim()
+      if (allText.length > 100) {
+        // Split by common delimiters and create chunks
+        const textChunks = allText
+          .split(/\n{2,}|\.{2,}|!{2,}|\?{2,}/) // Split by double newlines, periods, etc.
+          .map(chunk => chunk.trim())
+          .filter(chunk => chunk.length > 50 && chunk.length < 2000)
+          .slice(0, 10) // Limit to 10 chunks
+        
+        console.log(`📄 Fallback extraction found ${textChunks.length} text chunks`)
+        
+        textChunks.forEach((chunk, index) => {
+          content.push({
+            type: 'fallback_text',
+            text: chunk,
+            source: url,
+            priority: 'medium'
+          })
+          console.log(`📄 Fallback chunk ${index + 1} (${chunk.length} chars): "${chunk.substring(0, 100)}..."`)
+        })
+      } else {
+        console.log(`⚠️ Fallback extraction also failed - body text too short (${allText.length} chars)`)
+      }
+    }
     
     return {
       url,
@@ -219,6 +495,223 @@ class QuriusCrawler {
       description,
       content,
       timestamp: new Date().toISOString()
+    }
+  }
+
+  /**
+   * Initialize Puppeteer if not already loaded
+   */
+  async initPuppeteer() {
+    if (!puppeteer) {
+      try {
+        console.log('🌐 Initializing Puppeteer for SPA support...')
+        puppeteer = await import('puppeteer')
+        console.log('✅ Puppeteer initialized successfully')
+      } catch (error) {
+        console.log('❌ Failed to initialize Puppeteer:', error.message)
+        console.log('⚠️ SPA support will be limited - install with: npm install puppeteer')
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Extract content from a single page using Puppeteer (for SPAs)
+   */
+  async extractPageContentSPA(url) {
+    if (!this.enablePuppeteer) {
+      console.log('⚠️ Puppeteer is disabled in configuration')
+      return null
+    }
+    
+    const puppeteerAvailable = await this.initPuppeteer()
+    if (!puppeteerAvailable) {
+      console.log('❌ Puppeteer not available - cannot extract SPA content')
+      return null
+    }
+
+    console.log(`🌐 Extracting SPA content from: ${url}`)
+    
+    let browser = null
+    try {
+      // Launch browser
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ]
+      })
+
+      const page = await browser.newPage()
+      
+      // Set user agent
+      await page.setUserAgent(this.userAgent)
+      
+      // Set viewport
+      await page.setViewport({ width: 1280, height: 720 })
+      
+      // Navigate to page
+      console.log(`🌐 Navigating to ${url}...`)
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: this.puppeteerTimeout 
+      })
+      
+      // Wait for content to load (additional wait for SPAs)
+      console.log(`⏳ Waiting for content to load...`)
+      await page.waitForTimeout(3000) // Wait 3 seconds for dynamic content
+      
+      // Check if content has loaded
+      const contentLoaded = await page.evaluate(() => {
+        const bodyText = document.body.textContent.trim()
+        return bodyText.length > 100
+      })
+      
+      if (!contentLoaded) {
+        console.log(`⚠️ Content still not loaded after wait - trying longer wait`)
+        await page.waitForTimeout(5000) // Wait another 5 seconds
+      }
+      
+      // Extract page data
+      const pageData = await page.evaluate(() => {
+        const title = document.title.trim()
+        const description = document.querySelector('meta[name="description"]')?.content || ''
+        
+        // Remove unwanted elements
+        const unwantedSelectors = 'script, style, nav, footer, header, .nav, .header, .footer, .sidebar'
+        const unwantedElements = document.querySelectorAll(unwantedSelectors)
+        unwantedElements.forEach(el => el.remove())
+        
+        const content = []
+        
+        // Extract main content areas
+        document.querySelectorAll('main, article, .content, .main, #content, #main').forEach(el => {
+          const text = el.textContent.trim()
+          if (text.length > 100) {
+            content.push({
+              type: 'main_content',
+              text: text,
+              source: window.location.href,
+              priority: 'high'
+            })
+          }
+        })
+        
+        // Extract sections and divs
+        document.querySelectorAll('section, div').forEach(el => {
+          const text = el.textContent.trim()
+          if (text.length > 150 && text.length < 2000) {
+            content.push({
+              type: 'section',
+              text: text,
+              source: window.location.href,
+              priority: 'medium'
+            })
+          }
+        })
+        
+        // Extract paragraphs
+        document.querySelectorAll('p').forEach(el => {
+          const text = el.textContent.trim()
+          if (text.length > 50) {
+            content.push({
+              type: 'paragraph',
+              text: text,
+              source: window.location.href,
+              priority: 'medium'
+            })
+          }
+        })
+        
+        // Extract headings with context
+        document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+          const heading = el.textContent.trim()
+          if (heading.length > 5) {
+            const nextContent = el.nextElementSibling?.textContent.trim() || ''
+            const combinedText = nextContent.length > 20 ? 
+              `${heading}: ${nextContent}` : heading
+            
+            content.push({
+              type: 'heading_with_context',
+              text: combinedText,
+              source: window.location.href,
+              priority: 'high'
+            })
+          }
+        })
+        
+        // Extract list items
+        document.querySelectorAll('ul li, ol li').forEach(el => {
+          const text = el.textContent.trim()
+          if (text.length > 30) {
+            content.push({
+              type: 'list_item',
+              text: text,
+              source: window.location.href,
+              priority: 'medium'
+            })
+          }
+        })
+        
+        // Fallback: If no content extracted, get any meaningful text
+        if (content.length === 0) {
+          const allText = document.body.textContent.trim()
+          if (allText.length > 100) {
+            const textChunks = allText
+              .split(/\n{2,}|\.{2,}|!{2,}|\?{2,}/)
+              .map(chunk => chunk.trim())
+              .filter(chunk => chunk.length > 50 && chunk.length < 2000)
+              .slice(0, 10)
+            
+            textChunks.forEach(chunk => {
+              content.push({
+                type: 'fallback_text',
+                text: chunk,
+                source: window.location.href,
+                priority: 'medium'
+              })
+            })
+          }
+        }
+        
+        return {
+          title,
+          description,
+          content,
+          bodyTextLength: document.body.textContent.trim().length
+        }
+      })
+      
+      console.log(`📄 SPA Page title: ${pageData.title}`)
+      console.log(`📝 SPA Page description: ${pageData.description}`)
+      console.log(`📊 SPA Content extraction summary:`)
+      console.log(`  - Body text length: ${pageData.bodyTextLength} chars`)
+      console.log(`  - Total content items extracted: ${pageData.content.length}`)
+      console.log(`  - Content types:`, pageData.content.map(c => c.type))
+      console.log(`  - Total text length: ${pageData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+      
+      return {
+        url,
+        title: pageData.title,
+        description: pageData.description,
+        content: pageData.content,
+        timestamp: new Date().toISOString()
+      }
+      
+    } catch (error) {
+      console.error(`❌ SPA content extraction failed for ${url}:`, error.message)
+      return null
+    } finally {
+      if (browser) {
+        await browser.close()
+      }
     }
   }
 
@@ -257,15 +750,15 @@ class QuriusCrawler {
   }
 
   /**
-   * Extract FAQs from crawled content
+   * Extract FAQs from crawled content (only existing FAQ patterns on website)
    */
   async extractFAQs(crawlData) {
-    console.log('🤖 Extracting FAQs from crawled content...')
+    console.log('🔍 Looking for existing FAQ patterns on website...')
     
     const faqs = []
     const content = crawlData.content
     
-    // Look for FAQ patterns
+    // Look for existing FAQ patterns on the website
     for (const item of content) {
       const text = item.text.toLowerCase()
       
@@ -286,15 +779,11 @@ class QuriusCrawler {
       }
     }
     
-    // Use AI to generate additional FAQs
-    const aiFAQs = await this.generateAIFAQs(crawlData)
-    faqs.push(...aiFAQs)
-    
     // Remove duplicates and filter quality
     const uniqueFAQs = this.deduplicateFAQs(faqs)
-    crawlData.faqs = uniqueFAQs.slice(0, 25) // Limit to 25 FAQs
+    crawlData.faqs = uniqueFAQs.slice(0, 10) // Limit to 10 existing FAQs
     
-    console.log(`✅ Extracted ${crawlData.faqs.length} FAQs`)
+    console.log(`✅ Extracted ${crawlData.faqs.length} existing FAQs from website`)
   }
 
   /**
@@ -328,47 +817,39 @@ class QuriusCrawler {
   }
 
   /**
-   * Generate FAQs using AI
+   * Generate FAQs using AI from crawled content
    */
   async generateAIFAQs(crawlData) {
+    console.log('🤖 Generating AI FAQs from crawled content...')
+    
+    if (crawlData.content.length === 0) {
+      console.log('⚠️ No content available for FAQ generation')
+      return []
+    }
+
     try {
-      // Prepare content for AI processing
-      const contentText = crawlData.content
+      // Combine all content for context
+      const allContent = crawlData.content
         .map(item => item.text)
-        .join('\n')
-        .substring(0, 4000) // Limit content length
+        .join('\n\n')
+        .substring(0, 8000) // Limit context size
+
+      console.log(`📝 Using ${crawlData.content.length} content items for FAQ generation`)
+      console.log(`📊 Total content length: ${allContent.length} characters`)
+
+      // Use the existing generateFAQs function from utils.js
+      const faqs = await generateFAQs(crawlData.companyName, allContent, 15)
       
-      // Skip AI generation if no content
-      if (!contentText.trim()) {
-        console.log('⚠️ No content available for AI FAQ generation')
-        return []
-      }
-      
-      // Construct backend URL with fallback
-      const backendUrl = process.env.BACKEND_URL
-      const endpoint = `${backendUrl}/api/ai/generate-faqs`
-      
-      console.log(`🤖 Calling AI FAQ generation: ${endpoint}`)
-      
-      // Call the main server's AI FAQ generation endpoint
-      const response = await axios.post(endpoint, {
-        companyName: crawlData.companyName,
-        content: contentText,
-        maxFAQs: 25
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000 // 30 second timeout
-      })
-      
-      return response.data.faqs || []
-      
+      console.log(`✅ Generated ${faqs.length} AI FAQs using utils.js function`)
+      return faqs
+
     } catch (error) {
-      console.warn('⚠️ AI FAQ generation failed:', error.response?.data?.error || error.message)
+      console.error('❌ Failed to generate AI FAQs:', error.message)
       return []
     }
   }
+
+
 
   /**
    * Remove duplicate FAQs
@@ -389,6 +870,16 @@ class QuriusCrawler {
    * Save crawl results to database
    */
   async saveCrawlResults(crawlData) {
+    console.log(`💾 Starting to save crawl results...`)
+    console.log(`📊 Crawl data structure:`, {
+      companyId: crawlData.companyId,
+      companyName: crawlData.companyName,
+      sessionId: crawlData.sessionId,
+      pagesCount: crawlData.pages.length,
+      contentCount: crawlData.content.length,
+      faqsCount: crawlData.faqs.length
+    })
+    
     try {
       // Update existing crawl session with completed status
       const { error: crawlError } = await supabase
@@ -410,66 +901,121 @@ class QuriusCrawler {
       // Save content chunks with embeddings for RAG
       if (crawlData.content.length > 0) {
         console.log(`📝 Processing content chunks for RAG...`)
+        console.log(`📊 Total content items to process: ${crawlData.content.length}`)
         
-        // Combine all content into a single text
-        const allContent = crawlData.content
-          .map(item => item.text)
-          .join('\n')
-          .substring(0, 10000); // Limit content length
+        // Process each content item individually for better chunking
+        const chunkData = [];
+        let chunkIndex = 0;
+        let processedItems = 0;
+        let skippedItems = 0;
         
-        // Chunk the content
-        const contentChunks = chunkContent(allContent, 500);
-        console.log(`📝 Generated ${contentChunks.length} content chunks`);
-        
-        if (contentChunks.length > 0) {
-          // Generate embeddings for each content chunk
-          const chunkData = await Promise.all(contentChunks.map(async (chunk, index) => {
-            try {
-              const { questionEmbedding } = await getEmbedding(chunk, '');
-              
-              return {
-                company_id: crawlData.companyId,
-                content: chunk,
-                crawl_session_id: crawlData.sessionId,
-                embedding: questionEmbedding,
-                source: 'web_scraped',
-                chunk_index: index
-              };
-            } catch (embeddingError) {
-              console.warn(`⚠️ Failed to generate embeddings for content chunk ${index}:`, embeddingError.message);
-              // Return chunk without embedding if embedding generation fails
-              return {
-                company_id: crawlData.companyId,
-                content: chunk,
-                crawl_session_id: crawlData.sessionId,
-                source: 'web_scraped',
-                chunk_index: index
-              };
+        for (const contentItem of crawlData.content) {
+          try {
+            console.log(`🔍 Processing content item ${processedItems + 1}/${crawlData.content.length}:`, {
+              type: contentItem.type,
+              textLength: contentItem.text.length,
+              priority: contentItem.priority,
+              source: contentItem.source
+            });
+            
+            // Skip very short content
+            if (contentItem.text.length < 50) {
+              console.log(`⏭️ Skipping content item - too short (${contentItem.text.length} chars)`);
+              skippedItems++;
+              continue;
             }
-          }));
-
+            
+            // Create chunks from this content item
+            console.log(`✂️ Creating chunks from content item...`);
+            const itemChunks = chunkContent(contentItem.text, 800); // Larger chunks for better context
+            console.log(`📄 Generated ${itemChunks.length} chunks from this content item`);
+            
+            for (let i = 0; i < itemChunks.length; i++) {
+              const chunk = itemChunks[i];
+              console.log(`🔧 Processing chunk ${i + 1}/${itemChunks.length} (${chunk.length} chars)`);
+              
+              try {
+                console.log(`🧠 Generating embedding for chunk...`);
+                const { questionEmbedding } = await getEmbedding(chunk, '');
+                console.log(`✅ Embedding generated successfully`);
+                
+                chunkData.push({
+                  company_id: crawlData.companyId,
+                  content: chunk,
+                  crawl_session_id: crawlData.sessionId,
+                  embedding: questionEmbedding,
+                  source: 'web_scraped',
+                  chunk_index: chunkIndex++,
+                  content_type: contentItem.type,
+                  priority: contentItem.priority || 'medium',
+                  source_url: contentItem.source
+                });
+                console.log(`📝 Chunk added to batch (with embedding)`);
+              } catch (embeddingError) {
+                console.warn(`⚠️ Failed to generate embeddings for content chunk ${chunkIndex}:`, embeddingError.message);
+                console.warn(`⚠️ Embedding error details:`, embeddingError);
+                // Still save chunk without embedding
+                chunkData.push({
+                  company_id: crawlData.companyId,
+                  content: chunk,
+                  crawl_session_id: crawlData.sessionId,
+                  source: 'web_scraped',
+                  chunk_index: chunkIndex++,
+                  content_type: contentItem.type,
+                  priority: contentItem.priority || 'medium',
+                  source_url: contentItem.source
+                });
+                console.log(`📝 Chunk added to batch (without embedding)`);
+              }
+            }
+            
+            processedItems++;
+            console.log(`✅ Content item ${processedItems} processed successfully`);
+            
+          } catch (error) {
+            console.error(`❌ Failed to process content item ${processedItems + 1}:`, error.message);
+            console.error(`❌ Error details:`, error);
+            skippedItems++;
+          }
+        }
+        
+        console.log(`📊 Processing summary:`);
+        console.log(`  - Total content items: ${crawlData.content.length}`);
+        console.log(`  - Processed items: ${processedItems}`);
+        console.log(`  - Skipped items: ${skippedItems}`);
+        console.log(`  - Total chunks generated: ${chunkData.length}`);
+        
+        if (chunkData.length > 0) {
+          console.log(`💾 Saving ${chunkData.length} content chunks to database...`);
+          
           // Save content chunks to database
           const { error: chunkError } = await supabase
             .from('company_content_chunks')
             .insert(chunkData);
 
           if (chunkError) {
-            console.warn('⚠️ Failed to save content chunks:', chunkError);
+            console.error('❌ Failed to save content chunks:', chunkError);
+            console.error('❌ Database error details:', chunkError);
           } else {
-            console.log(`✅ Saved ${chunkData.length} content chunks with embeddings to database`);
+            console.log(`✅ Successfully saved ${chunkData.length} content chunks with embeddings to database`);
           }
+        } else {
+          console.warn('⚠️ No content chunks generated - database will remain empty');
         }
+      } else {
+        console.warn('⚠️ No content items found in crawlData.content - database will remain empty');
+        console.log('🔍 crawlData.content:', crawlData.content);
       }
 
-      // Save FAQs to database with embeddings
+      // Save existing FAQs to database with embeddings (only if found on website)
       if (crawlData.faqs.length > 0) {
-        console.log(`📝 Generating embeddings for ${crawlData.faqs.length} FAQs...`)
+        console.log(`📝 Generating embeddings for ${crawlData.faqs.length} existing FAQs found on website...`)
         
         // Generate embeddings for each FAQ
         const faqData = await Promise.all(crawlData.faqs.map(async (faq) => {
           try {
-                         // Generate embeddings using the same function as FAQ import
-             const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
+            // Generate embeddings using the same function as FAQ import
+            const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
             
             return {
               company_id: crawlData.companyId,
@@ -478,8 +1024,8 @@ class QuriusCrawler {
               answer: faq.answer,
               question_embedding: questionEmbedding,
               answer_embedding: answerEmbedding,
-              source: faq.source || 'crawler',
-              confidence: faq.confidence || 0.7,
+              source: 'website_existing', // Changed to indicate these are existing FAQs
+              confidence: faq.confidence || 0.8, // Higher confidence for existing FAQs
               crawl_session_id: crawlData.sessionId
             }
           } catch (embeddingError) {
@@ -490,8 +1036,8 @@ class QuriusCrawler {
               company_name: crawlData.companyName,
               question: faq.question,
               answer: faq.answer,
-              source: faq.source || 'crawler',
-              confidence: faq.confidence || 0.7,
+              source: 'website_existing',
+              confidence: faq.confidence || 0.8,
               crawl_session_id: crawlData.sessionId
             }
           }
@@ -502,14 +1048,22 @@ class QuriusCrawler {
           .insert(faqData)
 
         if (faqError) {
-          console.warn('⚠️ Failed to save FAQs:', faqError)
+          console.warn('⚠️ Failed to save existing FAQs:', faqError)
         } else {
-          console.log(`✅ Saved ${crawlData.faqs.length} FAQs with embeddings to database`)
+          console.log(`✅ Saved ${crawlData.faqs.length} existing FAQs with embeddings to database`)
         }
+      } else {
+        console.log('ℹ️ No existing FAQs found on website - focusing on content chunks for RAG')
       }
 
     } catch (error) {
       console.error('❌ Failed to save crawl results:', error)
+      console.error('❌ Error stack:', error.stack)
+      console.error('❌ Error details:', {
+        message: error.message,
+        name: error.name,
+        code: error.code
+      })
       
       // Update crawl session to failed status
       try {

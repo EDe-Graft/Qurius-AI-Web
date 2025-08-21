@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X, Copy, Check, RefreshCw, Monitor } from 'lucide-react';
+import { Download, X, Copy, Check, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 // Get backend URL from environment
@@ -187,7 +187,7 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
                       className="text-purple-600 focus:ring-purple-500"
                     />
                     <label htmlFor="is-wix" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                      <strong>Wix Website</strong> - Special integration options available
+                      <strong>Wix Website</strong> - Wix users can use the iframe embed method.
                     </label>
                   </div>
                 </div>
@@ -195,7 +195,7 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
             )}
 
             {/* Wix Integration Info */}
-            {isWixUser && widgetKey && (
+            {/* {isWixUser && widgetKey && (
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-3">
                   🎯 Wix Integration Method
@@ -211,7 +211,7 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
                   <p><strong>Compatibility:</strong> Works with all Wix site types and custom domains</p>
                 </div>
               </div>
-            )}
+            )} */}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

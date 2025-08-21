@@ -147,38 +147,76 @@ If you don't find the information on the website, suggest they contact customer 
 }
 
 // Generate FAQs from crawled content using OpenRouter AI
-export async function getGeneratedFAQs(companyName, content, maxFAQs = 25) {
+export async function generateFAQs(companyName, content, maxFAQs = 15) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-5-mini';
   const maxTokens = 2000; // Increased for more FAQs
   const temperature = 0.5; // Reduced for more consistent formatting
 
-  const systemPrompt = `You are an expert FAQ generator. Your task is to create ${maxFAQs} high-quality FAQ questions and answers based on the provided content about ${companyName}.
+  const systemPrompt = `You are an expert FAQ generator specializing in creating customer-focused, actionable FAQs for businesses. Your task is to create ${maxFAQs} high-quality FAQ questions and answers based on the provided content about ${companyName}.
 
 IMPORTANT: You must follow this exact format for each FAQ:
 Q: [Question that ends with a question mark?]
 A: [Complete answer that ends with a period.]
 
-Focus on these topics:
-- Product/service information
-- Common customer inquiries  
-- Support and help topics
-- Company policies and procedures
-- Pricing and plans (if mentioned)
-- Technical support questions
+FOCUS AREAS (prioritize in this order):
+1. **Product/Service Information**: What they offer, features, benefits, how it works
+2. **Customer Support**: How to get help, contact methods, support hours
+3. **Pricing & Plans**: Costs, payment methods, billing, refunds, free trials
+4. **Getting Started**: How to sign up, onboarding, first steps
+5. **Technical Issues**: Troubleshooting, compatibility, requirements
+6. **Company Policies**: Terms of service, privacy, data handling
+7. **Business Operations**: Hours, locations, availability, scheduling
+8. **Account Management**: Login, password reset, profile updates
 
-Rules:
+QUESTION GUIDELINES:
+- Make questions natural and conversational (how customers actually ask)
+- Focus on practical, actionable information
+- Include both basic and advanced questions
+- Cover common pain points and concerns
+- Ask about specific features mentioned in the content
+- Include "how to" and "what is" questions
+- Consider different user personas (new users, existing customers, potential customers)
+
+ANSWER GUIDELINES:
+- Provide complete, actionable answers
+- Include specific details from the content
+- Mention contact information when relevant
+- Be helpful and solution-oriented
+- Keep answers concise but comprehensive
+- Include next steps when applicable
+- Reference specific features or services mentioned
+
+QUALITY REQUIREMENTS:
 1. Every question MUST end with a question mark (?)
 2. Every answer MUST end with a period (.)
-3. Questions should be clear and specific
-4. Answers should be comprehensive and helpful
+3. Questions should be clear, specific, and customer-focused
+4. Answers should be comprehensive, helpful, and based on the content
 5. Do not include any other text, comments, or formatting
-6. Generate exactly ${maxFAQs} FAQ pairs`;
+6. Generate exactly ${maxFAQs} FAQ pairs
+7. Ensure questions are relevant to the actual content provided
+8. Avoid generic questions that could apply to any business
+9. Prioritize questions that customers would actually ask
+10. Make sure answers provide real value and actionable information`;
 
   const userPrompt = `Based on this content about ${companyName}, generate ${maxFAQs} FAQ questions and answers:
 
 ${content.substring(0, 3000)}
+
+ANALYSIS INSTRUCTIONS:
+1. First, identify the key products, services, and features mentioned in the content
+2. Look for contact information, pricing details, and business hours
+3. Identify common customer pain points or concerns that might arise
+4. Find specific technical requirements or compatibility information
+5. Note any unique selling points or special features
+
+GENERATION INSTRUCTIONS:
+- Create questions that real customers would ask about ${companyName}
+- Base answers directly on the information provided in the content
+- Include specific details, names, and information from the content
+- Make questions natural and conversational
+- Ensure answers are actionable and helpful
 
 Remember: Each FAQ must follow the exact format:
 Q: [Question?]
@@ -823,7 +861,7 @@ export function chunkContent(content, maxChunkSize = 500) {
   return chunks.filter(chunk => chunk.length > 50); // Filter out very short chunks
 }
 
-// Search content chunks using embeddings
+// Search content chunks using embeddings with priority weighting
 export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -833,12 +871,14 @@ export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
       throw new Error('Supabase configuration missing');
     }
 
-    const response = await axios.post(
+    // First try to get high priority chunks
+    const highPriorityResponse = await axios.post(
       `${supabaseUrl}/rest/v1/rpc/find_relevant_content_chunks`,
       {
         p_company_id: companyId,
         p_query_embedding: queryEmbedding,
-        p_top_k: topK
+        p_top_k: Math.ceil(topK * 0.6), // 60% high priority
+        p_priority: 'high'
       },
       {
         headers: {
@@ -849,7 +889,33 @@ export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
       }
     );
 
-    return response.data || [];
+    // Then get medium priority chunks to fill the rest
+    const mediumPriorityResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/find_relevant_content_chunks`,
+      {
+        p_company_id: companyId,
+        p_query_embedding: queryEmbedding,
+        p_top_k: Math.ceil(topK * 0.4), // 40% medium priority
+        p_priority: 'medium'
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const highPriorityResults = highPriorityResponse.data || [];
+    const mediumPriorityResults = mediumPriorityResponse.data || [];
+    
+    // Combine and sort by similarity
+    const allResults = [...highPriorityResults, ...mediumPriorityResults]
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, topK);
+
+    return allResults;
   } catch (error) {
     console.error('Content chunk search error:', error.response?.data || error.message);
     return [];
@@ -867,26 +933,38 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
     console.log('✅ Generated question embedding');
     
     // Search FAQs (existing functionality)
-    const faqResults = await searchFAQs(questionEmbedding, companyId, topK);
+    const faqResults = await searchFAQs(questionEmbedding, companyId, Math.ceil(topK * 0.3)); // 30% of results
     console.log(`📚 Found ${faqResults.length} relevant FAQs`);
     
-    // Search content chunks (new RAG functionality)
-    const contentResults = await searchContentChunks(questionEmbedding, companyId, topK);
+    // Search content chunks (enhanced RAG functionality)
+    const contentResults = await searchContentChunks(questionEmbedding, companyId, Math.ceil(topK * 0.7)); // 70% of results
     console.log(`📄 Found ${contentResults.length} relevant content chunks`);
     
-    // Combine and rank all results
+    // Combine and rank all results with priority weighting
     const allResults = [
       ...faqResults.map(result => ({
         ...result,
         type: 'faq',
-        source: 'faq_database'
+        source: 'faq_database',
+        priority: 'high' // FAQs get high priority
       })),
       ...contentResults.map(result => ({
         ...result,
         type: 'content',
-        source: 'company_content'
+        source: 'company_content',
+        priority: result.priority || 'medium'
       }))
-    ].sort((a, b) => b.similarity - a.similarity)
+    ].sort((a, b) => {
+      // Sort by similarity first, then by priority
+      if (Math.abs(a.similarity - b.similarity) < 0.1) {
+        // If similarity is close, prioritize by type and priority
+        if (a.type === 'faq' && b.type !== 'faq') return -1;
+        if (b.type === 'faq' && a.type !== 'faq') return 1;
+        if (a.priority === 'high' && b.priority !== 'high') return -1;
+        if (b.priority === 'high' && a.priority !== 'high') return 1;
+      }
+      return b.similarity - a.similarity;
+    })
     .slice(0, topK); // Get top K most relevant overall
     
     console.log(`🎯 RAG search completed. Top ${allResults.length} results found.`);
@@ -896,6 +974,7 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
       console.log('🏆 Top result:', {
         type: allResults[0].type,
         similarity: allResults[0].similarity,
+        priority: allResults[0].priority,
         content: allResults[0].type === 'faq' ? 
           allResults[0].question.substring(0, 100) + '...' : 
           allResults[0].content.substring(0, 100) + '...'
