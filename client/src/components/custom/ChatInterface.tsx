@@ -532,22 +532,24 @@ export function ChatInterface({
         "bg-white dark:bg-gray-900",
         // Add opacity transition for smooth appearance
         "transition-opacity duration-500 ease-in-out",
-        "opacity-100"
+        "opacity-100",
+        // Mobile-specific classes
+        window.innerWidth <= 768 ? "rounded-none border-0" : ""
       )}
-      style={{
-        width: '100%',
-        height: '100%',
-        maxWidth: '400px',
-        maxHeight: '600px',
-        boxSizing: 'border-box',
-        position: 'fixed',
-        bottom: `${window.innerWidth > 768 ? '1rem' : '0'}`,
-        right: `${window.innerWidth > 768 ? '1rem' : '50%'}`,
-        transform: `${window.innerWidth > 768 ? 'none' : 'translateX(50%)'}`,
-        zIndex: 9999,
-        borderColor: companyTheme?.borderColor || '#E5E7EB',
-        backgroundColor: companyTheme?.backgroundColor || '#FFFFFF',
-      }}
+              style={{
+          width: window.innerWidth > 768 ? '400px' : '100vw',
+          height: window.innerWidth > 768 ? '600px' : '100vh',
+          maxWidth: window.innerWidth > 768 ? '400px' : '100vw',
+          maxHeight: window.innerWidth > 768 ? '600px' : '100vh',
+          boxSizing: 'border-box',
+          position: 'fixed',
+          bottom: window.innerWidth > 768 ? '1rem' : '0',
+          right: window.innerWidth > 768 ? '1rem' : '0',
+          transform: window.innerWidth > 768 ? 'none' : 'none',
+          zIndex: 9999,
+          borderColor: companyTheme?.borderColor || '#E5E7EB',
+          backgroundColor: companyTheme?.backgroundColor || '#FFFFFF',
+        }}
     >
       {/* Theme Change Spinner Overlay */}
       {isThemeChanging && (
