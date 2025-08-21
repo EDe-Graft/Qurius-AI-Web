@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
 import { ChatInput } from "./ChatInput"
-  // import { QuickQuestions } from "./QuickQuestions"
+  // import { PopularQuestions } from "./PopularQuestions"
 import { useLanguage } from "@/context/LanguageContext"
 import { LanguageSelector } from "@/components/custom/LanguageSelector"
 import { Minimize2, Loader2, ChevronDown, Sun, Moon } from "lucide-react"
@@ -449,7 +449,7 @@ export function ChatInterface({
   }
 
   // Handle quick question click
-  // const handleQuickQuestionClick = (question: string) => {
+  // const handlePopularQuestionClick = (question: string) => {
   //   handleSendMessage(question)
   // }
 
@@ -714,14 +714,14 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Quick Questions */}
-      {/* <div className="animate-fade-in-up animation-delay-100">
-        <QuickQuestions
+      {/* Quick Questions
+      <div className="animate-fade-in-up animation-delay-100">
+        <PopularQuestions
           companyId={companyId || ''}
           companyName={companyName}
-          onQuestionClick={handleQuickQuestionClick}
+          onQuestionClick={handlePopularQuestionClick}
           companyTheme={companyTheme}
-          isVisible={showQuickQuestions && messages.length <= 1}
+          isVisible={messages.length <= 1}
         />
       </div> */}
 

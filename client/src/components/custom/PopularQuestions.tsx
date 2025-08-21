@@ -3,28 +3,28 @@ import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import axios from 'axios'
 
-interface QuickQuestion {
+interface PopularQuestion {
   id: string
   question: string
   answer: string
   popularity_count: number
 }
 
-interface QuickQuestionsProps {
+interface PopularQuestionsProps {
   companyId: string
   companyName?: string
   onQuestionClick: (question: string) => void
   companyTheme?: any
-  isVisible: boolean
+  isVisible?: boolean
 }
 
-export function QuickQuestions({ 
+export function PopularQuestions({ 
   companyId, 
   onQuestionClick, 
   companyTheme,
   isVisible 
-}: QuickQuestionsProps) {
-  const [questions, setQuestions] = useState<QuickQuestion[]>([])
+}: PopularQuestionsProps) {
+  const [questions, setQuestions] = useState<PopularQuestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
@@ -62,7 +62,7 @@ export function QuickQuestions({
   }
 
   // Get fallback questions based on company context
-  const getFallbackQuestions = (): QuickQuestion[] => {
+  const getFallbackQuestions = (): PopularQuestion[] => {
     const isQuriusAI = companyId === '2bdad203-31da-403f-90d1-049a28d7adfc' // Qurius AI company ID
     const isPurpleSoft = companyId === 'cf97eacc-8346-4f8b-ba8a-4c3e286030ab' // PurpleSoft demo ID
     
