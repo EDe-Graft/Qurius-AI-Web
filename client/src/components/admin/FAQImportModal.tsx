@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FAQ_TEMPLATES, INDUSTRY_DISPLAY_NAMES, type IndustryType } from '@/lib/constants';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, RefreshCw } from 'lucide-react';
 
 interface FAQImportProps {
-  onImport: (faqs: Array<{ question: string; answer: string }>) => void;
+  onImport: (faqs: Array<{ question: string; answer: string }>) => Promise<void>;
 }
 
 interface FAQEntry {
@@ -15,11 +15,14 @@ interface FAQEntry {
   answer: string;
 }
 
-export default function FAQImport({ onImport }: FAQImportProps) {
+export default function FAQImportModal({ onImport }: FAQImportProps) {
   const [faqEntries, setFaqEntries] = useState<FAQEntry[]>([
     { id: '1', question: '', answer: '' }
   ]);
   const [loading, setLoading] = useState(false);
+
+  // Debug loading state
+  console.log('🔄 FAQImportModal render - loading state:', loading);
 
   const handleTemplateSelect = (industry: IndustryType) => {
     const templateFAQs = FAQ_TEMPLATES[industry];
@@ -62,7 +65,10 @@ export default function FAQImport({ onImport }: FAQImportProps) {
   };
 
   const handleImport = async () => {
+    console.log('🚀 Starting import process...');
     setLoading(true);
+    console.log('✅ Loading state set to true');
+    
     try {
       // Filter out empty entries and validate questions
       const validFAQs = faqEntries
@@ -74,14 +80,19 @@ export default function FAQImport({ onImport }: FAQImportProps) {
 
       if (validFAQs.length === 0) {
         alert('Please add at least one FAQ with both question and answer.');
+        setLoading(false); // Reset loading state before returning
         return;
       }
 
-      onImport(validFAQs);
+      console.log('📤 Calling parent onImport with', validFAQs.length, 'FAQs');
+      // Wait for the parent's import operation to complete
+      await onImport(validFAQs);
+      console.log('✅ Parent import completed successfully');
     } catch (error) {
-      console.error('Import error:', error);
+      console.error('❌ Import error:', error);
       alert('Error importing FAQs. Please try again.');
     } finally {
+      console.log('🔄 Setting loading to false');
       setLoading(false);
     }
   };
@@ -225,7 +236,14 @@ export default function FAQImport({ onImport }: FAQImportProps) {
         disabled={loading || faqEntries.filter(entry => entry.question.trim() && entry.answer.trim()).length === 0}
         className="w-full"
       >
-        {loading ? 'Importing...' : `Import ${faqEntries.filter(entry => entry.question.trim() && entry.answer.trim()).length} FAQs`}
+        {loading ? (
+          <>
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            Importing...
+          </>
+        ) : (
+          `Import ${faqEntries.filter(entry => entry.question.trim() && entry.answer.trim()).length} FAQs`
+        )}
       </Button>
     </div>
   );

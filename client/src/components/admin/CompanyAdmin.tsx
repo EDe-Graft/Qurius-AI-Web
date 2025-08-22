@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
-import FAQImport from "@/components/admin/FAQImportModal"
+import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
@@ -153,7 +153,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     if (!company?.id) return
 
     try {
-      const result = await faqService.importFAQs(company.id, faqs)
+      const result = await faqService.importFAQs(company.id, company.name, faqs)
       alert(`Successfully imported ${result.count} FAQs for ${company.name}`)
       setShowFAQImport(false)
     } catch (error) {
@@ -637,7 +637,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               </div>
             </div>
             <div className="p-6">
-              <FAQImport
+              <FAQImportModal
                 onImport={handleFAQImport}
               />
             </div>

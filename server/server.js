@@ -1651,12 +1651,11 @@ app.post('/api/analytics/batch-events', async (req, res) => {
 
 
 // FAQ import endpoint
-app.post('/api/companies/:companyId/faqs', async (req, res) => {
+app.post('/api/companies/import-faqs', async (req, res) => {
   try {
-    const { companyId } = req.params;
-    const { faqs } = req.body;
+    const { companyId, companyName, faqs } = req.body;
 
-    console.log('📝 Importing FAQs for company:', companyId);
+    console.log('📝 Importing FAQs for company:', companyId, companyName);
     console.log('📝 FAQs to import:', faqs.length);
 
     if (!faqs || !Array.isArray(faqs)) {
@@ -1675,10 +1674,11 @@ app.post('/api/companies/:companyId/faqs', async (req, res) => {
       const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer);
       return {
       company_id: companyId,
+      company_name: companyName,
       question: faq.question,
-      question_embedding: questionEmbedding,
-      answer_embedding: answerEmbedding,
       answer: faq.answer,
+      question_embedding: questionEmbedding,
+      answer_embedding: answerEmbedding
     };
   }));
 

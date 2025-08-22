@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import QuriusCrawler from './crawler.js'
 import { createClient } from '@supabase/supabase-js'
+import { getEmbedding } from '../utils.js'
 import dotenv from 'dotenv'
 dotenv.config({ path: './.env' })
 
@@ -342,14 +343,41 @@ router.post('/save-faqs', async (req, res) => {
     }
 
     // Save approved FAQs to the faqs table
-    const faqsToInsert = approvedFAQs.map(faq => ({
-      company_id: session.company_id,
-      company_name: session.company_name,
-      question: faq.question,
-      answer: faq.answer,
-      source: 'ai_generated',
-      created_at: new Date().toISOString()
-    }))
+    const faqsToInsert = []
+    
+    for (const faq of approvedFAQs) {
+      try {
+        // Generate embeddings for the FAQ
+        console.log(`🧠 Generating embeddings for FAQ: "${faq.question.substring(0, 50)}..."`)
+        const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
+        
+        faqsToInsert.push({
+          company_id: session.company_id,
+          company_name: session.company_name,
+          question: faq.question,
+          answer: faq.answer,
+          question_embedding: questionEmbedding,
+          answer_embedding: answerEmbedding,
+          source: 'ai_generated',
+          crawl_session_id: sessionId,
+          created_at: new Date().toISOString()
+        })
+        
+        console.log(`✅ Generated embeddings for FAQ successfully`)
+      } catch (embeddingError) {
+        console.error(`❌ Failed to generate embeddings for FAQ:`, embeddingError)
+        // Still save the FAQ without embeddings rather than failing completely
+        faqsToInsert.push({
+          company_id: session.company_id,
+          company_name: session.company_name,
+          question: faq.question,
+          answer: faq.answer,
+          source: 'ai_generated',
+          created_at: new Date().toISOString()
+        })
+        console.log(`⚠️ Saved FAQ without embeddings due to embedding generation failure`)
+      }
+    }
 
     const { data: savedFAQs, error: insertError } = await supabase
       .from('faqs')

@@ -104,9 +104,9 @@ class FAQService {
     }
   }
 
-  async importFAQs(companyId: string, faqs: FAQImport[]): Promise<{ success: boolean; message: string; count: number }> {
+  async importFAQs(companyId: string, companyName: string, faqs: FAQImport[]): Promise<{ success: boolean; message: string; count: number }> {
     try {
-      const response = await axios.post(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`, { faqs });
+      const response = await axios.post(`${this.BACKEND_URL}/api/companies/import-faqs`, { companyId, companyName, faqs });
       return response.data;
     } catch (error) {
       console.error('Error importing FAQs:', error);
@@ -114,21 +114,11 @@ class FAQService {
     }
   }
 
-  async addFAQ(companyId: string, question: string, answer: string): Promise<FAQ> {
+  async updateFAQ(companyId: string, companyName: string, question: string, answer: string): Promise<FAQ> {
     try {
-      const response = await axios.post(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`, {
-        faqs: [{ question, answer }]
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error adding FAQ:', error);
-      throw error;
-    }
-  }
-
-  async updateFAQ(faqId: string, question: string, answer: string): Promise<FAQ> {
-    try {
-      const response = await axios.put(`${this.BACKEND_URL}/api/faqs/${faqId}`, {
+      const response = await axios.put(`${this.BACKEND_URL}/api/companies/update-faqs`, {
+        companyId,
+        companyName,
         question,
         answer
       });

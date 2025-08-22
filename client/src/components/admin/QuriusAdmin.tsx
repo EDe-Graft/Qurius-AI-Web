@@ -20,7 +20,7 @@ import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
-import FAQImport from "@/components/admin/FAQImportModal"
+import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
@@ -339,7 +339,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     if (!faqModal.companyId) return
 
     try {
-      const result = await faqService.importFAQs(faqModal.companyId, faqs)
+      const result = await faqService.importFAQs(faqModal.companyId, faqModal.companyName, faqs)
       alert(`Successfully imported ${result.count} FAQs for ${faqModal.companyName}`)
       setFaqModal({ isOpen: false, companyId: null, companyName: '' })
     } catch (error) {
@@ -838,7 +838,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               </div>
             </div>
             <div className="p-6">
-              <FAQImport
+              <FAQImportModal
                 onImport={handleFAQImport}
               />
             </div>
