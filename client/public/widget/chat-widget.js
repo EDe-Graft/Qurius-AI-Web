@@ -21843,7 +21843,7 @@ function jy({ content: n, className: i = "" }) {
   ) });
 }
 class dn {
-  static BACKEND_URL = "http://localhost:3000";
+  static BACKEND_URL = "https://qurius-ai.onrender.com";
   // Track widget view
   static async trackWidgetView(i, l, o) {
     try {
@@ -24901,7 +24901,7 @@ function WE({ className: n = "", variant: i = "dropdown", companyName: l, compan
   ] });
 }
 class $E {
-  static BACKEND_URL = "http://localhost:3000";
+  static BACKEND_URL = "https://qurius-ai.onrender.com";
   // Generate theme from primary color
   static generateThemeFromPrimary(i, l, o) {
     return {
@@ -24927,7 +24927,7 @@ class $E {
     }
   }
 }
-const eC = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "http://localhost:3000", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
+const eC = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "https://qurius-ai.onrender.com", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
 function Vn(n, i = "") {
   const l = typeof process < "u" ? process.env?.[n] : void 0;
   return (typeof import.meta < "u" ? eC?.[n] : void 0) ?? l ?? i;
