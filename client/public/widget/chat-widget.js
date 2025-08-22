@@ -24944,7 +24944,7 @@ const tC = {
   apiUrl: Vn("VITE_JINA_API_URL", "https://api.jina.ai/v1/embeddings"),
   apiKey: Vn("VITE_JINA_API_KEY")
 }, Qy = {
-  backendUrl: Vn("VITE_BACKEND_URL", "http://localhost:3001"),
+  backendUrl: Vn("VITE_BACKEND_URL", "http://localhost:3000"),
   ...tC,
   ...nC,
   ...aC

@@ -93,10 +93,10 @@ IMPORTANT:
 - Keep responses concise but comprehensive
 
 When providing contact information, always format it as clickable markdown links:
-- Email addresses: [support@company.com](mailto:support@company.com)
-- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
-- Website links: [Visit our website](https://company.com)
-- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
+- Email addresses: support@company.com
+- Phone numbers: Call us at (555) 123-4567
+- Website links: Visit our website at https://company.com (make sure to include the https://)
+- Physical addresses: 123 Main St, City, State (make sure to include the city and state)
 
 If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}].`;
   } else {
@@ -104,10 +104,10 @@ If the information above doesn't answer the question, suggest they contact custo
     systemPrompt += ` If you don't know something specific about the company look it up on the company website [${companyWebsite}] if available and relevant. 
 
 IMPORTANT: When providing contact information, always format it as clickable markdown links:
-- Email addresses: [support@company.com](mailto:support@company.com)
-- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
-- Website links: [Visit our website](https://company.com)
-- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
+- Email addresses: support@company.com
+- Phone numbers: Call us at (555) 123-4567
+- Website links: Visit our website at https://company.com (make sure to include the https://)
+- Physical addresses: 123 Main St, City, State (make sure to include the city and state)
 
 If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}].`;
   }
@@ -176,19 +176,19 @@ If you don't find the information on the website, suggest they contact customer 
     // Check for specific error types
     if (error.response?.status === 401) {
       console.error('❌ OpenRouter API key is invalid or missing');
-      return `I apologize, but there's a configuration issue with our AI service. Please contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}) for assistance.`;
+      return `I apologize, but there's a configuration issue with our AI service. Please contact our support team at ${customerSupportEmail} for assistance.`;
     } else if (error.response?.status === 429) {
       console.error('❌ OpenRouter API rate limit exceeded');
-      return `I apologize, but our AI service is currently experiencing high demand. Please try again in a few moments or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+      return `I apologize, but our AI service is currently experiencing high demand. Please try again in a few moments or contact our support team at ${customerSupportEmail}.`;
     } else if (error.code === 'ECONNABORTED') {
       console.error('❌ OpenRouter API request timed out');
-      return `I apologize, but our AI service is taking longer than expected to respond. Please try again or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+      return `I apologize, but our AI service is taking longer than expected to respond. Please try again or contact our support team at ${customerSupportEmail}.`;
     } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
       console.error('❌ OpenRouter API connection failed');
-      return `I apologize, but we're unable to connect to our AI service at the moment. Please try again later or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+      return `I apologize, but we're unable to connect to our AI service at the moment. Please try again later or contact our support team at ${customerSupportEmail}.`;
     }
     
-    return `I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
+    return `I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance at ${customerSupportEmail}.`;
   }
 }
 
