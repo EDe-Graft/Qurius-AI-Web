@@ -61,9 +61,9 @@ const crawler = new QuriusCrawler({
   enablePuppeteer: true,
   puppeteerTimeout: 30000,
   maxPages: 10,
-  maxDepth: 1,
-  debugMode: true, // Enable debug mode
-  disableHTMLCleaning: true // Temporarily disable HTML cleaning to debug
+  maxDepth: 1
+  // debugMode: false, // Enable debug mode
+  // disableHTMLCleaning: false // Temporarily disable HTML cleaning to debug
 })
 
 /**

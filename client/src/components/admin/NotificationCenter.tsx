@@ -190,7 +190,11 @@ export function NotificationCenter() {
                                     notification.action?.onClick();
                                     markAsRead(notification.id);
                                   }}
-                                  className="mt-2 w-full sm:w-auto text-xs"
+                                  className={`mt-2 w-full sm:w-auto text-xs ${
+                                    notification.action.label === 'Review FAQs'
+                                      ? 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200'
+                                      : ''
+                                  }`}
                                 >
                                   {notification.action.label}
                                 </Button>
@@ -297,7 +301,11 @@ export function NotificationCenter() {
                                 notification.action?.onClick();
                                 markAsRead(notification.id);
                               }}
-                              className="mt-2 w-auto text-xs"
+                              className={`mt-2 w-auto text-xs ${
+                                notification.action.label === 'Review FAQs'
+                                  ? 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200'
+                                  : ''
+                              }`}
                             >
                               {notification.action.label}
                             </Button>

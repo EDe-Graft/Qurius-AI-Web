@@ -22,6 +22,9 @@ interface NotificationContextType {
   unreadCount: number;
   isLoading: boolean;
   error: string | null;
+  // Modal state
+  showFAQPreview: boolean;
+  selectedSessionId: string | null;
   addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -29,6 +32,9 @@ interface NotificationContextType {
   loadNotifications: (companyId: string) => Promise<void>;
   loadAllNotifications: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  // Modal actions
+  openFAQPreview: (sessionId: string) => void;
+  closeFAQPreview: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -39,6 +45,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
+  
+  // Modal state
+  const [showFAQPreview, setShowFAQPreview] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  // Modal actions
+  const openFAQPreview = useCallback((sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setShowFAQPreview(true);
+  }, []);
+
+  const closeFAQPreview = useCallback(() => {
+    setShowFAQPreview(false);
+    setSelectedSessionId(null);
+  }, []);
 
   // Convert database notification to UI notification
   const convertNotification = (dbNotification: Notification): NotificationItem => {
@@ -55,8 +76,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       action: dbNotification.type === 'faq_approval' ? {
         label: 'Review FAQs',
         onClick: () => {
-          // This will be handled by the component that uses the context
-          console.log('Review FAQs clicked for session:', dbNotification.crawl_session_id);
+          if (dbNotification.crawl_session_id) {
+            openFAQPreview(dbNotification.crawl_session_id);
+          }
         }
       } : undefined
     };
@@ -215,13 +237,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     unreadCount,
     isLoading,
     error,
+    // Modal state
+    showFAQPreview,
+    selectedSessionId,
     addNotification,
     markAsRead,
     markAllAsRead,
     removeNotification,
     loadNotifications,
     refreshNotifications,
-    loadAllNotifications
+    loadAllNotifications,
+    // Modal actions
+    openFAQPreview,
+    closeFAQPreview
   };
 
   return (

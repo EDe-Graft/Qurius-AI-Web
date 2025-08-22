@@ -67,7 +67,7 @@ function ensureCompleteSentences(text, maxLength = 500) {
 export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = []}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'deepseek/deepseek-r1-0528:free';
+  const model = 'openai/gpt-4o-mini';
   
   // Build context-aware system prompt
   let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.`;
@@ -196,7 +196,7 @@ If you don't find the information on the website, suggest they contact customer 
 export async function generateFAQs(companyName, content, maxFAQs = 15) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'deepseek/deepseek-r1-0528:free';
+  const model = 'openai/gpt-4o-mini';
   const maxTokens = 2000; // Increased for more FAQs
   const temperature = 0.5; // Reduced for more consistent formatting
 
@@ -316,7 +316,7 @@ export async function deduplicateContentWithAI(contentChunks, similarityThreshol
 
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
     const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-    const model = 'deepseek/deepseek-r1-0528:free';
+    const model = 'openai/gpt-4o-mini';
     const maxTokens = 4000; // Increased from 1000 to 4000 for better analysis
     const temperature = 0.1; // Low temperature for consistent results
 
@@ -507,7 +507,7 @@ export async function deduplicateFAQsWithAI(faqs, similarityThreshold = 0.85) {
 
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
     const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-    const model = 'deepseek/deepseek-r1-0528:free';
+    const model = 'openai/gpt-4o-mini';
     const maxTokens = 3000; // Slightly lower than content chunks since FAQs are more structured
     const temperature = 0.1; // Low temperature for consistent results
 

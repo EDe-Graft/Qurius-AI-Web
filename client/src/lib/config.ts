@@ -30,7 +30,7 @@ export const JINA_CONFIG = {
 };
 
 export const config = {
-  backendUrl: getEnv('VITE_BACKEND_URL', 'http://localhost:3001'),
+  backendUrl: getEnv('VITE_BACKEND_URL', 'http://localhost:3000'),
   ...SUPABASE_CONFIG,
   ...OPEN_ROUTER_CONFIG,
   ...JINA_CONFIG,

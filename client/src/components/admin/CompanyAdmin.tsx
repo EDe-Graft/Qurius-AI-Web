@@ -32,10 +32,12 @@ import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
-// import { notificationService } from "@/services/notificationService"
+import { notificationService } from "@/services/notificationService"
 import { AnalyticsService, type WidgetAnalytics, type FAQPerformance } from "@/services/analyticsService"
 import { getUserRole } from "@/lib/auth"
 import { toTitleCase } from "@/lib/utils"
+import { config } from "@/lib/config"
+import axios from "axios"
 
 interface CompanyAdminProps {
   user: any
@@ -44,7 +46,13 @@ interface CompanyAdminProps {
 export function CompanyAdmin({ user }: CompanyAdminProps) {
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
-  const { loadNotifications, unreadCount } = useNotifications()
+  const { 
+    loadNotifications, 
+    unreadCount, 
+    showFAQPreview, 
+    selectedSessionId, 
+    closeFAQPreview 
+  } = useNotifications()
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,8 +62,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
   
-  // Notification-related state
-  const [showFAQPreview, setShowFAQPreview] = useState(false)
+  // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
   const [showNotificationBanner, setShowNotificationBanner] = useState(false)
 
@@ -103,6 +110,38 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
   const [faqPerformance, setFaqPerformance] = useState<FAQPerformance | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
+
+  // Load FAQ data when modal opens from notification
+  useEffect(() => {
+    const loadFAQPreviewData = async () => {
+      if (showFAQPreview && selectedSessionId && !faqPreviewData) {
+        try {
+          console.log('Loading FAQ data for session:', selectedSessionId)
+          
+          // Use notificationService to fetch crawl session data
+          const sessionData = await notificationService.getCrawlSessionData(selectedSessionId)
+          console.log('Session data received:', sessionData)
+          
+          if (sessionData.ai_generated_faqs && sessionData.ai_generated_faqs.length > 0) {
+            setFaqPreviewData({
+              faqs: sessionData.ai_generated_faqs,
+              companyName: sessionData.company_name || company?.name || '',
+              sessionId: selectedSessionId
+            })
+            console.log('FAQ data loaded successfully:', sessionData.ai_generated_faqs.length, 'FAQs')
+          } else {
+            console.warn('No AI-generated FAQs found in session')
+            closeFAQPreview()
+          }
+        } catch (error) {
+          console.error('Failed to load FAQ preview data:', error)
+          closeFAQPreview()
+        }
+      }
+    }
+
+    loadFAQPreviewData()
+  }, [showFAQPreview, selectedSessionId, faqPreviewData, company?.name, closeFAQPreview])
 
   // Get company data for this admin
   useEffect(() => {
@@ -212,52 +251,20 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     }
   }
 
-  // Handle notification action (FAQ approval)
-  // const handleNotificationAction = async (notification: any) => {
-  //   if (notification.type === 'faq_approval' && notification.crawl_session_id) {
-  //     try {
-  //       // Load crawl session data
-  //       const sessionData = await notificationService.getCrawlSessionData(notification.crawl_session_id)
-        
-  //       if (sessionData && sessionData.ai_generated_faqs) {
-  //         setFaqPreviewData({
-  //           faqs: sessionData.ai_generated_faqs,
-  //           sessionId: notification.crawl_session_id,
-  //           companyName: company?.name || '',
-  //           source: 'notification'
-  //         })
-  //         setShowFAQPreview(true)
-  //       }
-  //     } catch (error) {
-  //       console.error('Error loading FAQ preview data:', error)
-  //     }
-  //   }
-  // }
 
   // Handle saving approved FAQs from notification
   const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
-    if (!faqPreviewData?.sessionId) return
+    if (!selectedSessionId) return
 
     try {
-      const response = await fetch('/api/crawler/save-faqs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: faqPreviewData.sessionId,
-          approvedFAQs
-        })
+      const response = await axios.post(`${config.backendUrl}/api/crawler/save-faqs`, {
+        sessionId: selectedSessionId,
+        approvedFAQs
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to save FAQs')
-      }
-
-      const result = await response.json()
+      const result = response.data
       alert(`Successfully saved ${result.savedFAQs?.length || 0} approved FAQs`)
-      setShowFAQPreview(false)
-      setFaqPreviewData(null)
+      closeFAQPreview()
       
       // Refresh notifications to remove the FAQ approval notification
       if (company?.id) {
@@ -809,14 +816,14 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       )}
 
       {/* FAQ Preview Modal for Notifications */}
-      {showFAQPreview && faqPreviewData && (
+      {showFAQPreview && selectedSessionId && (
         <FAQPreviewModal
           isOpen={showFAQPreview}
-          generatedFAQs={faqPreviewData.faqs}
-          companyName={faqPreviewData.companyName}
+          generatedFAQs={faqPreviewData?.faqs || []}
+          companyName={company?.name || ''}
           onSaveApproved={handleSaveApprovedFAQs}
           onClose={() => {
-            setShowFAQPreview(false)
+            closeFAQPreview()
             setFaqPreviewData(null)
           }}
         />

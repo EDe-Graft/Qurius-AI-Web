@@ -33,9 +33,11 @@ import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
-// import { notificationService } from "@/services/notificationService"
+import { notificationService } from "@/services/notificationService"
 import { AnalyticsService } from "@/services/analyticsService"
 import { isSuperAdmin } from "@/lib/auth"
+import { config } from "@/lib/config"
+import axios from "axios"
 
 interface QuriusAdminProps {
   user: any
@@ -44,14 +46,19 @@ interface QuriusAdminProps {
 export function QuriusAdmin({ user }: QuriusAdminProps) {
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
-  const { loadAllNotifications, unreadCount } = useNotifications()
+  const { 
+    loadAllNotifications, 
+    unreadCount, 
+    showFAQPreview, 
+    selectedSessionId, 
+    closeFAQPreview 
+  } = useNotifications()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
 
-  // Notification-related state
-  const [showFAQPreview, setShowFAQPreview] = useState(false)
+  // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
   const [showNotificationBanner, setShowNotificationBanner] = useState(false)
 
@@ -183,6 +190,38 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       return () => clearTimeout(timer);
     }
   }, [faqModal.isOpen]);
+
+  // Load FAQ data when modal opens from notification
+  useEffect(() => {
+    const loadFAQPreviewData = async () => {
+      if (showFAQPreview && selectedSessionId && !faqPreviewData) {
+        try {
+          console.log('Loading FAQ data for session:', selectedSessionId)
+          
+          // Use notificationService to fetch crawl session data
+          const sessionData = await notificationService.getCrawlSessionData(selectedSessionId)
+          console.log('Session data received:', sessionData)
+          
+          if (sessionData.ai_generated_faqs && sessionData.ai_generated_faqs.length > 0) {
+            setFaqPreviewData({
+              faqs: sessionData.ai_generated_faqs,
+              companyName: sessionData.company_name || 'Unknown Company',
+              sessionId: selectedSessionId
+            })
+            console.log('FAQ data loaded successfully:', sessionData.ai_generated_faqs.length, 'FAQs')
+          } else {
+            console.warn('No AI-generated FAQs found in session')
+            closeFAQPreview()
+          }
+        } catch (error) {
+          console.error('Failed to load FAQ preview data:', error)
+          closeFAQPreview()
+        }
+      }
+    }
+
+    loadFAQPreviewData()
+  }, [showFAQPreview, selectedSessionId, faqPreviewData, closeFAQPreview])
 
   // Verify super admin access
   useEffect(() => {
@@ -396,28 +435,17 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   }
 
   const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
-    if (!faqPreviewData?.sessionId) return
+    if (!selectedSessionId) return
 
     try {
-      const response = await fetch('/api/crawler/save-faqs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: faqPreviewData.sessionId,
-          approvedFAQs
-        })
+      const response = await axios.post(`${config.backendUrl}/api/crawler/save-faqs`, {
+        sessionId: selectedSessionId,
+        approvedFAQs
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to save FAQs')
-      }
-
-      const result = await response.json()
+      const result = response.data
       alert(`Successfully saved ${result.savedFAQs?.length || 0} approved FAQs`)
-      setShowFAQPreview(false)
-      setFaqPreviewData(null)
+      closeFAQPreview()
       
       // Refresh notifications for all companies
       await loadAllNotifications()
@@ -974,14 +1002,14 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       )}
 
       {/* FAQ Preview Modal for Notifications */}
-      {showFAQPreview && faqPreviewData && (
+      {showFAQPreview && selectedSessionId && (
         <FAQPreviewModal
           isOpen={showFAQPreview}
-          generatedFAQs={faqPreviewData.faqs}
-          companyName={faqPreviewData.companyName}
+          generatedFAQs={faqPreviewData?.faqs || []}
+          companyName={faqPreviewData?.companyName || 'Unknown Company'}
           onSaveApproved={handleSaveApprovedFAQs}
           onClose={() => {
-            setShowFAQPreview(false)
+            closeFAQPreview()
             setFaqPreviewData(null)
           }}
         />
