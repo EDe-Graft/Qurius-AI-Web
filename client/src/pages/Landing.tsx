@@ -9,6 +9,7 @@ import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 import { Navigation } from "@/components/custom/Navigation"
 import { Footer } from "@/components/custom/Footer"
 import { useTheme } from "@/context/useThemeContext"
+import { subscriptionService } from "@/services/subscriptionService"
 
 export function Landing() {
   const navigate = useNavigate()
@@ -16,6 +17,9 @@ export function Landing() {
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [isVideoLoading, setIsVideoLoading] = useState(true)
+  const [isSubscribing, setIsSubscribing] = useState(false)
+  const [subscriptionMessage, setSubscriptionMessage] = useState("")
+  const [subscriptionError, setSubscriptionError] = useState("")
   const { t } = useLanguage()
   const { defaultTheme, isThemeChanging, toggleTheme } = useTheme()
   const { quriusData, isDataLoading } = useRouteBasedCompany()
@@ -42,13 +46,45 @@ export function Landing() {
     navigate("/onboarding")
   }
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle email subscription
-    console.log("Email submitted:", email)
-    setEmail("")
-    // Show success message
-    alert("Thank you for subscribing!")
+    
+    // Clear previous messages
+    setSubscriptionMessage("")
+    setSubscriptionError("")
+    
+    // Validate email
+    if (!email.trim()) {
+      setSubscriptionError("Please enter your email address.")
+      return
+    }
+
+    setIsSubscribing(true)
+    
+    try {
+      const result = await subscriptionService.subscribeEmail({
+        email: email.trim(),
+        source: 'landing_page'
+      })
+      
+      if (result.success) {
+        setSubscriptionMessage(result.message)
+        setEmail("")
+        // Clear success message after 5 seconds
+        setTimeout(() => setSubscriptionMessage(""), 5000)
+      } else {
+        setSubscriptionError(result.message)
+        // Clear error message after 5 seconds
+        setTimeout(() => setSubscriptionError(""), 5000)
+      }
+    } catch (error) {
+      console.error("Error subscribing email:", error)
+      setSubscriptionError("Failed to subscribe. Please try again later.")
+      // Clear error message after 5 seconds
+      setTimeout(() => setSubscriptionError(""), 5000)
+    } finally {
+      setIsSubscribing(false)
+    }
   }
 
   const handleVideoLoad = () => {
@@ -437,6 +473,23 @@ export function Landing() {
             {t('landing.ctaSubtitle')}
           </p>
           
+          {/* Subscription Messages */}
+          {subscriptionMessage && (
+            <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg">
+              <p className="text-green-800 dark:text-green-200 text-sm md:text-base font-medium">
+                ✅ {subscriptionMessage}
+              </p>
+            </div>
+          )}
+          
+          {subscriptionError && (
+            <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+              <p className="text-red-800 dark:text-red-200 text-sm md:text-base font-medium">
+                ❌ {subscriptionError}
+              </p>
+            </div>
+          )}
+          
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center animate-fade-in-up animation-delay-400">
             <button
               onClick={handleGetStarted}
@@ -451,17 +504,36 @@ export function Landing() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('landing.emailPlaceholder')}
-                className="px-4 py-3 rounded-lg border-2 border-white text-white placeholder-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base"
+                className="px-4 py-3 rounded-lg border-2 border-white text-white placeholder-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base bg-transparent"
                 required
+                disabled={isSubscribing}
               />
               <button
                 type="submit"
-                className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors min-h-[48px] md:min-h-[44px] text-sm md:text-base transform hover:scale-105"
+                disabled={isSubscribing}
+                className={`px-6 py-3 rounded-lg font-semibold min-h-[48px] md:min-h-[44px] text-sm md:text-base transform transition-all duration-200 ${
+                  isSubscribing 
+                    ? 'bg-blue-500 text-white cursor-not-allowed' 
+                    : 'bg-blue-700 text-white hover:bg-blue-800 hover:scale-105'
+                }`}
               >
-                {t('landing.getUpdates')}
+                {isSubscribing ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Subscribing...
+                  </div>
+                ) : (
+                  t('landing.getUpdates')
+                )}
               </button>
             </form>
           </div>
+          
+          {/* Privacy Notice */}
+          <p className="text-blue-200 text-xs mt-4 max-w-2xl mx-auto">
+            By subscribing, you agree to receive updates about Qurius AI. We respect your privacy and will never share your email with third parties. 
+            You can unsubscribe at any time.
+          </p>
         </div>
       </section>
 

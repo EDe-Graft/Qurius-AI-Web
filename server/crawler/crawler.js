@@ -2,7 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import { getEmbedding, chunkContent, generateFAQs, deduplicateContentWithAI } from '../utils.js'
+import { getEmbedding, chunkContent, generateFAQs, deduplicateContentWithAI, deduplicateFAQsWithAI } from '../utils.js'
 import { FAQGenerationCompleteEmailTemplate } from '../emailTemplates.js'
 import { sendEmail } from '../config/resend.js'
 import dotenv from 'dotenv'
@@ -801,7 +801,7 @@ class QuriusCrawler {
     }
     
     // Remove duplicates and filter quality
-    const uniqueFAQs = this.deduplicateFAQs(faqs)
+    const uniqueFAQs = await this.deduplicateFAQs(faqs)
     crawlData.faqs = uniqueFAQs.slice(0, 10) // Limit to 10 existing FAQs
     
     console.log(`✅ Extracted ${crawlData.faqs.length} existing FAQs from website`)
@@ -873,39 +873,84 @@ class QuriusCrawler {
 
 
   /**
-   * Remove duplicate FAQs
+   * Remove duplicate FAQs using 2-stage deduplication approach
    */
-  deduplicateFAQs(faqs) {
+  async deduplicateFAQs(faqs) {
+    console.log(`🔍 Starting 2-stage FAQ deduplication for ${faqs.length} FAQs...`)
+    
+    // Stage 1: Manual/Basic deduplication
+    console.log('📝 Stage 1: Manual deduplication...')
+    const stage1Faqs = this.basicDeduplicateFAQs(faqs)
+    const stage1Removed = faqs.length - stage1Faqs.length
+    console.log(`✅ Stage 1 complete: ${faqs.length} → ${stage1Faqs.length} FAQs (${stage1Removed} removed)`)
+    
+    // Stage 2: AI-powered semantic deduplication
+    console.log('🤖 Stage 2: AI-powered semantic deduplication...')
+    try {
+      const finalFaqs = await deduplicateFAQsWithAI(stage1Faqs, 0.85)
+      const stage2Removed = stage1Faqs.length - finalFaqs.length
+      console.log(`✅ Stage 2 complete: ${stage1Faqs.length} → ${finalFaqs.length} FAQs (${stage2Removed} removed)`)
+      
+      const totalRemoved = faqs.length - finalFaqs.length
+      console.log(`🎯 2-stage FAQ deduplication summary: ${faqs.length} → ${finalFaqs.length} FAQs (${totalRemoved} total removed, ${Math.round((totalRemoved / faqs.length) * 100)}% reduction)`)
+      
+      return finalFaqs
+    } catch (error) {
+      console.warn('⚠️ AI FAQ deduplication failed, using Stage 1 results:', error.message)
+      console.log(`📊 Using Stage 1 results: ${stage1Faqs.length} FAQs (${stage1Removed} duplicates removed)`)
+      return stage1Faqs
+    }
+  }
+
+  /**
+   * Basic FAQ deduplication using exact text matching (original method)
+   */
+  basicDeduplicateFAQs(faqs) {
+    console.log(`🔍 Using basic FAQ deduplication for ${faqs.length} FAQs...`)
+    
     const seen = new Set()
-    return faqs.filter(faq => {
+    const uniqueFaqs = faqs.filter(faq => {
       const key = faq.question.toLowerCase().trim()
       if (seen.has(key)) {
+        console.log(`⏭️ Skipping duplicate FAQ question: "${faq.question.substring(0, 100)}..."`)
         return false
       }
       seen.add(key)
       return true
     })
+    
+    const duplicatesRemoved = faqs.length - uniqueFaqs.length
+    console.log(`✅ Basic FAQ deduplication complete: ${duplicatesRemoved} duplicates removed, ${uniqueFaqs.length} unique FAQs remaining`)
+    return uniqueFaqs
   }
 
   /**
-   * Remove duplicate content chunks using AI-powered semantic analysis
+   * Remove duplicate content chunks using 2-stage deduplication approach
    */
   async deduplicateContentChunks(chunks) {
-    console.log(`🔍 Starting AI-powered deduplication for ${chunks.length} content chunks...`)
+    console.log(`🔍 Starting 2-stage deduplication for ${chunks.length} content chunks...`)
     
+    // Stage 1: Manual/Basic deduplication
+    console.log('📝 Stage 1: Manual deduplication...')
+    const stage1Chunks = this.basicDeduplicateContentChunks(chunks)
+    const stage1Removed = chunks.length - stage1Chunks.length
+    console.log(`✅ Stage 1 complete: ${chunks.length} → ${stage1Chunks.length} chunks (${stage1Removed} removed)`)
+    
+    // Stage 2: AI-powered semantic deduplication
+    console.log('🤖 Stage 2: AI-powered semantic deduplication...')
     try {
-      // Use AI-powered deduplication for better semantic understanding
-      const uniqueChunks = await deduplicateContentWithAI(chunks, 0.85);
+      const finalChunks = await deduplicateContentWithAI(stage1Chunks, 0.85)
+      const stage2Removed = stage1Chunks.length - finalChunks.length
+      console.log(`✅ Stage 2 complete: ${stage1Chunks.length} → ${finalChunks.length} chunks (${stage2Removed} removed)`)
       
-      const duplicatesRemoved = chunks.length - uniqueChunks.length;
-      console.log(`✅ AI deduplication completed: ${duplicatesRemoved} duplicates removed, ${uniqueChunks.length} unique chunks remaining`);
+      const totalRemoved = chunks.length - finalChunks.length
+      console.log(`🎯 2-stage deduplication summary: ${chunks.length} → ${finalChunks.length} chunks (${totalRemoved} total removed, ${Math.round((totalRemoved / chunks.length) * 100)}% reduction)`)
       
-      return uniqueChunks;
+      return finalChunks
     } catch (error) {
-      console.error('❌ AI deduplication failed, falling back to basic deduplication:', error.message);
-      
-      // Fallback to basic deduplication if AI fails
-      return this.basicDeduplicateContentChunks(chunks);
+      console.warn('⚠️ AI deduplication failed, using Stage 1 results:', error.message)
+      console.log(`📊 Using Stage 1 results: ${stage1Chunks.length} chunks (${stage1Removed} duplicates removed)`)
+      return stage1Chunks
     }
   }
 

@@ -50,6 +50,48 @@ FOR UPDATE USING (true);
 CREATE POLICY "Service role can delete companies" ON public.companies
 FOR DELETE USING (true);
 
+-- Email Subscriptions table for newsletter signups
+CREATE TABLE public.email_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL UNIQUE,
+    first_name TEXT,
+    last_name TEXT,
+    company_name TEXT,
+    source TEXT DEFAULT 'landing_page', -- 'landing_page', 'demo_page', 'admin_added', etc.
+    status TEXT DEFAULT 'active', -- 'active', 'unsubscribed', 'bounced'
+    subscribed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    unsubscribed_at TIMESTAMP WITH TIME ZONE,
+    last_email_sent TIMESTAMP WITH TIME ZONE,
+    email_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for email_subscriptions table
+CREATE INDEX idx_email_subscriptions_email ON public.email_subscriptions(email);
+CREATE INDEX idx_email_subscriptions_status ON public.email_subscriptions(status);
+CREATE INDEX idx_email_subscriptions_subscribed_at ON public.email_subscriptions(subscribed_at);
+CREATE INDEX idx_email_subscriptions_source ON public.email_subscriptions(source);
+
+-- Enable Row Level Security for email_subscriptions table
+ALTER TABLE public.email_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to email_subscriptions (for admin purposes)
+CREATE POLICY "Allow public read access to email_subscriptions" ON public.email_subscriptions
+FOR SELECT USING (true);
+
+-- Allow public insert access to email_subscriptions (for signups)
+CREATE POLICY "Allow public insert access to email_subscriptions" ON public.email_subscriptions
+FOR INSERT WITH CHECK (true);
+
+-- Allow service role to update email_subscriptions
+CREATE POLICY "Service role can update email_subscriptions" ON public.email_subscriptions
+FOR UPDATE USING (true);
+
+-- Allow service role to delete email_subscriptions
+CREATE POLICY "Service role can delete email_subscriptions" ON public.email_subscriptions
+FOR DELETE USING (true);
+
 
 --Create crawl_sessions table first before FAQs table
 --Create FAQs table without crawl_session_id column

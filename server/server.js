@@ -3274,3 +3274,299 @@ app.get('/api/companies/:companyId/faqs/summary', async (req, res) => {
     });
   }
 });
+
+// Email Subscription Endpoints
+app.post('/api/subscriptions/subscribe', async (req, res) => {
+  try {
+    const { email, first_name, last_name, company_name, source = 'landing_page' } = req.body;
+
+    console.log('📧 New subscription request:', { email, source });
+
+    // Validate email
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required and must be a string.' 
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please enter a valid email address.' 
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database configuration missing.' 
+      });
+    }
+
+    // Check if email already exists
+    const existingResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/email_subscriptions?email=eq.${encodeURIComponent(email)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (existingResponse.data && existingResponse.data.length > 0) {
+      const existing = existingResponse.data[0];
+      
+      // If already subscribed and active, return success
+      if (existing.status === 'active') {
+        return res.status(409).json({
+          success: false,
+          message: 'This email is already subscribed to our newsletter.'
+        });
+      }
+      
+      // If unsubscribed, reactivate the subscription
+      if (existing.status === 'unsubscribed') {
+        const updateResponse = await axios.patch(
+          `${supabaseUrl}/rest/v1/email_subscriptions?id=eq.${existing.id}`,
+          {
+            status: 'active',
+            unsubscribed_at: null,
+            updated_at: new Date().toISOString()
+          },
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
+          }
+        );
+
+        console.log('✅ Reactivated subscription for:', email);
+        return res.json({
+          success: true,
+          message: 'Welcome back! Your subscription has been reactivated.',
+          subscription: updateResponse.data[0]
+        });
+      }
+    }
+
+    // Create new subscription
+    const subscriptionData = {
+      email: email.toLowerCase().trim(),
+      first_name: first_name || null,
+      last_name: last_name || null,
+      company_name: company_name || null,
+      source: source,
+      status: 'active',
+      subscribed_at: new Date().toISOString()
+    };
+
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/email_subscriptions`,
+      subscriptionData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    console.log('✅ New subscription created:', email);
+    res.json({
+      success: true,
+      message: 'Thank you for subscribing! You\'ll receive updates about Qurius AI.',
+      subscription: response.data[0]
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating subscription:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to subscribe. Please try again later.',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.post('/api/subscriptions/unsubscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    console.log('📧 Unsubscribe request:', email);
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required.' 
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database configuration missing.' 
+      });
+    }
+
+    // Find and update subscription
+    const response = await axios.patch(
+      `${supabaseUrl}/rest/v1/email_subscriptions?email=eq.${encodeURIComponent(email)}`,
+      {
+        status: 'unsubscribed',
+        unsubscribed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    if (response.data && response.data.length > 0) {
+      console.log('✅ Subscription unsubscribed:', email);
+      res.json({
+        success: true,
+        message: 'You have been successfully unsubscribed from our newsletter.'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Email not found in our subscription list.'
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error unsubscribing:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to unsubscribe. Please try again later.' 
+    });
+  }
+});
+
+app.get('/api/subscriptions/status/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    console.log('📧 Checking subscription status for:', email);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database configuration missing.' 
+      });
+    }
+
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/email_subscriptions?email=eq.${encodeURIComponent(email)}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.length > 0) {
+      const subscription = response.data[0];
+      res.json({
+        success: true,
+        message: 'Subscription found.',
+        subscription: {
+          id: subscription.id,
+          email: subscription.email,
+          status: subscription.status,
+          subscribed_at: subscription.subscribed_at,
+          source: subscription.source
+        }
+      });
+    } else {
+      res.json({
+        success: false,
+        message: 'Email not found in our subscription list.',
+        subscription: null
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error checking subscription status:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to check subscription status.' 
+    });
+  }
+});
+
+// Get all subscriptions (admin endpoint)
+app.get('/api/subscriptions', async (req, res) => {
+  try {
+    const { status, source, limit = 100, offset = 0 } = req.query;
+
+    console.log('📧 Admin requesting subscriptions:', { status, source, limit, offset });
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Database configuration missing.' 
+      });
+    }
+
+    let url = `${supabaseUrl}/rest/v1/email_subscriptions?order=subscribed_at.desc&limit=${limit}&offset=${offset}`;
+    
+    if (status) {
+      url += `&status=eq.${status}`;
+    }
+    if (source) {
+      url += `&source=eq.${source}`;
+    }
+
+    const response = await axios.get(url, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log(`✅ Retrieved ${response.data.length} subscriptions`);
+    res.json({
+      success: true,
+      subscriptions: response.data,
+      count: response.data.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error retrieving subscriptions:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to retrieve subscriptions.' 
+    });
+  }
+});
