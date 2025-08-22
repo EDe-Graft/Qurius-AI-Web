@@ -28,11 +28,46 @@ export async function getEmbedding(question, answer) {
 }
 
 
+// Helper function to ensure response ends with complete sentences
+function ensureCompleteSentences(text, maxLength = 500) {
+  if (!text || text.length <= maxLength) {
+    return text;
+  }
+  
+  // Truncate to max length
+  let truncated = text.substring(0, maxLength);
+  
+  // Find the last complete sentence
+  const sentenceEndings = ['.', '!', '?', ':', ';', '...', '•', '—'];
+  let lastCompleteIndex = -1;
+  
+  for (const ending of sentenceEndings) {
+    const lastIndex = truncated.lastIndexOf(ending);
+    if (lastIndex > lastCompleteIndex) {
+      lastCompleteIndex = lastIndex;
+    }
+  }
+  
+  // If we found a sentence ending, truncate there
+  if (lastCompleteIndex > 0) {
+    return truncated.substring(0, lastCompleteIndex + 1);
+  }
+  
+  // If no sentence ending found, try to find the last complete word
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+  if (lastSpaceIndex > 0) {
+    return truncated.substring(0, lastSpaceIndex);
+  }
+  
+  // Fallback: return truncated text as-is
+  return truncated;
+}
+
 // Get AI response using OpenAI
 export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = []}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'openai/gpt-5-mini';
+  const model = 'deepseek/deepseek-r1-0528:free';
   
   // Build context-aware system prompt
   let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.`;
@@ -51,7 +86,13 @@ export async function getAIResponse({companyName, companyWebsite, customerSuppor
     
     systemPrompt += `\n\nBase your response on the information provided above. Generate complete sentences and paragraphs only. 
 
-IMPORTANT: When providing contact information, always format it as clickable markdown links:
+IMPORTANT: 
+- Always provide complete, well-formed sentences
+- End responses with proper punctuation (period, exclamation mark, or question mark)
+- Do not leave sentences incomplete or cut off mid-thought
+- Keep responses concise but comprehensive
+
+When providing contact information, always format it as clickable markdown links:
 - Email addresses: [support@company.com](mailto:support@company.com)
 - Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
 - Website links: [Visit our website](https://company.com)
@@ -71,7 +112,7 @@ IMPORTANT: When providing contact information, always format it as clickable mar
 If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}].`;
   }
   
-  const maxTokens = 400; // Increased for more detailed responses with context
+  const maxTokens = 500; // Increased for more detailed responses with context
   const temperature = 0.7;
 
   try {
@@ -112,7 +153,12 @@ If you don't find the information on the website, suggest they contact customer 
     console.log('✅ OpenRouter API response received');
     const aiResponse = response.data.choices[0].message.content;
     console.log('🤖 AI Response length:', aiResponse?.length || 0);
-    return aiResponse;
+    
+    // Ensure response ends with complete sentences
+    const completeResponse = ensureCompleteSentences(aiResponse, maxTokens * 4); // Approximate character limit
+    console.log('🤖 Complete response length:', completeResponse?.length || 0);
+    
+    return completeResponse;
   } catch (error) {
     console.error('❌ OpenRouter API error details:', {
       status: error.response?.status,

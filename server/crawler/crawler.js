@@ -1,5 +1,6 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
+import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getEmbedding, chunkContent, generateFAQs } from '../utils.js'
 import { FAQGenerationCompleteEmailTemplate } from '../emailTemplates.js'
@@ -351,7 +352,7 @@ class QuriusCrawler {
     }
     
     const title = $('title').text().trim()
-    const description = $('meta[name="description"]').attr('content') || ''
+    const description = $('meta[name="description"]')?.attr('content') || ''
     
     console.log(`📄 Page title: ${title}`)
     console.log(`📝 Page description: ${description}`)
@@ -383,57 +384,67 @@ class QuriusCrawler {
       console.log(`  - Minimal content with many divs: ${hasMinimalContent}`)
     }
     
-    // Extract main content with better structure
+    // Extract main content with better structure and deduplication
     const content = []
+    const extractedTexts = new Set() // Track extracted text to avoid duplicates
+    
+    // Helper function to add content if not already extracted
+    const addUniqueContent = (type, text, priority = 'medium', source = url) => {
+      if (!text || text.length < 50) return
+      
+      const normalizedText = text.toLowerCase().replace(/\s+/g, ' ').trim()
+      if (extractedTexts.has(normalizedText)) {
+        console.log(`⏭️ Skipping duplicate content: "${text.substring(0, 100)}..."`)
+        return
+      }
+      
+      extractedTexts.add(normalizedText)
+      content.push({
+        type,
+        text: text.trim(),
+        source,
+        priority
+      })
+      console.log(`📄 Found ${type} content (${text.length} chars)`)
+    }
     
     // Get text from main content areas (prioritize these)
     $('main, article, .content, .main, #content, #main').each((i, el) => {
       const rawText = $(el).text().trim()
       const cleanedText = this.cleanTextContent(rawText)
-      
-      if (cleanedText.length > 100) { // Increased minimum length for better chunks
-        content.push({
-          type: 'main_content',
-          text: cleanedText,
-          source: url,
-          priority: 'high'
-        })
-        console.log(`📄 Found main content (${cleanedText.length} chars, cleaned from ${rawText.length})`)
-      }
+      addUniqueContent('main_content', cleanedText, 'high')
     })
     
-    // Get text from sections and divs with meaningful content
-    $('section, div').each((i, el) => {
+    // Get text from sections (avoid overlapping with main content)
+    $('section').each((i, el) => {
+      // Skip if this section is inside main content areas
+      if ($(el).closest('main, article, .content, .main, #content, #main').length > 0) {
+        return
+      }
+      
       const rawText = $(el).text().trim()
       const cleanedText = this.cleanTextContent(rawText)
-      
-      if (cleanedText.length > 150 && cleanedText.length < 2000) { // Reasonable chunk size
-        content.push({
-          type: 'section',
-          text: cleanedText,
-          source: url,
-          priority: 'medium'
-        })
-        console.log(`📄 Found section content (${cleanedText.length} chars, cleaned from ${rawText.length})`)
-      }
+      addUniqueContent('section', cleanedText, 'medium')
     })
     
-    // Get text from paragraphs (for detailed content)
+    // Get text from paragraphs (avoid overlapping with main content and sections)
     $('p').each((i, el) => {
-      const text = $(el).text().trim()
-      if (text.length > 50) { // Increased minimum for better quality
-        content.push({
-          type: 'paragraph',
-          text: text,
-          source: url,
-          priority: 'medium'
-        })
-        console.log(`📄 Found paragraph content (${text.length} chars)`)
+      // Skip if this paragraph is inside already processed areas
+      if ($(el).closest('main, article, .content, .main, #content, #main, section').length > 0) {
+        return
       }
+      
+      const text = $(el).text().trim()
+      addUniqueContent('paragraph', text, 'medium')
     })
     
-    // Get headings with context
+    // Get headings with context (avoid overlapping)
     $('h1, h2, h3, h4, h5, h6').each((i, el) => {
+      // Skip if this heading is inside already processed areas
+      if ($(el).closest('main, article, .content, .main, #content, #main, section').length > 0) {
+        return
+      }
+      
       const heading = $(el).text().trim()
       if (heading.length > 5) {
         // Get next sibling content for context
@@ -441,28 +452,19 @@ class QuriusCrawler {
         const combinedText = nextContent.length > 20 ? 
           `${heading}: ${nextContent}` : heading
         
-        content.push({
-          type: 'heading_with_context',
-          text: combinedText,
-          source: url,
-          priority: 'high'
-        })
-        console.log(`📄 Found heading with context (${combinedText.length} chars)`)
+        addUniqueContent('heading_with_context', combinedText, 'high')
       }
     })
     
-    // Get list items (often contain valuable information)
+    // Get list items (avoid overlapping)
     $('ul li, ol li').each((i, el) => {
-      const text = $(el).text().trim()
-      if (text.length > 30) {
-        content.push({
-          type: 'list_item',
-          text: text,
-          source: url,
-          priority: 'medium'
-        })
-        console.log(`📄 Found list item content (${text.length} chars)`)
+      // Skip if this list item is inside already processed areas
+      if ($(el).closest('main, article, .content, .main, #content, #main, section').length > 0) {
+        return
       }
+      
+      const text = $(el).text().trim()
+      addUniqueContent('list_item', text, 'medium')
     })
     
     console.log(`📊 Content extraction summary for ${url}:`)
@@ -487,13 +489,7 @@ class QuriusCrawler {
         console.log(`📄 Fallback extraction found ${textChunks.length} text chunks`)
         
         textChunks.forEach((chunk, index) => {
-          content.push({
-            type: 'fallback_text',
-            text: chunk,
-            source: url,
-            priority: 'medium'
-          })
-          console.log(`📄 Fallback chunk ${index + 1} (${chunk.length} chars): "${chunk.substring(0, 100)}..."`)
+          addUniqueContent('fallback_text', chunk, 'medium')
         })
       } else {
         console.log(`⚠️ Fallback extraction also failed - body text too short (${allText.length} chars)`)
@@ -878,6 +874,140 @@ class QuriusCrawler {
   }
 
   /**
+   * Remove duplicate content chunks based on text similarity
+   */
+  deduplicateContentChunks(chunks) {
+    console.log(`🔍 Deduplicating ${chunks.length} content chunks...`)
+    
+    const uniqueChunks = []
+    const seenContent = new Set()
+    let duplicatesRemoved = 0
+    
+    for (const chunk of chunks) {
+      // Normalize text for comparison (remove extra whitespace, lowercase)
+      const normalizedText = chunk.content
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim()
+      
+      // Skip if we've seen this content before
+      if (seenContent.has(normalizedText)) {
+        duplicatesRemoved++
+        console.log(`⏭️ Skipping duplicate chunk: "${chunk.content.substring(0, 100)}..."`)
+        continue
+      }
+      
+      // Check for similar content (90% similarity threshold)
+      let isDuplicate = false
+      for (const existingChunk of uniqueChunks) {
+        const existingNormalized = existingChunk.content
+          .toLowerCase()
+          .replace(/\s+/g, ' ')
+          .trim()
+        
+        const similarity = this.calculateTextSimilarity(normalizedText, existingNormalized)
+        if (similarity > 0.9) {
+          isDuplicate = true
+          duplicatesRemoved++
+          console.log(`⏭️ Skipping similar chunk (${Math.round(similarity * 100)}% similarity): "${chunk.content.substring(0, 100)}..."`)
+          break
+        }
+      }
+      
+      if (!isDuplicate) {
+        seenContent.add(normalizedText)
+        uniqueChunks.push(chunk)
+      }
+    }
+    
+    console.log(`✅ Deduplication complete: ${duplicatesRemoved} duplicates removed, ${uniqueChunks.length} unique chunks remaining`)
+    return uniqueChunks
+  }
+
+  /**
+   * Calculate text similarity using simple character-based comparison
+   */
+  calculateTextSimilarity(text1, text2) {
+    if (text1 === text2) return 1.0
+    
+    const longer = text1.length > text2.length ? text1 : text2
+    const shorter = text1.length > text2.length ? text2 : text1
+    
+    if (longer.length === 0) return 1.0
+    
+    // Use Levenshtein distance for similarity
+    const distance = this.levenshteinDistance(longer, shorter)
+    return (longer.length - distance) / longer.length
+  }
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   */
+  levenshteinDistance(str1, str2) {
+    const matrix = []
+    
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i]
+    }
+    
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j
+    }
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          )
+        }
+      }
+    }
+    
+    return matrix[str2.length][str1.length]
+  }
+
+  /**
+   * Hash content for duplicate detection
+   */
+  hashContent(content) {
+    const normalizedContent = content.toLowerCase().replace(/\s+/g, ' ').trim()
+    return crypto.createHash('sha256').update(normalizedContent).digest('hex')
+  }
+
+  /**
+   * Get existing content hashes from database for a company
+   */
+  async getExistingContentHashes(companyId) {
+    try {
+      const { data: existingChunks, error } = await supabase
+        .from('company_content_chunks')
+        .select('content')
+        .eq('company_id', companyId)
+
+      if (error) {
+        console.warn('⚠️ Failed to fetch existing content:', error)
+        return new Set()
+      }
+
+      const contentHashes = new Set()
+      existingChunks.forEach(chunk => {
+        const hash = this.hashContent(chunk.content)
+        contentHashes.add(hash)
+      })
+
+      return contentHashes
+    } catch (error) {
+      console.warn('⚠️ Error checking existing content:', error)
+      return new Set()
+    }
+  }
+
+  /**
    * Save crawl results to database
    */
   async saveCrawlResults(crawlData) {
@@ -958,7 +1088,8 @@ class QuriusCrawler {
                   chunk_index: chunkIndex++,
                   content_type: contentItem.type,
                   priority: contentItem.priority || 'medium',
-                  source_url: contentItem.source
+                  source_url: contentItem.source,
+                  content_hash: this.hashContent(chunk)
                 });
                 console.log(`📝 Chunk added to batch (with embedding)`);
               } catch (embeddingError) {
@@ -973,7 +1104,8 @@ class QuriusCrawler {
                   chunk_index: chunkIndex++,
                   content_type: contentItem.type,
                   priority: contentItem.priority || 'medium',
-                  source_url: contentItem.source
+                  source_url: contentItem.source,
+                  content_hash: this.hashContent(chunk)
                 });
                 console.log(`📝 Chunk added to batch (without embedding)`);
               }
@@ -996,18 +1128,36 @@ class QuriusCrawler {
         console.log(`  - Total chunks generated: ${chunkData.length}`);
         
         if (chunkData.length > 0) {
-          console.log(`💾 Saving ${chunkData.length} content chunks to database...`);
+          // Deduplicate content chunks before saving
+          const uniqueChunks = this.deduplicateContentChunks(chunkData);
+          
+          // Check for existing content in database to avoid duplicates
+          console.log(`🔍 Checking for existing content in database...`);
+          const existingContent = await this.getExistingContentHashes(crawlData.companyId);
+          console.log(`📊 Found ${existingContent.size} existing content items in database`);
+          
+          // Filter out chunks that already exist
+          const newChunks = uniqueChunks.filter(chunk => {
+            const contentHash = this.hashContent(chunk.content);
+            if (existingContent.has(contentHash)) {
+              console.log(`⏭️ Skipping existing content: "${chunk.content.substring(0, 100)}..."`);
+              return false;
+            }
+            return true;
+          });
+          
+          console.log(`💾 Saving ${newChunks.length} new content chunks to database...`);
           
           // Save content chunks to database
           const { error: chunkError } = await supabase
             .from('company_content_chunks')
-            .insert(chunkData);
+            .insert(newChunks);
 
           if (chunkError) {
             console.error('❌ Failed to save content chunks:', chunkError);
             console.error('❌ Database error details:', chunkError);
           } else {
-            console.log(`✅ Successfully saved ${chunkData.length} content chunks with embeddings to database`);
+            console.log(`✅ Successfully saved ${newChunks.length} new content chunks with embeddings to database`);
           }
         } else {
           console.warn('⚠️ No content chunks generated - database will remain empty');

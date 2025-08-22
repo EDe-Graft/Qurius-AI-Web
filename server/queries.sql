@@ -208,39 +208,50 @@ CREATE POLICY "Service role can read all message usage" ON public.message_usage
   FOR SELECT USING (true);
 
 
--- Company Content Chunks Table
+-- Company Content Chunks Table (Complete Definition)
 CREATE TABLE public.company_content_chunks (
   id SERIAL PRIMARY KEY,
-  company_id UUID REFERENCES companies(id),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
   company_name TEXT,
   crawl_session_id UUID REFERENCES crawl_sessions(id) ON DELETE CASCADE DEFAULT NULL,
   content TEXT NOT NULL,
+  content_hash TEXT NOT NULL, -- SHA256 hash for duplicate detection
   embedding vector(768), -- Jina embedding dimension
-  source VARCHAR(50),
+  source VARCHAR(50) DEFAULT 'web_scraped',
   chunk_index INTEGER,
-  content_type VARCHAR(50), -- 'main_content', 'section', 'paragraph', 'heading_with_context', 'list_item'
-  priority VARCHAR(20), -- 'high', 'medium', 'low'
+  content_type VARCHAR(50), -- 'main_content', 'section', 'paragraph', 'heading_with_context', 'list_item', 'document_section', 'fallback_text'
+  priority VARCHAR(20) DEFAULT 'medium', -- 'high', 'medium', 'low'
   source_url TEXT, -- URL where this content was found
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexes for company_content_chunks table for better performance
+-- Primary indexes for performance
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_company_id ON public.company_content_chunks(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_content_hash ON public.company_content_chunks(content_hash);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_created_at ON public.company_content_chunks(created_at);
+
+-- Secondary indexes for filtering and sorting
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_source ON public.company_content_chunks(source);
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_chunk_index ON public.company_content_chunks(chunk_index);
-CREATE INDEX IF NOT EXISTS idx_company_content_chunks_created_at ON public.company_content_chunks(created_at);
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_content_type ON public.company_content_chunks(content_type);
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_priority ON public.company_content_chunks(priority);
+CREATE INDEX IF NOT EXISTS idx_company_content_chunks_crawl_session_id ON public.company_content_chunks(crawl_session_id);
 
--- Composite index for content chunks search optimization
+-- Composite indexes for optimized queries
 CREATE INDEX IF NOT EXISTS idx_content_chunks_company_source ON public.company_content_chunks(company_id, source);
 CREATE INDEX IF NOT EXISTS idx_content_chunks_company_priority ON public.company_content_chunks(company_id, priority);
+CREATE INDEX IF NOT EXISTS idx_content_chunks_company_type ON public.company_content_chunks(company_id, content_type);
+CREATE INDEX IF NOT EXISTS idx_content_chunks_company_hash ON public.company_content_chunks(company_id, content_hash);
+
 -- Vector index for embedding similarity search (crucial for RAG performance)
 CREATE INDEX IF NOT EXISTS idx_content_chunks_embedding ON public.company_content_chunks USING ivfflat (embedding vector_cosine_ops);
 
+-- Unique constraint to prevent duplicate content for the same company
+ALTER TABLE public.company_content_chunks 
+ADD CONSTRAINT unique_company_content 
+UNIQUE (company_id, content_hash);
 
-
--- Enable Row Level Security for company_content_chunks table
+-- Enable Row Level Security
 ALTER TABLE public.company_content_chunks ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for company_content_chunks
