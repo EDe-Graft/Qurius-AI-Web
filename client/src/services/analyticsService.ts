@@ -22,6 +22,7 @@ export interface DailyStat {
   views: number
   interactions: number
   messages: number
+  responses: number
 }
 
 

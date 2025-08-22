@@ -42,6 +42,10 @@ class QuriusCrawler {
     this.minContentLength = options.minContentLength || 50 // Minimum content length to keep
     this.enableTextCleaning = options.enableTextCleaning !== false // Enable text cleaning
     this.requestTimeout = options.requestTimeout || 10000 // HTTP request timeout
+    
+    // Debug settings
+    this.debugMode = options.debugMode || false // Enable debug mode
+    this.disableHTMLCleaning = options.disableHTMLCleaning || false // Disable HTML cleaning for debugging
   }
 
   /**
@@ -245,11 +249,11 @@ class QuriusCrawler {
   cleanHTML($) {
     console.log('🧹 Starting HTML cleaning and optimization...')
     
-    // Remove large media assets and non-content elements
+    // Remove large media assets and non-content elements (less aggressive)
     const selectorsToRemove = [
       // Media assets (skip large files)
       'img', 'video', 'audio', 'iframe', 'embed', 'object', 'canvas',
-      // Navigation and layout
+      // Navigation and layout (be more specific)
       'nav', 'header', 'footer', '.nav', '.header', '.footer', '.sidebar', '.menu', '.navigation',
       // UI elements
       '.breadcrumb', '.pagination', '.social-share', '.share-buttons', '.social-media',
@@ -257,8 +261,6 @@ class QuriusCrawler {
       '.ads', '.advertisement', '.banner', '.popup', '.modal', '.overlay', '.newsletter-signup',
       // Comments and user content
       '.comments', '.comment-section', '.related-posts',
-      // Metadata and info
-      '.tags', '.categories', '.author-info', '.date', '.time', '.location',
       // Contact and utility
       '.contact-info', '.phone', '.email', '.address', '.map', '.calendar',
       // Interactive elements
@@ -267,10 +269,10 @@ class QuriusCrawler {
       '.lazy-load', '.skeleton', '.loading', '.spinner', '.progress', '.status',
       // Notifications and alerts
       '.notification', '.alert', '.warning', '.error', '.success', '.info', '.tooltip',
-      // Scripts and styles
-      'script', 'style', 'link[rel="stylesheet"]', 'meta', 'link',
+      // Scripts and styles (keep meta tags!)
+      'script', 'style', 'link[rel="stylesheet"]', 'link',
       // Common boilerplate classes
-      '.cookie-notice', '.help', '.faq', '.accordion', '.tab', '.widget', '.plugin',
+      '.cookie-notice', '.help', '.accordion', '.tab', '.widget', '.plugin',
       '.gallery', '.carousel', '.slider', '.lightbox', '.fancybox'
     ]
     
@@ -278,23 +280,21 @@ class QuriusCrawler {
       $(selector).remove()
     })
     
-    // Remove elements with common boilerplate text patterns
+    // Remove elements with common boilerplate text patterns (more conservative)
     $('*').each((i, el) => {
       const $el = $(el)
       const text = $el.text().trim().toLowerCase()
       
-      // Remove elements with common boilerplate text
+      // Only remove elements that are clearly boilerplate (more conservative)
       const boilerplatePatterns = [
-        'cookie', 'privacy', 'terms', 'conditions', 'copyright', 'all rights reserved',
-        'subscribe', 'newsletter', 'sign up', 'follow us', 'share this',
-        'loading', 'please wait', 'error', 'success', 'warning',
-        'menu', 'navigation', 'search', 'filter', 'sort',
-        'previous', 'next', 'first', 'last', 'page', 'of',
-        'back to top', 'scroll to top', 'close', 'cancel', 'dismiss',
-        'click here', 'learn more', 'read more', 'view all', 'see all'
+        'cookie policy', 'privacy policy', 'terms of service', 'all rights reserved',
+        'subscribe to newsletter', 'sign up for updates', 'follow us on social media',
+        'loading...', 'please wait...', 'error occurred', 'success message',
+        'back to top', 'scroll to top', 'close window', 'dismiss notification'
       ]
       
-      if (boilerplatePatterns.some(pattern => text.includes(pattern))) {
+      // Only remove if the entire text matches a boilerplate pattern
+      if (boilerplatePatterns.some(pattern => text === pattern || text.includes(pattern))) {
         $el.remove()
       }
     })
@@ -318,14 +318,6 @@ class QuriusCrawler {
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      // Remove common boilerplate text patterns
-      .replace(/(cookie|privacy|terms|conditions|copyright|all rights reserved)/gi, '')
-      .replace(/(subscribe|newsletter|sign up|follow us|share this)/gi, '')
-      .replace(/(loading|please wait|error|success|warning)/gi, '')
-      .replace(/(menu|navigation|search|filter|sort)/gi, '')
-      .replace(/(previous|next|first|last|page|of)/gi, '')
-      .replace(/(back to top|scroll to top|close|cancel|dismiss)/gi, '')
-      .replace(/(click here|learn more|read more|view all|see all)/gi, '')
       // Remove excessive punctuation
       .replace(/[.!?]{2,}/g, '.')
       .replace(/[,]{2,}/g, ',')
@@ -342,8 +334,12 @@ class QuriusCrawler {
   extractPageContent($, url) {
     console.log(`🔍 Extracting content from: ${url}`)
     
-    // Clean HTML first for better performance
-    this.cleanHTML($)
+    // Clean HTML first for better performance (unless disabled for debugging)
+    if (!this.disableHTMLCleaning) {
+      this.cleanHTML($)
+    } else {
+      console.log('🔧 Debug mode: HTML cleaning disabled')
+    }
     
     const title = $('title').text().trim()
     const description = $('meta[name="description"]').attr('content') || ''
@@ -572,7 +568,7 @@ class QuriusCrawler {
       
       // Wait for content to load (additional wait for SPAs)
       console.log(`⏳ Waiting for content to load...`)
-      await page.waitForTimeout(3000) // Wait 3 seconds for dynamic content
+      await new Promise(resolve => setTimeout(resolve, 3000)) // Wait 3 seconds for dynamic content
       
       // Check if content has loaded
       const contentLoaded = await page.evaluate(() => {
@@ -582,7 +578,7 @@ class QuriusCrawler {
       
       if (!contentLoaded) {
         console.log(`⚠️ Content still not loaded after wait - trying longer wait`)
-        await page.waitForTimeout(5000) // Wait another 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000)) // Wait another 5 seconds
       }
       
       // Extract page data

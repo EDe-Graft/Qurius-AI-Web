@@ -5,7 +5,7 @@ async function testPuppeteerCrawler() {
   
   // Test with different types of websites
   const testUrls = [
-    'https://www.urgentcaresuite.com/'
+    'https://mobhousedjs.com/'
     // 'https://example.com', // Static HTML
     // 'https://qurius.app',   // React SPA
     // 'https://reactjs.org'   // React SPA
@@ -23,9 +23,9 @@ async function testPuppeteerCrawler() {
       })
       
       // Create a test company ID
-      const testCompanyId = '166f1c7e-e800-4813-9217-af195c4ff405'
+      const companyId = 'd6ceb0db-8992-4767-a93d-d1789809f4e9'
       
-      const result = await crawler.crawlCompanyWebsite(testCompanyId, url)
+      const result = await crawler.crawlCompanyWebsite(companyId, url)
       
       console.log(`✅ Test completed for ${url}`)
       console.log(`📊 Results:`)

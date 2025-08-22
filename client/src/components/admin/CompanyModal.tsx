@@ -83,6 +83,27 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
   const [errors, setErrors] = useState<Partial<Company>>({})
   const [isLoading, setIsLoading] = useState(false)
 
+  // Handle click outside modal to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (company && mode !== 'add') {
       setFormData(company)
@@ -168,7 +189,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
     <>
       {/* Loading overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+        <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60]">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
             <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
@@ -176,7 +197,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
         </div>
       )}
       
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleBackdropClick}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full my-15 min-h-fit">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">

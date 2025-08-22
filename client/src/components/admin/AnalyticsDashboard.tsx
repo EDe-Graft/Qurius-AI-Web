@@ -24,6 +24,7 @@ export function AnalyticsDashboard({ companyId }: AnalyticsDashboardProps) {
     try {
       setLoading(true)
       const data = await AnalyticsService.getCompanyAnalytics(companyId!, period)
+      console.log('Analytics data for company:', companyId, data)
       // console.log('Analytics data for company:', companyId, data)
       setAnalytics(data)
     } catch (error) {
@@ -169,6 +170,16 @@ export function AnalyticsDashboard({ companyId }: AnalyticsDashboardProps) {
                 strokeWidth={2}
                 name="Messages"
               />
+              {/* Only show responses line if data exists and has values */}
+              {/* {analytics.dailyStats.some(stat => stat.responses && stat.responses > 0) && ( */}
+                <Line 
+                  type="monotone" 
+                  dataKey="responses" 
+                  stroke="#EF4444" 
+                  strokeWidth={2}
+                  name="Responses"
+                />
+              {/* )} */}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -186,7 +197,7 @@ export function AnalyticsDashboard({ companyId }: AnalyticsDashboardProps) {
                   { name: 'Interactions', value: analytics.totalInteractions },
                   { name: 'Messages', value: analytics.totalMessages },
                   { name: 'Responses', value: analytics.totalResponses }
-                ]}
+                ].filter(item => item.value > 0)} // Filter out zero values
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
@@ -200,14 +211,21 @@ export function AnalyticsDashboard({ companyId }: AnalyticsDashboardProps) {
               </Pie>
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
+                  backgroundColor: 'orange',
                   border: 'none', 
                   borderRadius: '8px',
-                  color: '#F9FAFB'
+                  color: 'black'
                 }}
               />
             </PieChart>
           </ResponsiveContainer>
+          {/* Show message if all values are zero */}
+          {analytics.totalViews === 0 && analytics.totalInteractions === 0 && 
+           analytics.totalMessages === 0 && analytics.totalResponses === 0 && (
+            <div className="text-center text-gray-500 dark:text-gray-400 mt-4">
+              No activity data available for this period
+            </div>
+          )}
         </div>
       </div>
     </div>

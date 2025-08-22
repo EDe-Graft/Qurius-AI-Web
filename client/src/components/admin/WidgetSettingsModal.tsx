@@ -29,6 +29,37 @@ export function WidgetSettingsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Default theme options (same as onboarding)
+  const defaultThemes = [
+    { name: "Blue", primaryColor: "#3B82F6" },
+    { name: "Green", primaryColor: "#10B981" },
+    { name: "Purple", primaryColor: "#8B5CF6" },
+    { name: "Orange", primaryColor: "#F59E0B" },
+    { name: "Red", primaryColor: "#EF4444" },
+    { name: "Teal", primaryColor: "#14B8A6" }
+  ];
+
+  // Handle click outside modal to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   // Scroll to top when modal opens with loading screen
   useEffect(() => {
     if (isOpen) {
@@ -75,10 +106,37 @@ export function WidgetSettingsModal({
     setIsDragging(false);
   };
 
+  const handleColorPickerClick = () => {
+    // Color picker clicked
+  };
+
+  const handleColorPickerFocus = () => {
+    // Temporarily lower modal z-index to allow color picker popup
+    const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement;
+    if (modalOverlay) {
+      modalOverlay.style.zIndex = '1';
+    }
+  };
+
+  const handleColorPickerBlur = () => {
+    // Restore modal z-index
+    const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement;
+    if (modalOverlay) {
+      modalOverlay.style.zIndex = '50';
+    }
+  };
+
   const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWidgetTheme({
       ...widgetTheme,
       primaryColor: e.target.value
+    });
+  };
+
+  const applyDefaultTheme = (defaultTheme: any) => {
+    setWidgetTheme({
+      ...widgetTheme,
+      primaryColor: defaultTheme.primaryColor
     });
   };
 
@@ -87,7 +145,7 @@ export function WidgetSettingsModal({
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Primary Color
       </label>
-      <div className="relative">
+      <div className="relative" style={{ zIndex: 1000 }}>
         <input
           type="color"
           value={widgetTheme.primaryColor}
@@ -95,11 +153,29 @@ export function WidgetSettingsModal({
           onMouseDown={handleColorPickerMouseDown}
           onMouseUp={handleColorPickerMouseUp}
           onMouseLeave={handleColorPickerMouseUp}
+          onFocus={handleColorPickerFocus}
+          onBlur={handleColorPickerBlur}
+          onClick={handleColorPickerClick}
           className="w-full h-12 border border-gray-300 dark:border-gray-600 rounded-lg cursor-crosshair transition-all duration-200 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
           style={{
-            cursor: isDragging ? 'grabbing' : 'grab'
+            cursor: isDragging ? 'grabbing' : 'grab',
+            position: 'relative',
+            zIndex: 1000
           }}
         />
+        <button
+          type="button"
+          onClick={() => {
+            const colorInput = document.querySelector('input[type="color"]') as HTMLInputElement;
+            if (colorInput) {
+              colorInput.click();
+            }
+          }}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+          style={{ zIndex: 1001 }}
+        >
+          Open Picker
+        </button>
         {isDragging && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded-lg pointer-events-none">
             <span className="text-xs text-white font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
@@ -108,18 +184,9 @@ export function WidgetSettingsModal({
           </div>
         )}
       </div>
-      <div className="flex items-center space-x-2">
-        <input
-          type="text"
-          value={widgetTheme.primaryColor}
-          onChange={(e) => setWidgetTheme({ ...widgetTheme, primaryColor: e.target.value })}
-          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          placeholder="#000000"
-        />
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          Drag through the color spectrum to find your perfect shade
-        </span>
-      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        Drag through the color spectrum to find your perfect shade
+      </p>
     </div>
   );
 
@@ -127,9 +194,25 @@ export function WidgetSettingsModal({
 
   return (
     <>
+      {/* CSS to ensure color picker works in modal */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          /* Ensure color picker popup appears above modal */
+          input[type="color"] {
+            position: relative;
+            z-index: 1000;
+          }
+          
+          /* Force color picker popup to appear above modal overlay */
+          input[type="color"]:focus {
+            z-index: 9999;
+          }
+        `
+      }} />
+      
       {/* Loading overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+        <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60]">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
             <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
@@ -137,7 +220,7 @@ export function WidgetSettingsModal({
         </div>
       )}
       
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto modal-overlay" onClick={handleBackdropClick}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
@@ -270,55 +353,30 @@ export function WidgetSettingsModal({
             </div>
 
             {/* Preset Themes */}
-            <div>
+            <div style={{ zIndex: 1, position: 'relative' }}>
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
                 Quick Color Presets
               </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWidgetTheme({
-                    ...widgetTheme,
-                    primaryColor: '#9810fa'
-                  })}
-                  className="text-xs"
-                >
-                  Purple
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWidgetTheme({
-                    ...widgetTheme,
-                    primaryColor: '#3B82F6'
-                  })}
-                  className="text-xs"
-                >
-                  Blue
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWidgetTheme({
-                    ...widgetTheme,
-                    primaryColor: '#10B981'
-                  })}
-                  className="text-xs"
-                >
-                  Green
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWidgetTheme({
-                    ...widgetTheme,
-                    primaryColor: '#F59E0B'
-                  })}
-                  className="text-xs"
-                >
-                  Orange
-                </Button>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {defaultThemes.map((defaultTheme, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => applyDefaultTheme(defaultTheme)}
+                    className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 transition-colors min-h-[44px] md:min-h-[40px]"
+                    style={{ zIndex: 1 }}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-4 h-4 rounded-full border-2 border-gray-300"
+                        style={{ backgroundColor: defaultTheme.primaryColor }}
+                      />
+                      <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {defaultTheme.name}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 

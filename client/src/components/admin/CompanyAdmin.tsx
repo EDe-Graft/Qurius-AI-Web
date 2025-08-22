@@ -47,6 +47,27 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
 
+  // Handle click outside FAQ modal to close
+  const handleFAQModalBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setShowFAQImport(false);
+    }
+  };
+
+  // Handle escape key to close FAQ modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showFAQImport) {
+        setShowFAQImport(false);
+      }
+    };
+
+    if (showFAQImport) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showFAQImport]);
+
   // Scroll to top when FAQ modal opens with loading screen
   useEffect(() => {
     if (showFAQImport) {
@@ -590,7 +611,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         <>
           {/* Loading overlay */}
           {faqModalLoading && (
-            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60]">
+            <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60]">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                 <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
@@ -598,7 +619,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             </div>
           )}
           
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleFAQModalBackdropClick}>
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">

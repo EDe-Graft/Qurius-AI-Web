@@ -54,12 +54,14 @@ const upload = multer({
   }
 })
 
-// Initialize crawler with Puppeteer support
+// Initialize crawler with Puppeteer support and debug mode
 const crawler = new QuriusCrawler({
   enablePuppeteer: true,
   puppeteerTimeout: 30000,
-  maxPages: 50,
-  maxDepth: 3
+  maxPages: 1,
+  maxDepth: 0,
+  debugMode: true, // Enable debug mode
+  disableHTMLCleaning: true // Temporarily disable HTML cleaning to debug
 })
 
 /**
@@ -258,7 +260,7 @@ router.get('/faqs/:companyId', async (req, res) => {
  */
 router.post('/generate-faqs', async (req, res) => {
   try {
-    const { companyName, content, maxFAQs = 10, companyId, saveToDatabase = false } = req.body
+    const { companyName, content, maxFAQs = 15, companyId, saveToDatabase = false } = req.body
 
     if (!companyName || !content) {
       return res.status(400).json({

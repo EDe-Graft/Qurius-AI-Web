@@ -1000,7 +1000,7 @@ app.post('/api/faqs/search', async (req, res) => {
 // Generate FAQs from content using AI
 app.post('/api/ai/generate-faqs', async (req, res) => {
   try {
-    const { companyName, content, maxFAQs = 25, companyId, saveToDatabase = false } = req.body;
+    const { companyName, content, maxFAQs = 15, companyId, saveToDatabase = false } = req.body;
     
     if (!companyName || !content) {
       return res.status(400).json({ error: 'Missing required fields: companyName, content' });
@@ -1399,45 +1399,6 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
 
     console.log('✅ Widget analytics inserted successfully');
 
-    // If this is a rating event, also record in user_ratings table
-    // if (eventType === 'rating_given' && rating) {
-    //   console.log('⭐ Processing rating event:', { rating, feedbackText, responseSource });
-      
-    //   try {
-    //     const ratingData = {
-    //       company_id: companyId,
-    //       session_id: sessionId,
-    //       message_id: `${sessionId}_${Date.now()}`, // Generate unique message ID
-    //       rating: rating,
-    //       feedback_text: feedbackText,
-    //       response_text: response,
-    //       response_source: responseSource,
-    //       faq_id: faqId,
-    //       confidence_score: confidenceScore
-    //     };
-
-    //     console.log('📝 Inserting user rating:', ratingData);
-
-    //     await axios.post(
-    //       `${supabaseUrl}/rest/v1/user_ratings`,
-    //       ratingData,
-    //       {
-    //         headers: {
-    //           'apikey': supabaseKey,
-    //           'Authorization': `Bearer ${supabaseKey}`,
-    //           'Content-Type': 'application/json'
-    //         }
-    //       }
-    //     );
-
-      //   console.log('✅ User rating inserted successfully');
-      // } catch (ratingError) {
-      //   console.error('❌ Failed to insert user rating:', ratingError.response?.data || ratingError.message);
-      //   // Don't fail the entire request if rating insertion fails
-      //   // Just log the error and continue
-      // }
-    // }
-
     res.json({ success: true });
   } catch (error) {
     console.error('❌ Widget interaction tracking error:', error.response?.data || error.message);
@@ -1446,67 +1407,6 @@ app.post('/api/analytics/widget-interaction', async (req, res) => {
   }
 });
 
-
-
-
-// old widget interaction tracking
-// app.post('/api/analytics/widget-interaction', async (req, res) => {
-//   try {
-//     const { companyName, eventType, message, response, timestamp, sessionId } = req.body;
-    
-//     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-//     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-//     if (!supabaseUrl || !supabaseKey) {
-//       return res.status(500).json({ error: 'Supabase configuration missing' });
-//     }
-
-//     // Get company ID
-//     const companyResponse = await axios.get(
-//       `${supabaseUrl}/rest/v1/companies?select=id&name=eq.${encodeURIComponent(companyName)}`,
-//       {
-//         headers: {
-//           'apikey': supabaseKey,
-//           'Authorization': `Bearer ${supabaseKey}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     if (!companyResponse.data || companyResponse.data.length === 0) {
-//       return res.status(404).json({ error: 'Company not found' });
-//     }
-
-//     const companyId = companyResponse.data[0].id;
-
-//     // Record widget interaction
-//     const interactionData = {
-//       company_id: companyId,
-//       event_type: eventType, // 'message_sent', 'message_received', 'widget_opened', 'widget_closed', 'faq_matched', 'ai_fallback', 'rating_given', 'language_changed', 'theme_changed'
-//       message: message || null,
-//       response: response || null,
-//       timestamp: timestamp || new Date().toISOString(),
-//       session_id: sessionId || null
-//     };
-
-//     await axios.post(
-//       `${supabaseUrl}/rest/v1/widget_analytics`,
-//       interactionData,
-//       {
-//         headers: {
-//           'apikey': supabaseKey,
-//           'Authorization': `Bearer ${supabaseKey}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     res.json({ success: true });
-//   } catch (error) {
-//     console.error('Widget interaction tracking error:', error.response?.data || error.message);
-//     res.status(500).json({ error: 'Failed to track widget interaction' });
-//   }
-// });
 
 app.get('/api/analytics/company/:companyId', async (req, res) => {
   try {

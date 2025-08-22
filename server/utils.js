@@ -194,7 +194,7 @@ QUALITY REQUIREMENTS:
 3. Questions should be clear, specific, and customer-focused
 4. Answers should be comprehensive, helpful, and based on the content
 5. Do not include any other text, comments, or formatting
-6. Generate exactly ${maxFAQs} FAQ pairs
+6. Generate no more than ${maxFAQs} quality FAQ pairs
 7. Ensure questions are relevant to the actual content provided
 8. Avoid generic questions that could apply to any business
 9. Prioritize questions that customers would actually ask
@@ -407,7 +407,8 @@ export function getDailyStats(analytics, days) {
       date: dateStr,
       views: dayAnalytics.filter(a => a.event_type === 'widget_view').length,
       interactions: dayAnalytics.filter(a => a.event_type !== 'widget_view').length,
-      messages: dayAnalytics.filter(a => a.event_type === 'message_sent').length
+      messages: dayAnalytics.filter(a => a.event_type === 'message_sent').length,
+      // responses: dayAnalytics.filter(a => a.event_type === 'faq_matched').length
     });
   }
   
