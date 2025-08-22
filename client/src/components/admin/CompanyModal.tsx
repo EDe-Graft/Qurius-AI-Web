@@ -197,7 +197,7 @@ export function CompanyModal({ isOpen, onClose, company, mode, onSave, onDelete 
         </div>
       )}
       
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleBackdropClick}>
+      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleBackdropClick}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full my-15 min-h-fit">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
