@@ -10,7 +10,7 @@ interface NavigationProps {
   showGetStarted?: boolean
   getStartedText?: string
   onGetStarted?: () => void
-  currentPage?: 'home' | 'about' | 'contact' | 'demo'
+  currentPage?: 'home' | 'about' | 'contact' | 'demo' | 'docs'
 }
 
 export function Navigation({ 
@@ -46,6 +46,9 @@ export function Navigation({
       case 'demo':
         navigate("/demo")
         break
+      case 'docs':
+        navigate("/docs")
+        break
       default:
         break
     }
@@ -57,25 +60,44 @@ export function Navigation({
         return [
           { label: 'About', page: 'about' },
           { label: 'Contact', page: 'contact' },
-          { label: 'Demo', page: 'demo' }
+          { label: 'Demo', page: 'demo' },
+          { label: 'Docs', page: 'docs' }
         ]
       case 'about':
         return [
           { label: 'Home', page: 'home' },
           { label: 'Contact', page: 'contact' },
-          { label: 'Demo', page: 'demo' }
+          { label: 'Demo', page: 'demo' },
+          { label: 'Docs', page: 'docs' }
         ]
       case 'contact':
         return [
           { label: 'Home', page: 'home' },
           { label: 'About', page: 'about' },
+          { label: 'Demo', page: 'demo' },
+          { label: 'Docs', page: 'docs' }
+        ]
+      case 'demo':
+        return [
+          { label: 'Home', page: 'home' },
+          { label: 'About', page: 'about' },
+          { label: 'Contact', page: 'contact' },
+          { label: 'Docs', page: 'docs' }
+        ]
+      case 'docs':
+        return [
+          { label: 'Home', page: 'home' },
+          { label: 'About', page: 'about' },
+          { label: 'Contact', page: 'contact' },
           { label: 'Demo', page: 'demo' }
         ]
       default:
         return [
           { label: 'Home', page: 'home' },
           { label: 'About', page: 'about' },
-          { label: 'Contact', page: 'contact' }
+          { label: 'Contact', page: 'contact' },
+          { label: 'Demo', page: 'demo' },
+          { label: 'Docs', page: 'docs' }
         ]
     }
   }

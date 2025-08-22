@@ -60,8 +60,8 @@ const upload = multer({
 const crawler = new QuriusCrawler({
   enablePuppeteer: true,
   puppeteerTimeout: 30000,
-  maxPages: 1,
-  maxDepth: 0,
+  maxPages: 10,
+  maxDepth: 1,
   debugMode: true, // Enable debug mode
   disableHTMLCleaning: true // Temporarily disable HTML cleaning to debug
 })

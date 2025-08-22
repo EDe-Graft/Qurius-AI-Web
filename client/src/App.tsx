@@ -4,6 +4,7 @@ import Login from "@/pages/Login"
 import { Onboarding } from "@/pages/Onboarding"
 import { Landing } from "@/pages/Landing"
 import { Demo } from "@/pages/Demo"
+import { Docs } from "@/pages/Docs"
 
 import { About } from "@/pages/About"
 import { Contact } from "@/pages/Contact"
@@ -27,6 +28,7 @@ export default function App() {
               {/* Public routes without authentication */}
               <Route path="/" element={<><PublicNavigation /><Landing /></>} />
               <Route path="/demo" element={<><PublicNavigation /><Demo /></>} />
+              <Route path="/docs" element={<><PublicNavigation /><Docs /></>} />
               <Route path="/onboarding" element={<><PublicNavigation /><Onboarding /></>} />
 
               <Route path="/about" element={<><PublicNavigation /><About /></>} />
