@@ -844,7 +844,7 @@ app.post('/api/faqs/search', async (req, res) => {
     try {
       // Use RAG search instead of just FAQ search
       const searchResults = await searchWithRAG(question, companyId, 5);
-      console.log('RAG search results:', searchResults.length);
+      console.log('RAG search results:', searchResults);
       
       if (searchResults.length > 0) {
         // Check if the best match has high enough confidence
