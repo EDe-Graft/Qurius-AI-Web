@@ -75,7 +75,7 @@ export function CrawlerModal({ isOpen, onClose, companyId, companyName }: Crawle
       )}
       
       <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto" onClick={handleBackdropClick}>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl mx-auto my-19 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl mx-auto my-10 sm:my-18 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
           <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-start sm:items-center gap-3">
               <div className="flex-1 min-w-0">

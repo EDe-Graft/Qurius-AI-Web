@@ -1673,14 +1673,16 @@ app.post('/api/companies/import-faqs', async (req, res) => {
     const faqData = await Promise.all(faqs.map(async (faq) => {
       const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer);
       return {
-      company_id: companyId,
-      company_name: companyName,
-      question: faq.question,
-      answer: faq.answer,
-      question_embedding: questionEmbedding,
-      answer_embedding: answerEmbedding
-    };
-  }));
+        company_id: companyId,
+        company_name: companyName,
+        question: faq.question,
+        answer: faq.answer,
+        question_embedding: questionEmbedding,
+        answer_embedding: answerEmbedding,
+        question_hash: require('crypto').createHash('sha256').update(faq.question.toLowerCase().trim()).digest('hex'),
+        source: 'manual'
+      };
+    }));
 
 
     // Insert FAQs into database

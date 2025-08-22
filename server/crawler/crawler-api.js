@@ -3,6 +3,7 @@ import axios from 'axios'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import QuriusCrawler from './crawler.js'
@@ -360,6 +361,7 @@ router.post('/save-faqs', async (req, res) => {
           answer_embedding: answerEmbedding,
           source: 'ai_generated',
           crawl_session_id: sessionId,
+          question_hash: crypto.createHash('sha256').update(faq.question.toLowerCase().trim()).digest('hex'),
           created_at: new Date().toISOString()
         })
         
@@ -373,6 +375,7 @@ router.post('/save-faqs', async (req, res) => {
           question: faq.question,
           answer: faq.answer,
           source: 'ai_generated',
+          question_hash: crypto.createHash('sha256').update(faq.question.toLowerCase().trim()).digest('hex'),
           created_at: new Date().toISOString()
         })
         console.log(`⚠️ Saved FAQ without embeddings due to embedding generation failure`)

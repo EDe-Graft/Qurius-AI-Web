@@ -1037,6 +1037,239 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
   }
 }
 
+// AI-powered content deduplication using DeepSeek
+export async function deduplicateContentWithAI(contentChunks, similarityThreshold = 0.85) {
+  try {
+    console.log(`🤖 Starting AI-powered deduplication for ${contentChunks.length} content chunks`);
+    
+    if (contentChunks.length <= 1) {
+      console.log('✅ No deduplication needed - only one chunk');
+      return contentChunks;
+    }
+
+    const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+    const API_KEY = process.env.OPEN_ROUTER_API_KEY;
+    const model = 'deepseek/deepseek-r1-0528:free';
+    const maxTokens = 1000;
+    const temperature = 0.1; // Low temperature for consistent results
+
+    const systemPrompt = `You are an expert content deduplication specialist. Your task is to identify and group semantically similar content chunks, even when they differ by:
+- Extra spaces, tabs, or line breaks
+- Minor punctuation differences
+- Slight word order changes
+- Different capitalization
+- Minor grammatical variations
+- Single character differences
+- Abbreviations vs full words
+
+ANALYSIS CRITERIA:
+1. **Semantic Similarity**: Do both chunks convey the same core meaning?
+2. **Information Overlap**: Do they contain the same key facts, data, or concepts?
+3. **Intent Match**: Do they serve the same purpose or answer the same question?
+4. **Content Redundancy**: Would keeping both chunks provide duplicate information?
+
+OUTPUT FORMAT:
+Return ONLY a JSON array of objects with this exact structure:
+[
+  {
+    "group_id": 1,
+    "chunk_ids": [0, 2, 5],
+    "similarity_score": 0.95,
+    "reason": "All chunks describe the same product feature with minor text variations"
+  },
+  {
+    "group_id": 2,
+    "chunk_ids": [1, 3],
+    "similarity_score": 0.88,
+    "reason": "Both chunks explain the same pricing information with different formatting"
+  }
+]
+
+RULES:
+- Use group_id starting from 1 for each group of similar chunks
+- chunk_ids must be the original array indices (0-based)
+- similarity_score should be between 0.0 and 1.0
+- Only group chunks with similarity_score >= ${similarityThreshold}
+- Each chunk can only appear in one group
+- Provide a clear reason for each grouping
+- If no chunks are similar, return an empty array []
+- Be strict about semantic similarity - don't group chunks that have different meanings`;
+
+    // Prepare content chunks for analysis
+    const contentForAnalysis = contentChunks.map((chunk, index) => ({
+      id: index,
+      content: chunk.content || chunk.text || chunk,
+      type: chunk.type || 'unknown',
+      source: chunk.source || 'unknown'
+    }));
+
+    // Create user prompt with content chunks
+    const userPrompt = `Analyze these content chunks for semantic similarity and group duplicates:
+
+${contentForAnalysis.map((item, index) => 
+  `CHUNK ${index}:
+Type: ${item.type}
+Source: ${item.source}
+Content: "${item.content.substring(0, 500)}${item.content.length > 500 ? '...' : ''}"
+`
+).join('\n')}
+
+Identify groups of semantically similar chunks and return the JSON array as specified.`;
+
+    console.log('🤖 Calling DeepSeek API for content deduplication...');
+
+    const response = await axios.post(
+      API_URL,
+      {
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        max_tokens: maxTokens,
+        temperature: temperature
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SOURCE_URL
+        },
+        timeout: 30000
+      }
+    );
+
+    const aiResponse = response.data.choices[0].message.content;
+    console.log('🤖 AI deduplication response:', aiResponse);
+
+    // Parse the JSON response
+    let duplicateGroups = [];
+    try {
+      // Extract JSON from the response (in case there's extra text)
+      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        duplicateGroups = JSON.parse(jsonMatch[0]);
+      } else {
+        duplicateGroups = JSON.parse(aiResponse);
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse AI deduplication response:', parseError);
+      console.error('❌ Raw response:', aiResponse);
+      return contentChunks; // Return original chunks if parsing fails
+    }
+
+    console.log(`🤖 AI identified ${duplicateGroups.length} duplicate groups`);
+
+    // Process the duplicate groups and keep only the best chunk from each group
+    const chunksToKeep = new Set();
+    const chunksToRemove = new Set();
+    let duplicatesRemoved = 0;
+
+    for (const group of duplicateGroups) {
+      if (group.chunk_ids && group.chunk_ids.length > 1) {
+        // Sort chunks in group by quality criteria (length, type priority, etc.)
+        const sortedChunks = group.chunk_ids
+          .map(id => ({
+            id,
+            chunk: contentForAnalysis[id],
+            quality: calculateChunkQuality(contentForAnalysis[id])
+          }))
+          .sort((a, b) => b.quality - a.quality);
+
+        // Keep the highest quality chunk, remove the rest
+        const bestChunk = sortedChunks[0];
+        chunksToKeep.add(bestChunk.id);
+        
+        // Mark others for removal
+        for (let i = 1; i < sortedChunks.length; i++) {
+          chunksToRemove.add(sortedChunks[i].id);
+          duplicatesRemoved++;
+        }
+
+        console.log(`📊 Group ${group.group_id}: Keeping chunk ${bestChunk.id}, removing ${sortedChunks.length - 1} duplicates (similarity: ${group.similarity_score})`);
+        console.log(`📝 Reason: ${group.reason}`);
+      }
+    }
+
+    // Add chunks that weren't in any duplicate group
+    for (let i = 0; i < contentChunks.length; i++) {
+      if (!chunksToRemove.has(i)) {
+        chunksToKeep.add(i);
+      }
+    }
+
+    // Create final deduplicated array
+    const deduplicatedChunks = Array.from(chunksToKeep)
+      .sort((a, b) => a - b)
+      .map(id => contentChunks[id]);
+
+    console.log(`✅ AI deduplication completed:`);
+    console.log(`  - Original chunks: ${contentChunks.length}`);
+    console.log(`  - Duplicates removed: ${duplicatesRemoved}`);
+    console.log(`  - Final chunks: ${deduplicatedChunks.length}`);
+    console.log(`  - Reduction: ${Math.round((duplicatesRemoved / contentChunks.length) * 100)}%`);
+
+    return deduplicatedChunks;
+
+  } catch (error) {
+    console.error('❌ AI deduplication error:', error.response?.data || error.message);
+    console.error('❌ Error details:', error);
+    
+    // Fallback to original chunks if AI deduplication fails
+    console.log('⚠️ Falling back to original chunks due to AI deduplication failure');
+    return contentChunks;
+  }
+}
+
+// Helper function to calculate chunk quality for deduplication
+function calculateChunkQuality(chunk) {
+  let quality = 0;
+  
+  // Length factor (prefer longer, more detailed chunks)
+  const length = chunk.content.length;
+  quality += Math.min(length / 100, 10); // Max 10 points for length
+  
+  // Type priority
+  const typePriority = {
+    'main_content': 10,
+    'heading_with_context': 8,
+    'section': 6,
+    'paragraph': 5,
+    'list_item': 4,
+    'document_section': 7,
+    'fallback_text': 2
+  };
+  quality += typePriority[chunk.type] || 3;
+  
+  // Source priority (prefer web scraped over fallback)
+  if (chunk.source && chunk.source !== 'fallback') {
+    quality += 2;
+  }
+  
+  // Content quality indicators
+  const content = chunk.content.toLowerCase();
+  
+  // Prefer chunks with more structure (headers, lists, etc.)
+  if (content.includes(':')) quality += 1;
+  if (content.includes('•') || content.includes('-')) quality += 1;
+  if (content.includes('1.') || content.includes('2.')) quality += 1;
+  
+  // Prefer chunks with contact information or actionable content
+  if (content.includes('contact') || content.includes('email') || content.includes('phone')) quality += 2;
+  if (content.includes('call') || content.includes('visit') || content.includes('click')) quality += 1;
+  
+  // Penalize very short chunks
+  if (length < 50) quality -= 5;
+  
+  return Math.max(0, quality);
+}
+
 // Helper function to search FAQs (extracted from existing logic)
 async function searchFAQs(queryEmbedding, companyId, topK = 3) {
   try {

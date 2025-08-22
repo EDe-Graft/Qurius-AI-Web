@@ -2,7 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import { getEmbedding, chunkContent, generateFAQs } from '../utils.js'
+import { getEmbedding, chunkContent, generateFAQs, deduplicateContentWithAI } from '../utils.js'
 import { FAQGenerationCompleteEmailTemplate } from '../emailTemplates.js'
 import { sendEmail } from '../config/resend.js'
 import dotenv from 'dotenv'
@@ -874,10 +874,32 @@ class QuriusCrawler {
   }
 
   /**
-   * Remove duplicate content chunks based on text similarity
+   * Remove duplicate content chunks using AI-powered semantic analysis
    */
-  deduplicateContentChunks(chunks) {
-    console.log(`🔍 Deduplicating ${chunks.length} content chunks...`)
+  async deduplicateContentChunks(chunks) {
+    console.log(`🔍 Starting AI-powered deduplication for ${chunks.length} content chunks...`)
+    
+    try {
+      // Use AI-powered deduplication for better semantic understanding
+      const uniqueChunks = await deduplicateContentWithAI(chunks, 0.85);
+      
+      const duplicatesRemoved = chunks.length - uniqueChunks.length;
+      console.log(`✅ AI deduplication completed: ${duplicatesRemoved} duplicates removed, ${uniqueChunks.length} unique chunks remaining`);
+      
+      return uniqueChunks;
+    } catch (error) {
+      console.error('❌ AI deduplication failed, falling back to basic deduplication:', error.message);
+      
+      // Fallback to basic deduplication if AI fails
+      return this.basicDeduplicateContentChunks(chunks);
+    }
+  }
+
+  /**
+   * Basic deduplication fallback using text similarity (original method)
+   */
+  basicDeduplicateContentChunks(chunks) {
+    console.log(`🔍 Using basic deduplication for ${chunks.length} content chunks...`)
     
     const uniqueChunks = []
     const seenContent = new Set()
@@ -920,7 +942,7 @@ class QuriusCrawler {
       }
     }
     
-    console.log(`✅ Deduplication complete: ${duplicatesRemoved} duplicates removed, ${uniqueChunks.length} unique chunks remaining`)
+    console.log(`✅ Basic deduplication complete: ${duplicatesRemoved} duplicates removed, ${uniqueChunks.length} unique chunks remaining`)
     return uniqueChunks
   }
 
@@ -1129,7 +1151,7 @@ class QuriusCrawler {
         
         if (chunkData.length > 0) {
           // Deduplicate content chunks before saving
-          const uniqueChunks = this.deduplicateContentChunks(chunkData);
+          const uniqueChunks = await this.deduplicateContentChunks(chunkData);
           
           // Check for existing content in database to avoid duplicates
           console.log(`🔍 Checking for existing content in database...`);

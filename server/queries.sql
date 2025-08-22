@@ -71,14 +71,15 @@ CREATE TABLE public.faqs (
     relevance_score REAL DEFAULT 1.0, -- Manually adjustable relevance
     popularity_count INTEGER DEFAULT 0, -- Track how often this FAQ is matched/used
     last_used TIMESTAMP WITH TIME ZONE, -- Track when this FAQ was last used
+    question_hash TEXT, -- Hash for duplicate question detection
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- Create index for faster queries
 CREATE INDEX IF NOT EXISTS idx_faqs_company_id ON public.faqs(company_id);
 CREATE INDEX IF NOT EXISTS idx_faqs_created_at ON public.faqs(created_at);
+CREATE INDEX IF NOT EXISTS idx_faqs_question_hash ON public.faqs(question_hash);
 -- Composite index for FAQ search optimization
 CREATE INDEX IF NOT EXISTS idx_faqs_company_confidence ON public.faqs(company_id, confidence DESC);
 CREATE INDEX IF NOT EXISTS idx_faqs_popularity ON public.faqs(company_id, popularity_count DESC, last_used DESC);
@@ -86,6 +87,26 @@ CREATE INDEX IF NOT EXISTS idx_faqs_popularity ON public.faqs(company_id, popula
 CREATE INDEX IF NOT EXISTS idx_faqs_question_embedding ON public.faqs USING ivfflat (question_embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS idx_faqs_answer_embedding ON public.faqs USING ivfflat (answer_embedding vector_cosine_ops);
 
+-- Unique constraint to prevent duplicate questions per company
+ALTER TABLE public.faqs 
+ADD CONSTRAINT unique_company_question 
+UNIQUE (company_id, question_hash);
+
+-- Add question_hash column if it doesn't exist (for existing tables)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'faqs' 
+                   AND column_name = 'question_hash') THEN
+        ALTER TABLE public.faqs 
+        ADD COLUMN question_hash TEXT;
+    END IF;
+END $$;
+
+-- Update existing question_hash values (run this once)
+UPDATE public.faqs 
+SET question_hash = encode(sha256(question::bytea), 'hex')
+WHERE question_hash IS NULL;
 
 -- Enable Row Level Security
 ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
@@ -123,7 +144,7 @@ CREATE TABLE IF NOT EXISTS public.widget_analytics (
   feedback_text TEXT, -- Optional feedback from user
   language VARCHAR(10), -- Language code (e.g., 'en', 'es', 'fr')
   theme_mode VARCHAR(10), -- 'light' or 'dark'
-  faq_id UUID REFERENCES public.faqs(id), -- Reference to matched FAQ
+  faq_id UUID REFERENCES public.faqs(id) ON DELETE CASCADE, -- Reference to matched FAQ
   ai_fallback_reason TEXT, -- Reason for AI fallback
   response_source VARCHAR(20), -- 'faq' or 'ai'
   confidence_score REAL, -- Similarity score for FAQ matches
@@ -175,7 +196,7 @@ CREATE TABLE public.message_usage (
     session_id VARCHAR(255),
     user_question TEXT,
     ai_response TEXT,
-    faq_id UUID REFERENCES public.faqs(id),
+    faq_id UUID REFERENCES public.faqs(id) ON DELETE CASCADE,
     confidence_score REAL,
     response_source VARCHAR(20), -- 'faq', 'ai', 'limit_reached'
     fallback_reason TEXT,
