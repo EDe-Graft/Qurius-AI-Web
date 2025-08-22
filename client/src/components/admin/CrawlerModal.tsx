@@ -27,9 +27,21 @@ export function CrawlerModal({ isOpen, onClose, companyId, companyName }: Crawle
       }
     };
 
+    // const handleEnter = (e: KeyboardEvent) => {
+    //   if (e.key === 'Enter') {
+    //     // You can add specific Enter key functionality here
+    //     // For now, we'll just prevent default behavior
+    //     e.preventDefault();
+    //   }
+    // };
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+      // document.addEventListener('keydown', handleEnter);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        // document.removeEventListener('keydown', handleEnter);
+      };
     }
   }, [isOpen, onClose]);
 
@@ -62,34 +74,36 @@ export function CrawlerModal({ isOpen, onClose, companyId, companyName }: Crawle
         </div>
       )}
       
-      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleBackdropClick}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Content Processor - {companyName}
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-red-500"
-            >
-              ✕
-            </Button>
+      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto" onClick={handleBackdropClick}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl mx-auto my-19 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-start sm:items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Content Processor - {companyName}
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Crawl websites or upload documents to automatically generate FAQs
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="text-gray-400 hover:text-red-500 flex-shrink-0"
+              >
+                ✕
+              </Button>
+            </div>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-            Crawl websites or upload documents to automatically generate FAQs
-          </p>
-        </div>
-        <div className="p-6">
-          <CrawlerInterface
-            companyId={companyId}
-            companyName={companyName}
-          />
+          <div className="p-4 sm:p-6">
+            <CrawlerInterface
+              companyId={companyId}
+              companyName={companyName}
+            />
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 } 

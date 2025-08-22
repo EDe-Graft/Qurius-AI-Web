@@ -334,4 +334,122 @@ export function MessageLimitReachedEmailTemplate({ companyName, planName, adminL
 </body>
 </html>
   `;
+}
+
+// FAQ Generation Complete email template
+export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faqCount, crawlType }) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI FAQ Generation Complete - Qurius AI</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #1F2937;">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h1 style="color: #10B981; font-size: 28px; margin-bottom: 10px;">
+        🤖 AI FAQ Generation Complete!
+      </h1>
+      <p style="color: #D1D5DB; font-size: 16px;">
+        Your AI assistant has analyzed your content and generated intelligent FAQs
+      </p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="background-color: #064E3B; padding: 30px; border-radius: 10px; margin-bottom: 30px; border: 2px solid #10B981;">
+      <h2 style="color: #A7F3D0; font-size: 22px; margin-bottom: 20px;">
+        Hello ${companyName}! 🎉
+      </h2>
+      
+      <p style="color: #D1FAE5; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Great news! Your AI has successfully analyzed your ${crawlType} and generated <strong>${faqCount} intelligent FAQs</strong> 
+        that are ready for your review and approval.
+      </p>
+
+      <div style="background-color: #065F46; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #A7F3D0; font-size: 18px; margin-bottom: 15px;">
+          ✨ What happens next:
+        </h3>
+        <ul style="color: #D1FAE5; font-size: 14px; line-height: 1.8;">
+          <li><strong>Review FAQs:</strong> Check each AI-generated question and answer</li>
+          <li><strong>Edit if needed:</strong> Modify questions or answers to match your brand voice</li>
+          <li><strong>Approve or reject:</strong> Select which FAQs to keep in your knowledge base</li>
+          <li><strong>Save to database:</strong> Approved FAQs become part of your AI assistant</li>
+          <li><strong>Go live:</strong> Your customers can now ask these questions!</li>
+        </ul>
+      </div>
+
+      <p style="color: #D1FAE5; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        <strong>Pro tip:</strong> The more FAQs you approve, the better your AI assistant will understand your business 
+        and provide accurate responses to your customers.
+      </p>
+    </div>
+
+    <!-- Action Button -->
+    <div style="text-align: center; margin-bottom: 30px;">
+      <a href="${adminLink}" style="background-color: #10B981; color: white; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-size: 18px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);">
+        🔍 Review AI-Generated FAQs
+      </a>
+    </div>
+
+    <!-- Benefits Section -->
+    <div style="background-color: #0C4A6E; border: 1px solid #0369A1; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+      <h3 style="color: #BAE6FD; font-size: 18px; margin-bottom: 15px;">
+        🚀 How AI-Generated FAQs Help Your Business:
+      </h3>
+      <ul style="color: #7DD3FC; font-size: 14px; line-height: 1.8;">
+        <li><strong>Save Time:</strong> No need to manually create FAQs from scratch</li>
+        <li><strong>Better Coverage:</strong> AI identifies questions you might have missed</li>
+        <li><strong>Improved Accuracy:</strong> Based on your actual content and customer data</li>
+        <li><strong>Faster Setup:</strong> Get your AI assistant ready in minutes, not hours</li>
+        <li><strong>Continuous Learning:</strong> Your AI gets smarter with every interaction</li>
+      </ul>
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background-color: #92400E; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+      <h3 style="color: #FEF3C7; font-size: 18px; margin-bottom: 15px;">
+        🎯 Your Next Steps:
+      </h3>
+      <ul style="color: #FDE68A; font-size: 14px; line-height: 1.8;">
+        <li><strong>Click the button above</strong> to access your admin dashboard</li>
+        <li><strong>Review each FAQ</strong> and edit if needed</li>
+        <li><strong>Approve the best ones</strong> by checking the approval box</li>
+        <li><strong>Save approved FAQs</strong> to your knowledge base</li>
+        <li><strong>Test your AI assistant</strong> with the new FAQs</li>
+        <li><strong>Watch customer satisfaction improve!</strong> 📈</li>
+      </ul>
+    </div>
+
+    <!-- Support Section -->
+    <div style="background-color: #0C4A6E; border: 1px solid #0369A1; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+      <h3 style="color: #BAE6FD; font-size: 18px; margin-bottom: 15px; text-align: center;">
+        💬 Need Help? We're Here for You!
+      </h3>
+      <p style="color: #7DD3FC; font-size: 14px; line-height: 1.6; margin-bottom: 15px; text-align: center;">
+        Questions about reviewing FAQs or need help optimizing your AI assistant? Our team is ready to help!
+      </p>
+      <div style="text-align: center;">
+        <a href="mailto:support@qurius.app" style="background-color: #0369A1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600; display: inline-block;">
+          📧 Contact Support
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 20px; border-top: 1px solid #374151;">
+      <p style="color: #D1D5DB; font-size: 14px; margin-bottom: 10px;">
+        Your AI assistant is getting smarter every day! 🚀
+      </p>
+      <p style="color: #9CA3AF; font-size: 12px;">
+        Thank you for choosing Qurius AI to transform your customer service experience.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 } 

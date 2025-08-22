@@ -141,15 +141,15 @@ export function FAQPreviewModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={handleBackdropClick}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-6xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+    <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-2 mt-10 sm:p-4 overflow-y-auto" onClick={handleBackdropClick}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-6xl mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-start sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Review AI-Generated FAQs - {companyName}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Review and edit the AI-generated FAQs before saving them to your knowledge base
               </p>
             </div>
@@ -157,16 +157,16 @@ export function FAQPreviewModal({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-red-500"
+              className="text-gray-400 hover:text-red-500 flex-shrink-0"
             >
               ✕
             </Button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Summary and Actions */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center space-x-4">
               <div className="text-sm">
                 <span className="font-medium text-green-600">{approvedCount}</span> of{' '}
@@ -181,35 +181,37 @@ export function FAQPreviewModal({
                 variant="outline"
                 size="sm"
                 onClick={approveAll}
-                className="text-xs"
+                className="text-xs px-2 py-1 h-8"
               >
                 <Check className="h-3 w-3 mr-1" />
-                Approve All
+                <span className="hidden sm:inline">Approve All</span>
+                <span className="sm:hidden">All</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={rejectAll}
-                className="text-xs"
+                className="text-xs px-2 py-1 h-8"
               >
                 <X className="h-3 w-3 mr-1" />
-                Reject All
+                <span className="hidden sm:inline">Reject All</span>
+                <span className="sm:hidden">None</span>
               </Button>
             </div>
           </div>
 
           {/* FAQ Entries */}
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
             {faqEntries.map((entry, index) => (
               <div 
                 key={entry.id} 
-                className={`border rounded-lg p-4 transition-all ${
+                className={`border rounded-lg p-3 sm:p-4 transition-all ${
                   entry.isApproved 
                     ? 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/20' 
                     : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
                 }`}
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                   <div className="flex items-center space-x-3">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       FAQ #{index + 1}
@@ -220,13 +222,13 @@ export function FAQPreviewModal({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => resetFAQ(entry.id)}
                       disabled={!entry.isEdited}
-                      className="text-gray-500 hover:text-blue-600"
+                      className="text-gray-500 hover:text-blue-600 p-1 sm:p-2 h-8 w-8"
                       title="Reset to original"
                     >
                       <RotateCcw className="h-3 w-3" />
@@ -235,7 +237,7 @@ export function FAQPreviewModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteFAQ(entry.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 p-1 sm:p-2 h-8 w-8"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -243,7 +245,7 @@ export function FAQPreviewModal({
                       variant={entry.isApproved ? "default" : "outline"}
                       size="sm"
                       onClick={() => toggleApproval(entry.id)}
-                      className={`text-xs ${
+                      className={`text-xs px-2 py-1 h-8 ${
                         entry.isApproved 
                           ? 'bg-green-600 hover:bg-green-700' 
                           : 'text-gray-600'
@@ -252,12 +254,14 @@ export function FAQPreviewModal({
                       {entry.isApproved ? (
                         <>
                           <Check className="h-3 w-3 mr-1" />
-                          Approved
+                          <span className="hidden sm:inline">Approved</span>
+                          <span className="sm:hidden">✓</span>
                         </>
                       ) : (
                         <>
                           <X className="h-3 w-3 mr-1" />
-                          Rejected
+                          <span className="hidden sm:inline">Rejected</span>
+                          <span className="sm:hidden">✗</span>
                         </>
                       )}
                     </Button>
@@ -273,7 +277,7 @@ export function FAQPreviewModal({
                       value={entry.question}
                       onChange={(e) => updateFAQ(entry.id, 'question', e.target.value)}
                       placeholder="What are your business hours?"
-                      className="w-full"
+                      className="w-full text-sm"
                     />
                   </div>
 
@@ -286,7 +290,7 @@ export function FAQPreviewModal({
                       onChange={(e) => updateFAQ(entry.id, 'answer', e.target.value)}
                       placeholder="We are open Monday-Friday, 9am-5pm"
                       rows={3}
-                      className="w-full"
+                      className="w-full text-sm resize-none"
                     />
                   </div>
                 </div>
@@ -295,26 +299,27 @@ export function FAQPreviewModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
               {approvedCount > 0 ? (
                 `${approvedCount} FAQ${approvedCount !== 1 ? 's' : ''} will be saved`
               ) : (
                 'No FAQs selected for saving'
               )}
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 onClick={onClose}
                 disabled={saving}
+                className="flex-1 sm:flex-none"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving || approvedCount === 0}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
               >
                 {saving ? 'Saving...' : `Save ${approvedCount} FAQ${approvedCount !== 1 ? 's' : ''}`}
               </Button>

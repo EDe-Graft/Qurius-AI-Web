@@ -24,6 +24,7 @@ import FAQImport from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
+import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { CompanyService, type Company } from "@/services/companyService"
@@ -489,6 +490,8 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               
               {/* Icon buttons - always visible */}
               <div className="flex items-center space-x-2 flex-shrink-0">
+                <NotificationCenter />
+                
                 <Button
                   variant="outline"
                   size="sm"

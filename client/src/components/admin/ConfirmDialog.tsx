@@ -25,6 +25,13 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
+  // Handle click outside modal to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   // Scroll to top when modal opens with loading screen
   useEffect(() => {
     if (isOpen) {
@@ -76,43 +83,44 @@ export function ConfirmDialog({
         </div>
       )}
       
-      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60]">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full my-15">
-        {/* Header */}
-        <div className="flex items-center space-x-3 p-6 border-b border-gray-200 dark:border-gray-700">
-          {getIcon()}
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {title}
-          </h3>
-        </div>
+      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60] p-2 sm:p-4" onClick={handleBackdropClick}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-auto my-20 sm:my-8">
+          {/* Header */}
+          <div className="flex items-center space-x-3 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            {getIcon()}
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {title}
+            </h3>
+          </div>
 
-        {/* Content */}
-        <div className="p-6">
-          <p className="text-gray-600 dark:text-gray-400">
-            {message}
-          </p>
-        </div>
+          {/* Content */}
+          <div className="p-4 sm:p-6">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+              {message}
+            </p>
+          </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-          <Button
-            variant="outline"
-            onClick={onClose}
-          >
-            {cancelText}
-          </Button>
-          <Button
-            onClick={() => {
-              onConfirm()
-              onClose()
-            }}
-            className={getButtonStyle()}
-          >
-            {confirmText}
-          </Button>
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-end space-y-2 sm:space-y-0 sm:space-x-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+            >
+              {cancelText}
+            </Button>
+            <Button
+              onClick={() => {
+                onConfirm()
+                onClose()
+              }}
+              className={`w-full sm:w-auto ${getButtonStyle()}`}
+            >
+              {confirmText}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 } 

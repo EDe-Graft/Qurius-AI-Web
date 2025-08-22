@@ -2,6 +2,8 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { createClient } from '@supabase/supabase-js'
 import { getEmbedding, chunkContent, generateFAQs } from '../utils.js'
+import { FAQGenerationCompleteEmailTemplate } from '../emailTemplates.js'
+import { sendEmail } from '../config/resend.js'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
@@ -52,6 +54,8 @@ class QuriusCrawler {
    * Main crawling function for a company website
    */
   async crawlCompanyWebsite(companyId, baseUrl) {
+    let crawlData = null
+    
     try {
       console.log(`🕷️ Starting crawl for: ${baseUrl}`)
       
@@ -76,7 +80,9 @@ class QuriusCrawler {
           pages_crawled: 0,
           content_extracted: 0,
           faqs_generated: 0,
-          status: 'running',
+          status: 'crawling',
+          progress_percentage: 0,
+          status_details: 'Starting website crawl...',
           crawl_date: new Date().toISOString()
         })
         .select()
@@ -88,7 +94,7 @@ class QuriusCrawler {
       }
 
       // Initialize crawl data
-      const crawlData = {
+      crawlData = {
         companyId,
         companyName: company.name,
         baseUrl,
@@ -104,6 +110,7 @@ class QuriusCrawler {
       }
 
       // Start crawling
+      await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 10, 'Crawling website pages...')
       await this.crawlPages(baseUrl, crawlData, 0)
       
       console.log(`📊 Crawling completed summary:`)
@@ -113,12 +120,15 @@ class QuriusCrawler {
       console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
       
       // Extract existing FAQs from website (not generate new ones)
+      await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 30, 'Extracting existing FAQs from website...')
       await this.extractFAQs(crawlData)
       
       // Save raw content chunks first
+      await this.updateCrawlStatus(crawlData.sessionId, 'processing_embeddings', 50, 'Generating embeddings for content chunks...')
       await this.saveCrawlResults(crawlData)
       
       // Generate AI FAQs for admin preview
+      await this.updateCrawlStatus(crawlData.sessionId, 'generating_faqs', 80, 'Generating AI FAQs from content...')
       const aiFAQs = await this.generateAIFAQs(crawlData)
       crawlData.aiGeneratedFAQs = aiFAQs
       
@@ -145,6 +155,12 @@ class QuriusCrawler {
         }
       }
       
+      // Update status to ready for review and send email notification
+      await this.updateCrawlStatus(crawlData.sessionId, 'ready_for_review', 100, `${aiFAQs.length} AI-generated FAQs ready for review`)
+      
+      // Send email notification
+      await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+      
       console.log(`✅ Crawl completed for ${company.name}`)
       return crawlData
       
@@ -154,14 +170,7 @@ class QuriusCrawler {
       // Update session to failed if we have a session ID
       if (crawlData?.sessionId) {
         try {
-          await supabase
-            .from('crawl_sessions')
-            .update({
-              status: 'failed',
-              error_message: error.message,
-              completed_date: new Date().toISOString()
-            })
-            .eq('id', crawlData.sessionId)
+          await this.updateCrawlStatus(crawlData.sessionId, 'failed', null, error.message)
         } catch (statusError) {
           console.error('❌ Failed to update crawl status on error:', statusError)
         }
@@ -883,15 +892,14 @@ class QuriusCrawler {
     })
     
     try {
-      // Update existing crawl session with completed status
+      // Update crawl session with current progress (but don't mark as completed yet)
       const { error: crawlError } = await supabase
         .from('crawl_sessions')
         .update({
           pages_crawled: crawlData.pages.length,
           content_extracted: crawlData.content.length,
-          faqs_generated: crawlData.faqs.length,
-          status: 'completed',
-          completed_date: new Date().toISOString()
+          faqs_generated: crawlData.faqs.length
+          // Note: Don't set status to 'completed' here - let the main function handle status updates
         })
         .eq('id', crawlData.sessionId)
 
@@ -1092,6 +1100,8 @@ class QuriusCrawler {
    * Process uploaded documents instead of crawling websites
    */
   async processUploadedDocuments(companyId, files) {
+    let crawlData = null
+    
     try {
       console.log(`📄 Starting document processing for company ${companyId}`)
       
@@ -1116,7 +1126,9 @@ class QuriusCrawler {
           pages_crawled: files.length,
           content_extracted: 0,
           faqs_generated: 0,
-          status: 'running',
+          status: 'crawling',
+          progress_percentage: 0,
+          status_details: 'Processing uploaded documents...',
           crawl_date: new Date().toISOString()
         })
         .select()
@@ -1128,7 +1140,7 @@ class QuriusCrawler {
       }
 
       // Initialize crawl data
-      const crawlData = {
+      crawlData = {
         companyId,
         companyName: company.name,
         baseUrl: 'document_upload',
@@ -1144,6 +1156,7 @@ class QuriusCrawler {
       }
 
       // Process each uploaded file
+      await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 20, 'Extracting content from documents...')
       for (const file of files) {
         console.log(`📄 Processing file: ${file.originalname}`)
         const fileContent = await this.extractDocumentContent(file)
@@ -1160,12 +1173,15 @@ class QuriusCrawler {
       console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
       
       // Extract existing FAQs from documents (if any)
+      await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 40, 'Extracting existing FAQs from documents...')
       await this.extractFAQs(crawlData)
       
       // Save raw content chunks first
+      await this.updateCrawlStatus(crawlData.sessionId, 'processing_embeddings', 60, 'Generating embeddings for document content...')
       await this.saveCrawlResults(crawlData)
       
       // Generate AI FAQs for admin preview
+      await this.updateCrawlStatus(crawlData.sessionId, 'generating_faqs', 80, 'Generating AI FAQs from document content...')
       const aiFAQs = await this.generateAIFAQs(crawlData)
       crawlData.aiGeneratedFAQs = aiFAQs
       
@@ -1192,6 +1208,12 @@ class QuriusCrawler {
         }
       }
       
+      // Update status to ready for review and send email notification
+      await this.updateCrawlStatus(crawlData.sessionId, 'ready_for_review', 100, `${aiFAQs.length} AI-generated FAQs ready for review`)
+      
+      // Send email notification
+      await this.sendFAQCompletionEmail(company, aiFAQs.length, 'uploaded documents')
+      
       console.log(`✅ Document processing completed for ${company.name}`)
       return crawlData
       
@@ -1201,14 +1223,7 @@ class QuriusCrawler {
       // Update session to failed if we have a session ID
       if (crawlData?.sessionId) {
         try {
-          await supabase
-            .from('crawl_sessions')
-            .update({
-              status: 'failed',
-              error_message: error.message,
-              completed_date: new Date().toISOString()
-            })
-            .eq('id', crawlData.sessionId)
+          await this.updateCrawlStatus(crawlData.sessionId, 'failed', null, error.message)
         } catch (statusError) {
           console.error('❌ Failed to update crawl status on error:', statusError)
         }
@@ -1444,6 +1459,64 @@ class QuriusCrawler {
    */
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Update crawl session status with progress tracking
+   */
+  async updateCrawlStatus(sessionId, status, progress = null, details = null) {
+    try {
+      const updateData = {
+        status: status,
+        updated_at: new Date().toISOString()
+      }
+
+      if (progress !== null) {
+        updateData.progress_percentage = progress
+      }
+
+      if (details !== null) {
+        updateData.status_details = details
+      }
+
+      const { error } = await supabase
+        .from('crawl_sessions')
+        .update(updateData)
+        .eq('id', sessionId)
+
+      if (error) {
+        console.error('❌ Failed to update crawl status:', error)
+      } else {
+        console.log(`✅ Crawl status updated to: ${status}${progress ? ` (${progress}%)` : ''}`)
+      }
+    } catch (error) {
+      console.error('❌ Error updating crawl status:', error)
+    }
+  }
+
+  /**
+   * Send FAQ generation completion email
+   */
+  async sendFAQCompletionEmail(company, faqCount, crawlType) {
+    try {
+      const adminLink = `${process.env.FRONTEND_URL}/admin`
+      const emailHtml = FAQGenerationCompleteEmailTemplate({
+        companyName: company.name,
+        adminLink: adminLink,
+        faqCount: faqCount,
+        crawlType: crawlType
+      })
+
+      await sendEmail({
+        to: 'edgquansah@gmail.com',
+        subject: `🤖 AI FAQ Generation Complete - ${company.name}`,
+        html: emailHtml
+      })
+
+      console.log(`✅ FAQ completion email sent to ${company.admin_email}`)
+    } catch (error) {
+      console.error('❌ Failed to send FAQ completion email:', error)
+    }
   }
 }
 

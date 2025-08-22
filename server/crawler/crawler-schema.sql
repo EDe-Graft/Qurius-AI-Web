@@ -1,26 +1,28 @@
 
--- Crawler Sessions Table
-CREATE TABLE IF NOT EXISTS public.crawl_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-    company_name TEXT NOT NULL,
-    base_url TEXT NOT NULL,
-    pages_crawled INTEGER DEFAULT 0,
-    content_extracted INTEGER DEFAULT 0,
-    faqs_generated INTEGER DEFAULT 0,
-    ai_faqs_count INTEGER DEFAULT 0,
-    ai_generated_faqs JSONB,
-    status VARCHAR(20) DEFAULT 'running', -- 'running', 'completed', 'failed'
-    error_message TEXT,
-    crawl_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    completed_date TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Crawl sessions table
+CREATE TABLE IF NOT EXISTS crawl_sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  company_name TEXT NOT NULL,
+  base_url TEXT NOT NULL,
+  pages_crawled INTEGER DEFAULT 0,
+  content_extracted INTEGER DEFAULT 0,
+  faqs_generated INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'running' CHECK (status IN ('crawling', 'processing_embeddings', 'generating_faqs', 'ready_for_review', 'completed', 'failed')),
+  progress_percentage INTEGER DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
+  status_details TEXT,
+  error_message TEXT,
+  crawl_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_date TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ai_faqs_count INTEGER DEFAULT 0,
+  ai_generated_faqs JSONB
 );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_company_id ON public.crawl_sessions(company_id);
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_status ON public.crawl_sessions(status);
-CREATE INDEX IF NOT EXISTS idx_crawl_sessions_date ON public.crawl_sessions(crawl_date);
+-- Index for faster queries
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_company_id ON crawl_sessions(company_id);
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_status ON crawl_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_crawl_sessions_crawl_date ON crawl_sessions(crawl_date);
 
 CREATE INDEX IF NOT EXISTS idx_faqs_source ON public.faqs(source);
 CREATE INDEX IF NOT EXISTS idx_faqs_confidence ON public.faqs(confidence);

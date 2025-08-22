@@ -132,7 +132,8 @@ router.get('/status/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params
 
-    // Get latest crawl session
+    // Get the most recent crawl session for this company
+    // Select all columns including the new progress tracking columns
     const { data: crawlSession, error } = await supabase
       .from('crawl_sessions')
       .select('*')
@@ -141,32 +142,33 @@ router.get('/status/:companyId', async (req, res) => {
       .limit(1)
       .single()
 
-    // If no crawl sessions found, return success with null session
-    if (error && error.code === 'PGRST116') {
-      return res.json({
-        success: true,
-        crawlSession: null,
-        message: 'No crawl sessions found for this company'
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      console.error('Error fetching crawl session:', error)
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch crawl status' 
       })
     }
 
-    // Handle other errors
-    if (error) {
-      console.error('Database error:', error)
-      return res.status(500).json({
-        error: 'Database error occurred'
-      })
-    }
+    // Add default values for new columns if they don't exist
+    const sessionWithDefaults = crawlSession ? {
+      ...crawlSession,
+      progress_percentage: crawlSession.progress_percentage || 0,
+      status_details: crawlSession.status_details || null,
+      error_message: crawlSession.error_message || null,
+      completed_date: crawlSession.completed_date || null,
+      updated_at: crawlSession.updated_at || crawlSession.crawl_date
+    } : null
 
     res.json({
       success: true,
-      crawlSession
+      crawlSession: sessionWithDefaults
     })
-
   } catch (error) {
-    console.error('Crawler status error:', error)
-    res.status(500).json({
-      error: 'Internal server error'
+    console.error('Error in crawl status endpoint:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
     })
   }
 })
@@ -301,103 +303,95 @@ router.post('/generate-faqs', async (req, res) => {
  */
 router.post('/save-faqs', async (req, res) => {
   try {
-    const { companyId, faqs } = req.body
+    console.log('📝 Save FAQs request received:', {
+      body: req.body,
+      sessionId: req.body.sessionId,
+      approvedFAQs: req.body.approvedFAQs,
+      approvedFAQsType: typeof req.body.approvedFAQs,
+      isArray: Array.isArray(req.body.approvedFAQs)
+    })
 
-    if (!companyId || !faqs || !Array.isArray(faqs)) {
+    const { sessionId, approvedFAQs } = req.body
+
+    if (!sessionId || !approvedFAQs || !Array.isArray(approvedFAQs)) {
+      console.error('❌ Validation failed:', {
+        hasSessionId: !!sessionId,
+        hasApprovedFAQs: !!approvedFAQs,
+        isArray: Array.isArray(approvedFAQs),
+        sessionId,
+        approvedFAQs
+      })
       return res.status(400).json({
-        error: 'Missing required fields: companyId, faqs (array)'
+        success: false,
+        error: 'Invalid request data'
       })
     }
 
-    // Get company info
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('id', companyId)
-      .single()
-
-    if (companyError || !company) {
-      return res.status(404).json({
-        error: 'Company not found'
-      })
-    }
-
-    // Get the latest crawl session
-    const { data: latestSession, error: sessionError } = await supabase
+    // Get the crawl session to verify it exists and get company info
+    const { data: session, error: sessionError } = await supabase
       .from('crawl_sessions')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('crawl_date', { ascending: false })
-      .limit(1)
+      .select('company_id, company_name')
+      .eq('id', sessionId)
       .single()
 
-    if (sessionError) {
-      return res.status(500).json({
-        error: 'Failed to get crawl session'
+    if (sessionError || !session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Crawl session not found'
       })
     }
 
-    if (faqs.length === 0) {
-      return res.json({
-        success: true,
-        message: 'No FAQs to save',
-        savedCount: 0
-      })
-    }
-
-    // Generate embeddings and prepare FAQ data
-    const { getEmbedding } = await import('../utils.js')
-    const faqData = await Promise.all(faqs.map(async (faq) => {
-      try {
-        const { questionEmbedding, answerEmbedding } = await getEmbedding(faq.question, faq.answer)
-        
-        return {
-          company_id: companyId,
-          company_name: company.name,
-          question: faq.question,
-          answer: faq.answer,
-          question_embedding: questionEmbedding,
-          answer_embedding: answerEmbedding,
-          source: 'ai_generated_approved',
-          confidence: 0.9, // High confidence for approved FAQs
-          crawl_session_id: latestSession?.id
-        }
-      } catch (embeddingError) {
-        console.warn(`Failed to generate embeddings for FAQ: ${faq.question.substring(0, 50)}...`, embeddingError.message)
-        // Return FAQ without embeddings if embedding generation fails
-        return {
-          company_id: companyId,
-          company_name: company.name,
-          question: faq.question,
-          answer: faq.answer,
-          source: 'ai_generated_approved',
-          confidence: 0.9,
-          crawl_session_id: latestSession?.id
-        }
-      }
+    // Save approved FAQs to the faqs table
+    const faqsToInsert = approvedFAQs.map(faq => ({
+      company_id: session.company_id,
+      company_name: session.company_name,
+      question: faq.question,
+      answer: faq.answer,
+      source: 'ai_generated',
+      created_at: new Date().toISOString()
     }))
 
-    // Save FAQs to database
-    const { error: insertError } = await supabase
+    const { data: savedFAQs, error: insertError } = await supabase
       .from('faqs')
-      .insert(faqData)
+      .insert(faqsToInsert)
+      .select()
 
     if (insertError) {
-      console.error('Failed to save approved FAQs:', insertError)
+      console.error('Error saving FAQs:', insertError)
       return res.status(500).json({
-        error: 'Failed to save FAQs to database'
+        success: false,
+        error: 'Failed to save FAQs'
       })
     }
+
+    // Update crawl session to mark as completed
+    const { error: updateError } = await supabase
+      .from('crawl_sessions')
+      .update({
+        status: 'completed',
+        faqs_generated: savedFAQs.length,
+        completed_date: new Date().toISOString(),
+        progress_percentage: 100,
+        status_details: `Successfully saved ${savedFAQs.length} approved FAQs`
+      })
+      .eq('id', sessionId)
+
+    if (updateError) {
+      console.error('Error updating crawl session:', updateError)
+      // Don't fail the request if this update fails
+    }
+
+    console.log(`✅ Saved ${savedFAQs.length} approved FAQs for company ${session.company_name}`)
 
     res.json({
       success: true,
-      message: `Successfully saved ${faqs.length} approved FAQs`,
-      savedCount: faqs.length
+      message: `Successfully saved ${savedFAQs.length} FAQs`,
+      savedFAQs: savedFAQs
     })
-
   } catch (error) {
-    console.error('Save FAQs error:', error)
+    console.error('Error in save FAQs endpoint:', error)
     res.status(500).json({
+      success: false,
       error: 'Internal server error'
     })
   }

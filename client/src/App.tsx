@@ -15,6 +15,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
 import { LanguageProvider } from "@/context/LanguageContext"
 import { CompanyDataProvider } from "@/context/CompanyDataContext"
+import { NotificationProvider } from "@/context/NotificationContext"
 
 export default function App() {
   return (
@@ -40,7 +41,13 @@ export default function App() {
               
               {/* Admin routes with authentication */}
               <Route path="/login" element={<><AdminNavigation /><Login /></>} />
-              <Route path="/admin" element={<ProtectedRoute><><AdminNavigation /><Admin /></></ProtectedRoute>} />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <NotificationProvider>
+                    <><AdminNavigation /><Admin /></>
+                  </NotificationProvider>
+                </ProtectedRoute>
+              } />
             </Routes>
           </AuthProvider>
         </BrowserRouter>

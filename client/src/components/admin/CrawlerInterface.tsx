@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import axios from 'axios'
 import { FAQPreviewModal } from './FAQPreviewModal'
+import { useNotifications } from '@/context/NotificationContext'
+import { NotificationBanner } from './NotificationBanner'
 
 interface CrawlerInterfaceProps {
   companyId: string
@@ -30,10 +32,14 @@ interface CrawlSession {
   pages_crawled: number
   content_extracted: number
   faqs_generated: number
-  status: 'running' | 'completed' | 'failed'
+  status: 'running' | 'crawling' | 'processing_embeddings' | 'generating_faqs' | 'ready_for_review' | 'completed' | 'failed'
   crawl_date: string
   completed_date?: string
   error_message?: string
+  progress_percentage?: number
+  status_details?: string
+  ai_generated_faqs?: Array<{ question: string; answer: string }>
+  ai_faqs_count?: number
 }
 
 interface CrawledFAQ {
@@ -72,6 +78,11 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   const [showFAQPreview, setShowFAQPreview] = useState(false)
   const [generatedFAQs, setGeneratedFAQs] = useState<Array<{ question: string; answer: string }>>([])
   const [savingFAQs, setSavingFAQs] = useState(false)
+
+  // Notification State
+  const { addNotification } = useNotifications()
+  const [showBanner, setShowBanner] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
@@ -114,8 +125,10 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         setCrawlSessions(sessions)
         
         // Check if there's a currently running session
-        const runningSession = sessions.find((s: CrawlSession) => s.status === 'running')
-        if (runningSession) {
+        const activeSession = sessions.find((s: CrawlSession) => 
+          ['running', 'crawling', 'processing_embeddings', 'generating_faqs'].includes(s.status)
+        )
+        if (activeSession) {
           setIsCrawling(true)
           pollCrawlStatus()
         }
@@ -166,6 +179,22 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         if (session.ai_generated_faqs && session.ai_generated_faqs.length > 0) {
           setGeneratedFAQs(session.ai_generated_faqs)
           setShowFAQPreview(true)
+          
+          // Add notification
+          addNotification({
+            type: 'success',
+            title: 'AI FAQs Ready for Review',
+            message: `${session.ai_generated_faqs.length} AI-generated FAQs are ready for your review and approval.`,
+            action: {
+              label: 'Review FAQs',
+              onClick: () => setShowFAQPreview(true)
+            }
+          })
+          
+          // Show banner if not dismissed
+          if (!bannerDismissed) {
+            setShowBanner(true)
+          }
         }
       }
     } catch (error) {
@@ -176,9 +205,38 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
     setSavingFAQs(true)
     try {
+      // Get the current session ID from crawl sessions
+      console.log('🔍 Looking for active session in:', crawlSessions)
+      
+      let currentSession = crawlSessions.find(session => 
+        ['ready_for_review', 'generating_faqs'].includes(session.status)
+      )
+      
+      // Fallback: look for any session with AI-generated FAQs
+      if (!currentSession) {
+        currentSession = crawlSessions.find(session => 
+          session.ai_generated_faqs && session.ai_generated_faqs.length > 0
+        )
+        console.log('🔄 Fallback: Found session with AI FAQs:', currentSession)
+      }
+      
+      console.log('📋 Found session:', currentSession)
+      
+      if (!currentSession) {
+        console.error('❌ No active session found. Available sessions:', crawlSessions.map(s => ({ id: s.id, status: s.status })))
+        throw new Error('No active crawl session found. Please try refreshing the page.')
+      }
+
+      console.log('💾 Saving FAQs with data:', {
+        sessionId: currentSession.id,
+        sessionStatus: currentSession.status,
+        approvedFAQsCount: approvedFAQs.length,
+        approvedFAQs: approvedFAQs
+      })
+
       const response = await axios.post(`${BACKEND_URL}/api/crawler/save-faqs`, {
-        companyId,
-        faqs: approvedFAQs
+        sessionId: currentSession.id,
+        approvedFAQs: approvedFAQs
       })
       
       if (response.data.success) {
@@ -186,12 +244,26 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         await loadCrawledFAQs()
         setShowFAQPreview(false)
         setGeneratedFAQs([])
+        
+        // Add success notification
+        addNotification({
+          type: 'success',
+          title: 'FAQs Saved Successfully',
+          message: `Successfully saved ${approvedFAQs.length} approved FAQs.`
+        })
       } else {
         throw new Error(response.data.error || 'Failed to save FAQs')
       }
     } catch (error: any) {
-      console.error('Failed to save approved FAQs:', error)
-      alert(`Failed to save FAQs: ${error.response?.data?.error || error.message}`)
+      console.error('❌ Failed to save approved FAQs:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      })
+      
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to save FAQs'
+      alert(`Failed to save FAQs: ${errorMessage}`)
     } finally {
       setSavingFAQs(false)
     }
@@ -310,7 +382,8 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
 
     if (previousCrawl) {
       const crawlDate = new Date(previousCrawl.crawl_date).toLocaleDateString()
-      const confirmMessage = `This website was already crawled on ${crawlDate} (Status: ${previousCrawl.status}). Do you want to crawl it again?`
+      const statusText = previousCrawl.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      const confirmMessage = `This website was already crawled on ${crawlDate} (Status: ${statusText}). Do you want to crawl it again?`
       
       if (!window.confirm(confirmMessage)) {
         return
@@ -348,11 +421,21 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           const session = response.data.crawlSession
           setCrawlSessions([session])
 
-          if (session.status === 'completed') {
+          // Continue polling until status is 'ready_for_review' or 'completed' or 'failed'
+          if (session.status === 'ready_for_review') {
             clearInterval(interval)
             setIsCrawling(false)
             
             // Check for AI-generated FAQs to review
+            await checkForGeneratedFAQs()
+            
+            // Reload existing FAQs
+            loadCrawledFAQs()
+          } else if (session.status === 'completed') {
+            clearInterval(interval)
+            setIsCrawling(false)
+            
+            // Check for AI-generated FAQs to review (in case they were already reviewed)
             await checkForGeneratedFAQs()
             
             // Reload existing FAQs
@@ -362,6 +445,7 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
             setIsCrawling(false)
             loadCrawledFAQs()
           }
+          // Continue polling for: 'crawling', 'processing_embeddings', 'generating_faqs'
         } else {
           // If no session found, stop polling and loading
           clearInterval(interval)
@@ -374,17 +458,24 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
       }
     }, 5000) // Poll every 5 seconds
 
-    // Stop polling after 10 minutes
+    // Stop polling after 30 minutes (increased from 10 minutes)
     setTimeout(() => {
       clearInterval(interval)
       setIsCrawling(false) // Stop loading animation after timeout
-    }, 600000)
+    }, 1800000) // 30 minutes
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'running':
-        return <Clock className="h-4 w-4 text-blue-500" />
+      case 'crawling':
+        return <Globe className="h-4 w-4 text-blue-500" />
+      case 'processing_embeddings':
+        return <RefreshCw className="h-4 w-4 text-purple-500" />
+      case 'generating_faqs':
+        return <FileText className="h-4 w-4 text-orange-500" />
+      case 'ready_for_review':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'failed':
@@ -397,15 +488,39 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   const getStatusBadge = (status: string) => {
     const variants = {
       running: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      crawling: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      processing_embeddings: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      generating_faqs: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      ready_for_review: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
     }
 
     return (
       <Badge className={variants[status as keyof typeof variants] || 'bg-gray-100 text-gray-800'}>
-        {status}
+        {status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
       </Badge>
     )
+  }
+
+  const getStatusDescription = (status: string, details?: string) => {
+    switch (status) {
+      case 'running':
+      case 'crawling':
+        return details || 'Crawling website pages and extracting content...'
+      case 'processing_embeddings':
+        return details || 'Generating AI embeddings for content analysis...'
+      case 'generating_faqs':
+        return details || 'Creating AI-generated FAQs from your content...'
+      case 'ready_for_review':
+        return details || 'AI FAQs are ready for your review and approval!'
+      case 'completed':
+        return 'Processing completed successfully'
+      case 'failed':
+        return 'Processing failed - please try again'
+      default:
+        return 'Processing in progress...'
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -413,7 +528,25 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Notification Banner */}
+      {showBanner && (
+        <NotificationBanner
+          message={`AI-generated FAQs are ready for review! ${generatedFAQs.length} FAQs are waiting for your approval.`}
+          actionLabel="Review FAQs"
+          onAction={() => {
+            setShowFAQPreview(true)
+            setShowBanner(false)
+          }}
+          onDismiss={() => {
+            setShowBanner(false)
+            setBannerDismissed(true)
+          }}
+          type="success"
+          autoDismiss={false}
+        />
+      )}
+
       {/* Crawl Control */}
       <Card>
         <CardHeader>
@@ -427,38 +560,46 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
             <button
               onClick={() => setCrawlMode('website')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                 crawlMode === 'website'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              <Globe className="h-4 w-4 inline mr-2" />
-              Website Crawl
+              <Globe className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Website Crawl</span>
+              <span className="sm:hidden">Website</span>
             </button>
             <button
               onClick={() => setCrawlMode('documents')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                 crawlMode === 'documents'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              <FileText className="h-4 w-4 inline mr-2" />
-              Document Upload
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Document Upload</span>
+              <span className="sm:hidden">Documents</span>
             </button>
           </div>
 
           {/* Website Crawl Mode */}
           {crawlMode === 'website' && (
             <div className="space-y-4">
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Input
                   placeholder="Enter website URL (e.g., https://example.com)"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isCrawling && websiteUrl.trim()) {
+                      startCrawl()
+                      setWebsiteUrl('')
+                    }
+                  }}
                   disabled={isCrawling}
-                  className="flex-1"
+                  className="flex-1 text-sm"
                 />
                 <Button
                   onClick={() => {
@@ -466,25 +607,30 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
                     setWebsiteUrl('')
                   }}
                   disabled={isCrawling || !websiteUrl.trim()}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   {isCrawling ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
                     <Play className="h-4 w-4" />
                   )}
-                  {isCrawling ? 'Crawling in Progress...' : 'Start Crawl'}
+                  <span className="hidden sm:inline">
+                    {isCrawling ? 'Crawling in Progress...' : 'Start Crawl'}
+                  </span>
+                  <span className="sm:hidden">
+                    {isCrawling ? 'Crawling...' : 'Start'}
+                  </span>
                 </Button>
               </div>
               
               {previouslyCrawledUrl && (
-                <div className="text-orange-600 text-sm bg-orange-50 dark:bg-orange-900/20 p-3 rounded flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  This website has been crawled before. Crawling again will create a new session.
+                <div className="text-orange-600 text-xs sm:text-sm bg-orange-50 dark:bg-orange-900/20 p-3 rounded flex items-start gap-2">
+                  <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>This website has been crawled before. Crawling again will create a new session.</span>
                 </div>
               )}
 
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <p>• Crawls up to 50 pages per website</p>
                 <p>• Extracts content and generates FAQs automatically</p>
                 <p>• Respects robots.txt and includes delays between requests</p>
@@ -496,7 +642,7 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           {crawlMode === 'documents' && (
             <div className="space-y-4">
               {/* File Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 sm:p-6 text-center">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -505,8 +651,8 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 mb-2">
+                <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">
                   Drop your documents here or{' '}
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -515,7 +661,7 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
                     browse files
                   </button>
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
                   Supports PDF, Word documents, and text files (max 10MB each, up to 5 files)
                 </p>
               </div>
@@ -523,19 +669,19 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
               {/* Uploaded Files List */}
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Selected Files:</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">Selected Files:</h4>
                   {uploadedFiles.map((uploadedFile) => (
                     <div key={uploadedFile.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <File className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{uploadedFile.name}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{formatFileSize(uploadedFile.size)}</p>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <File className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{uploadedFile.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(uploadedFile.size)}</p>
                         </div>
                       </div>
                       <button
                         onClick={() => removeFile(uploadedFile.id)}
-                        className="text-gray-400 hover:text-red-500"
+                        className="text-gray-400 hover:text-red-500 p-1"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -548,17 +694,22 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
               <Button
                 onClick={startDocumentProcessing}
                 disabled={isUploading || uploadedFiles.length === 0}
-                className="w-full flex items-center gap-2"
+                className="w-full flex items-center justify-center gap-2"
               >
                 {isUploading ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                {isUploading ? 'Processing Documents...' : 'Process Documents'}
+                <span className="hidden sm:inline">
+                  {isUploading ? 'Processing Documents...' : 'Process Documents'}
+                </span>
+                <span className="sm:hidden">
+                  {isUploading ? 'Processing...' : 'Process'}
+                </span>
               </Button>
 
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <p>• Extracts text from PDF, Word, and text files</p>
                 <p>• Generates FAQs automatically from document content</p>
                 <p>• Supports up to 5 files, 10MB each</p>
@@ -567,7 +718,7 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           )}
           
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
+            <div className="text-red-600 text-xs sm:text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
               {error}
             </div>
           )}
@@ -580,9 +731,9 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Crawl Sessions ({crawlSessions.length})
+              <span className="text-sm sm:text-base">Crawl Sessions ({crawlSessions.length})</span>
               {isCrawling && (
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
                   <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                   Active
                 </Badge>
@@ -592,36 +743,55 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           <CardContent>
             <div className="space-y-4">
               {crawlSessions.map((session) => (
-                <div key={session.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                <div key={session.id} className="border rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       {getStatusIcon(session.status)}
-                      <span className="font-medium">{session.base_url}</span>
+                      <span className="font-medium text-sm sm:text-base truncate">{session.base_url}</span>
                     </div>
                     {getStatusBadge(session.status)}
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {/* Progress Bar */}
+                  {!['completed', 'failed'].includes(session.status) && (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        <span>Progress</span>
+                        <span>{session.progress_percentage || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${session.progress_percentage || 0}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {getStatusDescription(session.status, session.status_details)}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
                     <div>
                       <span className="text-gray-600 dark:text-gray-400">Pages:</span>
-                      <span className="ml-2 font-medium">{session.pages_crawled}</span>
+                      <span className="ml-1 sm:ml-2 font-medium">{session.pages_crawled}</span>
                     </div>
                     <div>
                       <span className="text-gray-600 dark:text-gray-400">Content:</span>
-                      <span className="ml-2 font-medium">{session.content_extracted}</span>
+                      <span className="ml-1 sm:ml-2 font-medium">{session.content_extracted}</span>
                     </div>
                     <div>
                       <span className="text-gray-600 dark:text-gray-400">FAQs:</span>
-                      <span className="ml-2 font-medium">{session.faqs_generated}</span>
+                      <span className="ml-1 sm:ml-2 font-medium">{session.faqs_generated}</span>
                     </div>
                     <div>
                       <span className="text-gray-600 dark:text-gray-400">Date:</span>
-                      <span className="ml-2 font-medium">{formatDate(session.crawl_date)}</span>
+                      <span className="ml-1 sm:ml-2 font-medium">{formatDate(session.crawl_date)}</span>
                     </div>
                   </div>
 
                   {session.error_message && (
-                    <div className="mt-3 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                    <div className="mt-3 text-red-600 text-xs sm:text-sm bg-red-50 dark:bg-red-900/20 p-2 rounded">
                       Error: {session.error_message}
                     </div>
                   )}
@@ -638,22 +808,22 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5" />
-              Crawled FAQs ({crawledFAQs.length})
+              <span className="text-sm sm:text-base">Crawled FAQs ({crawledFAQs.length})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {crawledFAQs.map((faq) => (
-                <div key={faq.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                <div key={faq.id} className="border rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0 mb-2">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                       {faq.question}
                     </h4>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs w-fit">
                       {faq.source} ({Math.round(faq.confidence * 100)}%)
                     </Badge>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                     {faq.answer}
                   </p>
                   <div className="mt-2 text-xs text-gray-500">
@@ -670,11 +840,11 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
       {crawlSessions.length === 0 && crawledFAQs.length === 0 && !loading && (
         <Card>
           <CardContent className="text-center py-8">
-            <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <Globe className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               No Crawl Data Yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Start a crawl to automatically extract content and generate FAQs from {companyName}'s website.
             </p>
           </CardContent>
