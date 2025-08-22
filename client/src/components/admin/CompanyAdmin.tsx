@@ -23,10 +23,16 @@ import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
+import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
+import { FAQEditModal } from "@/components/admin/FAQEditModal"
+import { NotificationCenter } from "@/components/admin/NotificationCenter"
+import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
+import { useNotifications } from "@/context/NotificationContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
+// import { notificationService } from "@/services/notificationService"
 import { AnalyticsService, type WidgetAnalytics, type FAQPerformance } from "@/services/analyticsService"
 import { getUserRole } from "@/lib/auth"
 import { toTitleCase } from "@/lib/utils"
@@ -38,6 +44,7 @@ interface CompanyAdminProps {
 export function CompanyAdmin({ user }: CompanyAdminProps) {
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
+  const { loadNotifications, unreadCount } = useNotifications()
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +53,14 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showIntegrationCode, setShowIntegrationCode] = useState(false)
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
+  
+  // Notification-related state
+  const [showFAQPreview, setShowFAQPreview] = useState(false)
+  const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false)
+
+  // FAQ Edit modal state
+  const [showFAQEdit, setShowFAQEdit] = useState(false)
 
   // Handle click outside FAQ modal to close
   const handleFAQModalBackdropClick = (e: React.MouseEvent) => {
@@ -110,6 +125,15 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
         const companyData = await CompanyService.getCompanyById(companyId)
         setCompany(companyData)
+        
+        // Load notifications for this company
+        await loadNotifications(companyId)
+        
+        // Show notification banner if there are unread notifications
+        if (unreadCount > 0) {
+          setShowNotificationBanner(true)
+        }
+        
         // console.log("company data", companyData)
       } catch (err: any) {
         console.error('❌ Error loading company:', err)
@@ -162,6 +186,89 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     }
   }
 
+  // Handle opening FAQ edit modal
+  const handleFAQEdit = () => {
+    setShowFAQEdit(true)
+  }
+
+  // Handle FAQ updates from edit modal
+  const handleFAQsUpdated = () => {
+    // Refresh analytics or any other data that might be affected
+    if (company?.id) {
+      // Reload analytics to reflect updated FAQ performance
+      const loadAnalytics = async () => {
+        try {
+          const [analyticsData, faqData] = await Promise.all([
+            AnalyticsService.getCompanyAnalytics(company.id || '', '7d'),
+            AnalyticsService.getFAQPerformance(company.id || '', '7d')
+          ])
+          setAnalytics(analyticsData)
+          setFaqPerformance(faqData)
+        } catch (error) {
+          console.error('Failed to reload analytics after FAQ update:', error)
+        }
+      }
+      loadAnalytics()
+    }
+  }
+
+  // Handle notification action (FAQ approval)
+  // const handleNotificationAction = async (notification: any) => {
+  //   if (notification.type === 'faq_approval' && notification.crawl_session_id) {
+  //     try {
+  //       // Load crawl session data
+  //       const sessionData = await notificationService.getCrawlSessionData(notification.crawl_session_id)
+        
+  //       if (sessionData && sessionData.ai_generated_faqs) {
+  //         setFaqPreviewData({
+  //           faqs: sessionData.ai_generated_faqs,
+  //           sessionId: notification.crawl_session_id,
+  //           companyName: company?.name || '',
+  //           source: 'notification'
+  //         })
+  //         setShowFAQPreview(true)
+  //       }
+  //     } catch (error) {
+  //       console.error('Error loading FAQ preview data:', error)
+  //     }
+  //   }
+  // }
+
+  // Handle saving approved FAQs from notification
+  const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
+    if (!faqPreviewData?.sessionId) return
+
+    try {
+      const response = await fetch('/api/crawler/save-faqs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: faqPreviewData.sessionId,
+          approvedFAQs
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save FAQs')
+      }
+
+      const result = await response.json()
+      alert(`Successfully saved ${result.savedFAQs?.length || 0} approved FAQs`)
+      setShowFAQPreview(false)
+      setFaqPreviewData(null)
+      
+      // Refresh notifications to remove the FAQ approval notification
+      if (company?.id) {
+        await loadNotifications(company.id)
+      }
+    } catch (error) {
+      console.error('Error saving approved FAQs:', error)
+      alert(`Failed to save FAQs: ${error}`)
+    }
+  }
+
   const handleThemeUpdate = (newTheme: any) => {
     setCompany(prev => prev ? { ...prev, theme: newTheme } : null)
   }
@@ -192,7 +299,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center animate-fade-in-up animation-delay-2000">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,13 +326,13 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"
-    } animate-fade-in-up animation-delay-2000`}>
+    }`}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
             {/* Company title and icon buttons */}
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start animate-fade-in-up animation-delay-2000">
               <div className="flex-shrink-0 min-w-0 flex-1 pr-4">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   {company?.name} Dashboard
@@ -237,6 +344,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               
               {/* Icon buttons - always visible */}
               <div className="flex items-center space-x-2 flex-shrink-0">
+                <NotificationCenter />
+                
                 <Button
                   variant="outline"
                   size="sm"
@@ -265,9 +374,9 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
         {/* Enhanced Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
           <StatCard
             title="Widget Views"
             value={analytics?.totalViews || 0}
@@ -296,7 +405,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
         {/* Enhanced Analytics Cards */}
         {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
             <RatingStatCard
               title="Average Rating"
               value={analytics.averageRating || 0}
@@ -331,7 +440,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
         {/* Analytics Dashboard for non-free users */}
         {company?.plan !== 'free' && (
-        <div className="mb-8">
+        <div className="mb-8 animate-fade-in-up animation-delay-4000">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Analytics Dashboard
@@ -350,7 +459,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -639,6 +748,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             <div className="p-6">
               <FAQImportModal
                 onImport={handleFAQImport}
+                onEditExisting={handleFAQEdit}
+                showEditButton={true}
               />
             </div>
           </div>
@@ -675,6 +786,41 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         companyId={company?.id || ''}
         companyName={company?.name || ''}
       />
+
+      {/* FAQ Edit Modal */}
+      <FAQEditModal
+        isOpen={showFAQEdit}
+        onClose={() => setShowFAQEdit(false)}
+        companyId={company?.id || ''}
+        companyName={company?.name || ''}
+        onFAQsUpdated={handleFAQsUpdated}
+      />
+
+      {/* Notification Banner */}
+      {showNotificationBanner && unreadCount > 0 && (
+        <NotificationBanner
+          message={`You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
+          actionLabel="View All"
+          onAction={() => setShowNotificationBanner(false)}
+          onDismiss={() => setShowNotificationBanner(false)}
+          type="info"
+          autoDismiss={false}
+        />
+      )}
+
+      {/* FAQ Preview Modal for Notifications */}
+      {showFAQPreview && faqPreviewData && (
+        <FAQPreviewModal
+          isOpen={showFAQPreview}
+          generatedFAQs={faqPreviewData.faqs}
+          companyName={faqPreviewData.companyName}
+          onSaveApproved={handleSaveApprovedFAQs}
+          onClose={() => {
+            setShowFAQPreview(false)
+            setFaqPreviewData(null)
+          }}
+        />
+      )}
     </div>
   )
 } 

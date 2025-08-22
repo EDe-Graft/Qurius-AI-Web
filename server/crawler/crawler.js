@@ -150,6 +150,13 @@ class QuriusCrawler {
             console.warn('⚠️ Failed to store AI-generated FAQs in session:', updateError)
           } else {
             console.log(`✅ Stored ${aiFAQs.length} AI-generated FAQs in crawl session for admin review`)
+            
+            // Create notification for FAQ approval
+            try {
+              await this.createFAQApprovalNotification(crawlData.companyId, crawlData.companyName, crawlData.sessionId, aiFAQs.length)
+            } catch (notificationError) {
+              console.warn('⚠️ Failed to create FAQ approval notification:', notificationError.message)
+            }
           }
         } catch (error) {
           console.warn('⚠️ Failed to store AI-generated FAQs:', error.message)
@@ -161,6 +168,13 @@ class QuriusCrawler {
       
       // Send email notification
       await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+      
+      // Create crawl completion notification
+      try {
+        await this.createCrawlCompletionNotification(crawlData.companyId, crawlData.companyName, crawlData.sessionId, crawlData.pages.length, aiFAQs.length)
+      } catch (notificationError) {
+        console.warn('⚠️ Failed to create crawl completion notification:', notificationError.message)
+      }
       
       console.log(`✅ Crawl completed for ${company.name}`)
       return crawlData
@@ -1374,6 +1388,13 @@ class QuriusCrawler {
             console.warn('⚠️ Failed to store AI-generated FAQs in session:', updateError)
           } else {
             console.log(`✅ Stored ${aiFAQs.length} AI-generated FAQs in crawl session for admin review`)
+            
+            // Create notification for FAQ approval
+            try {
+              await this.createFAQApprovalNotification(crawlData.companyId, crawlData.companyName, crawlData.sessionId, aiFAQs.length)
+            } catch (notificationError) {
+              console.warn('⚠️ Failed to create FAQ approval notification:', notificationError.message)
+            }
           }
         } catch (error) {
           console.warn('⚠️ Failed to store AI-generated FAQs:', error.message)
@@ -1385,6 +1406,13 @@ class QuriusCrawler {
       
       // Send email notification
       await this.sendFAQCompletionEmail(company, aiFAQs.length, 'uploaded documents')
+      
+      // Create crawl completion notification
+      try {
+        await this.createCrawlCompletionNotification(crawlData.companyId, crawlData.companyName, crawlData.sessionId, crawlData.pages.length, aiFAQs.length)
+      } catch (notificationError) {
+        console.warn('⚠️ Failed to create crawl completion notification:', notificationError.message)
+      }
       
       console.log(`✅ Document processing completed for ${company.name}`)
       return crawlData
@@ -1688,6 +1716,73 @@ class QuriusCrawler {
       console.log(`✅ FAQ completion email sent to ${company.admin_email}`)
     } catch (error) {
       console.error('❌ Failed to send FAQ completion email:', error)
+    }
+  }
+
+  /**
+   * Create FAQ approval notification
+   */
+  async createFAQApprovalNotification(companyId, companyName, sessionId, faqCount) {
+    try {
+      const notificationData = {
+        company_id: companyId,
+        company_name: companyName,
+        type: 'faq_approval',
+        title: 'FAQs Ready for Review',
+        message: `${faqCount} AI-generated FAQs are ready for your review and approval.`,
+        crawl_session_id: sessionId,
+        action_data: {
+          faq_count: faqCount,
+          session_id: sessionId
+        }
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert(notificationData)
+
+      if (error) {
+        throw error
+      }
+
+      console.log(`✅ FAQ approval notification created for ${companyName}`)
+    } catch (error) {
+      console.error('❌ Failed to create FAQ approval notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create crawl completion notification
+   */
+  async createCrawlCompletionNotification(companyId, companyName, sessionId, pagesCrawled, faqCount) {
+    try {
+      const notificationData = {
+        company_id: companyId,
+        company_name: companyName,
+        type: 'crawl_completion',
+        title: 'Website Crawl Completed',
+        message: `Successfully crawled ${pagesCrawled} pages and generated ${faqCount} FAQs for review.`,
+        crawl_session_id: sessionId,
+        action_data: {
+          pages_crawled: pagesCrawled,
+          faq_count: faqCount,
+          session_id: sessionId
+        }
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert(notificationData)
+
+      if (error) {
+        throw error
+      }
+
+      console.log(`✅ Crawl completion notification created for ${companyName}`)
+    } catch (error) {
+      console.error('❌ Failed to create crawl completion notification:', error)
+      throw error
     }
   }
 }

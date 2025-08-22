@@ -97,9 +97,55 @@ class FAQService {
   async getFAQs(companyId: string): Promise<FAQ[]> {
     try {
       const response = await axios.get(`${this.BACKEND_URL}/api/companies/${companyId}/faqs`);
-      return response.data;
+      
+      // Handle new response structure with pagination
+      if (response.data && response.data.faqs) {
+        return response.data.faqs;
+      }
+      
+      // Handle old response structure (direct array) for backward compatibility
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // Fallback to empty array if unexpected structure
+      console.warn('Unexpected FAQ response structure:', response.data);
+      return [];
     } catch (error) {
       console.error('Error fetching FAQs:', error);
+      throw error;
+    }
+  }
+
+  async getFAQsWithPagination(companyId: string, options?: {
+    limit?: number;
+    offset?: number;
+    source?: string;
+    orderBy?: string;
+    includeSummary?: boolean;
+  }): Promise<{
+    faqs: FAQ[];
+    pagination: {
+      limit: number;
+      offset: number;
+      total: number | null;
+      hasMore: boolean | null;
+    };
+  }> {
+    try {
+      const params = new URLSearchParams();
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.offset) params.append('offset', options.offset.toString());
+      if (options?.source) params.append('source', options.source);
+      if (options?.orderBy) params.append('orderBy', options.orderBy);
+      if (options?.includeSummary) params.append('includeSummary', options.includeSummary.toString());
+
+      const response = await axios.get(`${this.BACKEND_URL}/api/companies/${companyId}/faqs?${params}`);
+      
+      // Return the full response structure
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching FAQs with pagination:', error);
       throw error;
     }
   }
@@ -114,11 +160,12 @@ class FAQService {
     }
   }
 
-  async updateFAQ(companyId: string, companyName: string, question: string, answer: string): Promise<FAQ> {
+  async updateFAQ(companyId: string, companyName: string, faqId: string, question: string, answer: string): Promise<FAQ> {
     try {
       const response = await axios.put(`${this.BACKEND_URL}/api/companies/update-faqs`, {
         companyId,
         companyName,
+        faqId,
         question,
         answer
       });

@@ -7,6 +7,8 @@ import { Plus, Trash2, FileText, RefreshCw } from 'lucide-react';
 
 interface FAQImportProps {
   onImport: (faqs: Array<{ question: string; answer: string }>) => Promise<void>;
+  onEditExisting?: () => void;
+  showEditButton?: boolean;
 }
 
 interface FAQEntry {
@@ -15,7 +17,7 @@ interface FAQEntry {
   answer: string;
 }
 
-export default function FAQImportModal({ onImport }: FAQImportProps) {
+export default function FAQImportModal({ onImport, onEditExisting, showEditButton = false }: FAQImportProps) {
   const [faqEntries, setFaqEntries] = useState<FAQEntry[]>([
     { id: '1', question: '', answer: '' }
   ]);
@@ -127,6 +129,27 @@ export default function FAQImportModal({ onImport }: FAQImportProps) {
           ))}
         </div>
       </div>
+
+      {/* Edit Existing FAQs Button */}
+      {showEditButton && onEditExisting && (
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Existing FAQs</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Edit your current FAQs and regenerate embeddings</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEditExisting}
+              className="text-xs px-3 py-2 h-8"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Edit Existing FAQs
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* FAQ Entries */}
       <div className="space-y-4">

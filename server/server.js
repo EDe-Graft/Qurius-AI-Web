@@ -7,6 +7,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import axios from 'axios';
+import crypto from 'crypto';
 import Stripe from 'stripe';
 import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
@@ -1679,7 +1680,7 @@ app.post('/api/companies/import-faqs', async (req, res) => {
         answer: faq.answer,
         question_embedding: questionEmbedding,
         answer_embedding: answerEmbedding,
-        question_hash: require('crypto').createHash('sha256').update(faq.question.toLowerCase().trim()).digest('hex'),
+        question_hash: crypto.createHash('sha256').update(faq.question.toLowerCase().trim()).digest('hex'),
         source: 'manual'
       };
     }));
@@ -1716,12 +1717,19 @@ app.post('/api/companies/import-faqs', async (req, res) => {
   }
 });
 
-// Get FAQs for a company
+// Get FAQs for a company (Optimized with RPC)
 app.get('/api/companies/:companyId/faqs', async (req, res) => {
   try {
     const { companyId } = req.params;
+    const { 
+      limit = 50, 
+      offset = 0, 
+      source, 
+      orderBy = 'created_at',
+      includeSummary = false 
+    } = req.query;
 
-    console.log('📝 Fetching FAQs for company:', companyId);
+    console.log('📝 Fetching FAQs for company:', companyId, 'with filters:', { limit, offset, source, orderBy });
 
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1730,9 +1738,16 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
       return res.status(500).json({ error: 'Database configuration missing' });
     }
 
-    // Get FAQs from database
-    const response = await axios.get(
-      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}&order=created_at.desc`,
+    // Get FAQs using optimized RPC function
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_company_faqs`,
+      {
+        p_company_id: companyId,
+        p_limit: parseInt(limit),
+        p_offset: parseInt(offset),
+        p_source: source || null,
+        p_order_by: orderBy
+      },
       {
         headers: {
           'apikey': supabaseKey,
@@ -1742,12 +1757,85 @@ app.get('/api/companies/:companyId/faqs', async (req, res) => {
       }
     );
 
-    console.log('✅ FAQs fetched successfully:', response.data?.length || 0, 'items');
+    const faqs = response.data || [];
 
-    res.json(response.data || []);
+    // Get total count if requested
+    let totalCount = null;
+    if (includeSummary === 'true') {
+      try {
+        const countResponse = await axios.post(
+          `${supabaseUrl}/rest/v1/rpc/get_company_faqs_count`,
+          {
+            p_company_id: companyId,
+            p_source: source || null
+          },
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        totalCount = countResponse.data;
+      } catch (countError) {
+        console.warn('⚠️ Failed to get FAQ count:', countError.message);
+      }
+    }
+
+    console.log('✅ FAQs fetched successfully:', faqs.length, 'items');
+
+    res.json({
+      faqs,
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        total: totalCount,
+        hasMore: totalCount ? (parseInt(offset) + faqs.length) < totalCount : null
+      }
+    });
 
   } catch (error) {
     console.error('❌ Error fetching FAQs:', error.response?.data || error.message);
+    console.error('❌ Error details:', {
+      code: error.response?.data?.code,
+      details: error.response?.data?.details,
+      hint: error.response?.data?.hint,
+      message: error.response?.data?.message
+    });
+    
+    // If RPC function fails, fallback to direct query
+    if (error.response?.data?.code === '42804') {
+      console.log('🔄 Falling back to direct query due to RPC function error');
+      try {
+        const fallbackResponse = await axios.get(
+          `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}&order=created_at.desc&limit=${req.query.limit || 50}`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        console.log('✅ Fallback query successful:', fallbackResponse.data?.length || 0, 'items');
+        res.json({
+          faqs: fallbackResponse.data || [],
+          pagination: {
+            limit: parseInt(req.query.limit || 50),
+            offset: parseInt(req.query.offset || 0),
+            total: null,
+            hasMore: null
+          },
+          note: 'Using fallback query due to RPC function error'
+        });
+        return;
+      } catch (fallbackError) {
+        console.error('❌ Fallback query also failed:', fallbackError.message);
+      }
+    }
+    
     res.status(500).json({ 
       error: 'Failed to fetch FAQs',
       details: error.response?.data || error.message 
@@ -1816,11 +1904,86 @@ app.get('/api/companies/:companyId/popular-faqs', async (req, res) => {
     console.log('✅ Popular FAQs fetched successfully:', popularFaqs.length, 'items');
 
     res.json(popularFaqs);
-
   } catch (error) {
     console.error('❌ Error fetching popular FAQs:', error.response?.data || error.message);
     res.status(500).json({ 
       error: 'Failed to fetch popular FAQs',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Update FAQ endpoint
+app.put('/api/companies/update-faqs', async (req, res) => {
+  try {
+    const { companyId, companyName, faqId, question, answer } = req.body;
+
+    console.log('📝 Updating FAQ for company:', companyName, 'FAQ ID:', faqId);
+    console.log('�� Question length:', question.length, 'Answer length:', answer.length);
+
+    if (!companyId || !faqId || !question || !answer) {
+      return res.status(400).json({ error: 'Missing required fields: companyId, faqId, question, answer' });
+    }
+
+    // Validate that question and answer are strings
+    if (typeof question !== 'string' || typeof answer !== 'string') {
+      return res.status(400).json({ error: 'Question and answer must be strings' });
+    }
+
+    // Trim and validate non-empty strings
+    const trimmedQuestion = question.trim();
+    const trimmedAnswer = answer.trim();
+    
+    if (!trimmedQuestion || !trimmedAnswer) {
+      return res.status(400).json({ error: 'Question and answer cannot be empty' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Generate new embeddings for the updated question and answer
+    const { questionEmbedding, answerEmbedding } = await getEmbedding(question, answer);
+
+    // Generate new question hash
+    const questionHash = crypto.createHash('sha256').update(question.toLowerCase().trim()).digest('hex');
+
+    // Update the FAQ in the database
+    const response = await axios.patch(
+      `${supabaseUrl}/rest/v1/faqs?id=eq.${faqId}&company_id=eq.${companyId}`,
+      {
+        question: question.trim(),
+        answer: answer.trim(),
+        question_embedding: questionEmbedding,
+        answer_embedding: answerEmbedding,
+        question_hash: questionHash,
+        updated_at: new Date().toISOString()
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    if (response.data && response.data.length > 0) {
+      console.log('✅ FAQ updated successfully:', response.data[0].id);
+      res.json(response.data[0]);
+    } else {
+      console.log('⚠️ No FAQ found to update');
+      res.status(404).json({ error: 'FAQ not found' });
+    }
+
+  } catch (error) {
+    console.error('❌ Error updating FAQ:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to update FAQ',
       details: error.response?.data || error.message 
     });
   }
@@ -2575,6 +2738,446 @@ app.get('/api/companies/:companyId/current-usage', async (req, res) => {
   }
 });
 
+
+// Notification API endpoints
+
+// Super Admin Notification Endpoints
+
+// Get all notifications for super admin
+app.get('/api/notifications/all', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+
+    console.log('📝 Fetching all notifications for super admin');
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Use optimized RPC function
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_all_notifications`,
+      {
+        p_limit: parseInt(limit),
+        p_offset: parseInt(offset)
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ All notifications fetched successfully:', response.data?.length || 0, 'items');
+
+    res.json(response.data || []);
+
+  } catch (error) {
+    console.error('❌ Error fetching all notifications:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch all notifications',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Get total unread count for super admin
+app.get('/api/notifications/all/unread-count', async (req, res) => {
+  try {
+    console.log('📝 Fetching total unread notifications count for super admin');
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Use optimized RPC function
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_total_unread_count`,
+      {},
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const count = response.data || 0;
+
+    console.log('✅ Total unread count fetched successfully:', count);
+
+    res.json({ count });
+
+  } catch (error) {
+    console.error('❌ Error fetching total unread count:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch total unread count',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.get('/api/notifications/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    console.log('📝 Fetching notifications for company:', companyId);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get notifications from database
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_company_notifications`,
+      {
+        p_company_id: companyId,
+        p_limit: parseInt(limit),
+        p_offset: parseInt(offset)
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ Notifications fetched successfully:', response.data?.length || 0, 'items');
+
+    res.json(response.data || []);
+
+  } catch (error) {
+    console.error('❌ Error fetching notifications:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch notifications',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.get('/api/notifications/:companyId/unread-count', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get unread count from database
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_unread_notifications_count`,
+      {
+        p_company_id: companyId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ count: response.data || 0 });
+
+  } catch (error) {
+    console.error('❌ Error fetching unread count:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch unread count',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.put('/api/notifications/:notificationId/read', async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Mark notification as read
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/mark_notification_read`,
+      {
+        p_notification_id: notificationId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ success: response.data });
+
+  } catch (error) {
+    console.error('❌ Error marking notification as read:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to mark notification as read',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.put('/api/notifications/:companyId/mark-all-read', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Mark all notifications as read
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/mark_all_notifications_read`,
+      {
+        p_company_id: companyId
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ updated_count: response.data || 0 });
+
+  } catch (error) {
+    console.error('❌ Error marking all notifications as read:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to mark all notifications as read',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.delete('/api/notifications/:notificationId', async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Delete notification
+    const response = await axios.delete(
+      `${supabaseUrl}/rest/v1/notifications?id=eq.${notificationId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error('❌ Error deleting notification:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to delete notification',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const { company_id, company_name, type, title, message, crawl_session_id, action_data } = req.body;
+
+    console.log('📝 Creating notification:', { company_id, type, title });
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Create notification in database
+    const notificationData = {
+      company_id,
+      company_name,
+      type,
+      title,
+      message,
+      crawl_session_id: crawl_session_id || null,
+      action_data: action_data || null,
+      read_status: false
+    };
+
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/notifications`,
+      notificationData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+
+    console.log('✅ Notification created successfully');
+
+    res.json(response.data[0]);
+
+  } catch (error) {
+    console.error('❌ Error creating notification:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to create notification',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Get crawl session data for FAQ approval
+app.get('/api/crawler/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    console.log('📝 Fetching crawl session data:', sessionId);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get crawl session data
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/crawl_sessions?id=eq.${sessionId}&select=*`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.data || response.data.length === 0) {
+      return res.status(404).json({ error: 'Crawl session not found' });
+    }
+
+    console.log('✅ Crawl session data fetched successfully');
+
+    res.json(response.data[0]);
+
+  } catch (error) {
+    console.error('❌ Error fetching crawl session data:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch crawl session data',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Test API configuration endpoint
+// app.get('/api/test/config', async (req, res) => {
+//   try {
+//     const config = {
+//       openRouterKey: process.env.OPEN_ROUTER_API_KEY ? '✅ Configured' : '❌ Missing',
+//       jinaApiKey: process.env.JINA_API_KEY ? '✅ Configured' : '❌ Missing',
+//       supabaseUrl: process.env.SUPABASE_PROJECT_URL ? '✅ Configured' : '❌ Missing',
+//       supabaseAnonKey: process.env.SUPABASE_ANON_KEY ? '✅ Configured' : '❌ Missing',
+//       supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configured' : '❌ Missing',
+//       environment: process.env.NODE_ENV || 'development',
+//       timestamp: new Date().toISOString()
+//     };
+    
+//     res.json(config);
+//   } catch (error) {
+//     console.error('❌ Config test error:', error);
+//     res.status(500).json({ error: 'Failed to get configuration status' });
+//   }
+// });
+
+// Test OpenRouter API endpoint
+// app.post('/api/test/openrouter', async (req, res) => {
+//   try {
+//     const { message } = req.body;
+    
+//     if (!process.env.OPEN_ROUTER_API_KEY) {
+//       return res.status(500).json({ error: 'OpenRouter API key not configured' });
+//     }
+    
+//     const response = await axios.post(
+//       'https://openrouter.ai/api/v1/chat/completions',
+//       {
+//         model: 'openai/gpt-5-mini',
+//         messages: [
+//           {
+//             role: 'user',
+//             content: message || 'Hello, this is a test message.'
+//           }
+//         ],
+//         max_tokens: 100,
+//         temperature: 0.7
+//       },
+//       {
+//         headers: {
+//           'Authorization': `Bearer ${process.env.OPEN_ROUTER_API_KEY}`,
+//           'Content-Type': 'application/json',
+//           'HTTP-Referer': process.env.SOURCE_URL
+//         },
+//         timeout: 10000
+//       }
+//     );
+    
+//     res.json({
+//       success: true,
+//       response: response.data.choices[0].message.content,
+//       model: response.data.model,
+//       usage: response.data.usage
+//     });
+//   } catch (error) {
+//     console.error('❌ OpenRouter test error:', error.response?.data || error.message);
+//     res.status(500).json({ 
+//       error: 'OpenRouter API test failed',
+//       details: error.response?.data || error.message,
+//       status: error.response?.status
+//     });
+//   }
+// });
+
+
 // ========================================
 // START SERVER
 // ========================================
@@ -2586,72 +3189,88 @@ app.listen(PORT, () => {
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
 }); 
 
-// Test API configuration endpoint
-app.get('/api/test/config', async (req, res) => {
+// ========================================
+
+// Get notifications summary for super admin dashboard
+app.get('/api/notifications/all/summary', async (req, res) => {
   try {
-    const config = {
-      openRouterKey: process.env.OPEN_ROUTER_API_KEY ? '✅ Configured' : '❌ Missing',
-      jinaApiKey: process.env.JINA_API_KEY ? '✅ Configured' : '❌ Missing',
-      supabaseUrl: process.env.SUPABASE_PROJECT_URL ? '✅ Configured' : '❌ Missing',
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY ? '✅ Configured' : '❌ Missing',
-      supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configured' : '❌ Missing',
-      environment: process.env.NODE_ENV || 'development',
-      timestamp: new Date().toISOString()
-    };
-    
-    res.json(config);
+    console.log('📝 Fetching notifications summary for super admin dashboard');
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Use optimized RPC function
+    const response = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_super_admin_notifications_summary`,
+      {},
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const summary = response.data?.[0] || {};
+
+    console.log('✅ Notifications summary fetched successfully');
+
+    res.json(summary);
+
   } catch (error) {
-    console.error('❌ Config test error:', error);
-    res.status(500).json({ error: 'Failed to get configuration status' });
+    console.error('❌ Error fetching notifications summary:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch notifications summary',
+      details: error.response?.data || error.message 
+    });
   }
 });
 
-// Test OpenRouter API endpoint
-app.post('/api/test/openrouter', async (req, res) => {
+// Get FAQ summary statistics for a company
+app.get('/api/companies/:companyId/faqs/summary', async (req, res) => {
   try {
-    const { message } = req.body;
-    
-    if (!process.env.OPEN_ROUTER_API_KEY) {
-      return res.status(500).json({ error: 'OpenRouter API key not configured' });
+    const { companyId } = req.params;
+
+    console.log('📊 Fetching FAQ summary for company:', companyId);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
     }
-    
+
+    // Get FAQ summary using RPC function
     const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
+      `${supabaseUrl}/rest/v1/rpc/get_company_faqs_summary`,
       {
-        model: 'openai/gpt-5-mini',
-        messages: [
-          {
-            role: 'user',
-            content: message || 'Hello, this is a test message.'
-          }
-        ],
-        max_tokens: 100,
-        temperature: 0.7
+        p_company_id: companyId
       },
       {
         headers: {
-          'Authorization': `Bearer ${process.env.OPEN_ROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.SOURCE_URL
-        },
-        timeout: 10000
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
       }
     );
-    
-    res.json({
-      success: true,
-      response: response.data.choices[0].message.content,
-      model: response.data.model,
-      usage: response.data.usage
-    });
+
+    const summary = response.data?.[0] || {};
+
+    console.log('✅ FAQ summary fetched successfully');
+
+    res.json(summary);
+
   } catch (error) {
-    console.error('❌ OpenRouter test error:', error.response?.data || error.message);
+    console.error('❌ Error fetching FAQ summary:', error.response?.data || error.message);
     res.status(500).json({ 
-      error: 'OpenRouter API test failed',
-      details: error.response?.data || error.message,
-      status: error.response?.status
+      error: 'Failed to fetch FAQ summary',
+      details: error.response?.data || error.message 
     });
   }
 });
-
-// ========================================

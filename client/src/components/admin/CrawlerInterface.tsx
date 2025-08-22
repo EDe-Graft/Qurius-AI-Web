@@ -185,6 +185,7 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
             type: 'success',
             title: 'AI FAQs Ready for Review',
             message: `${session.ai_generated_faqs.length} AI-generated FAQs are ready for your review and approval.`,
+            read: false,
             action: {
               label: 'Review FAQs',
               onClick: () => setShowFAQPreview(true)
@@ -249,7 +250,8 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         addNotification({
           type: 'success',
           title: 'FAQs Saved Successfully',
-          message: `Successfully saved ${approvedFAQs.length} approved FAQs.`
+          message: `Successfully saved ${approvedFAQs.length} approved FAQs.`,
+          read: false
         })
       } else {
         throw new Error(response.data.error || 'Failed to save FAQs')

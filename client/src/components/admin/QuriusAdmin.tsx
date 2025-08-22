@@ -24,11 +24,16 @@ import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
 import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
+import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
+import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
+import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
+import { useNotifications } from "@/context/NotificationContext"
 import { CompanyService, type Company } from "@/services/companyService"
 import { faqService } from "@/services/faqService"
+// import { notificationService } from "@/services/notificationService"
 import { AnalyticsService } from "@/services/analyticsService"
 import { isSuperAdmin } from "@/lib/auth"
 
@@ -39,10 +44,16 @@ interface QuriusAdminProps {
 export function QuriusAdmin({ user }: QuriusAdminProps) {
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
+  const { loadAllNotifications, unreadCount } = useNotifications()
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
+
+  // Notification-related state
+  const [showFAQPreview, setShowFAQPreview] = useState(false)
+  const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false)
 
   // Enhanced analytics state
   const [systemAnalytics, setSystemAnalytics] = useState<{
@@ -134,6 +145,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
 
+  // FAQ Edit modal state
+  const [showFAQEdit, setShowFAQEdit] = useState(false)
+
   // Handle click outside FAQ modal to close
   const handleFAQModalBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -187,6 +201,14 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         
         // Calculate system-wide analytics
         await calculateSystemAnalytics(fetchedCompanies)
+        
+        // Load notifications for all companies (super admin can see all)
+        await loadAllNotifications()
+        
+        // Show notification banner if there are unread notifications
+        if (unreadCount > 0) {
+          setShowNotificationBanner(true)
+        }
       } catch (err: any) {
         console.error('Error loading companies:', err)
         setError(err.message || 'Failed to load companies')
@@ -352,6 +374,59 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     setFaqModal({ isOpen: false, companyId: null, companyName: '' })
   }
 
+  // Handle opening FAQ edit modal
+  const handleFAQEdit = () => {
+    setShowFAQEdit(true)
+  }
+
+  // Handle FAQ updates from edit modal
+  const handleFAQsUpdated = () => {
+    // Refresh analytics or any other data that might be affected
+    if (selectedCompany?.id) {
+      // Reload system analytics to reflect updated FAQ performance
+      const loadSystemAnalytics = async () => {
+        try {
+          await calculateSystemAnalytics(companies)
+        } catch (error) {
+          console.error('Failed to reload system analytics after FAQ update:', error)
+        }
+      }
+      loadSystemAnalytics()
+    }
+  }
+
+  const handleSaveApprovedFAQs = async (approvedFAQs: Array<{ question: string; answer: string }>) => {
+    if (!faqPreviewData?.sessionId) return
+
+    try {
+      const response = await fetch('/api/crawler/save-faqs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: faqPreviewData.sessionId,
+          approvedFAQs
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save FAQs')
+      }
+
+      const result = await response.json()
+      alert(`Successfully saved ${result.savedFAQs?.length || 0} approved FAQs`)
+      setShowFAQPreview(false)
+      setFaqPreviewData(null)
+      
+      // Refresh notifications for all companies
+      await loadAllNotifications()
+    } catch (error) {
+      console.error('Error saving approved FAQs:', error)
+      alert(`Failed to save FAQs: ${error}`)
+    }
+  }
+
   // Integration code handlers
   const handleViewIntegrationCode = (company: Company) => {
     setIntegrationModal({
@@ -429,7 +504,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center animate-fade-in-up animation-delay-2000">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -445,7 +520,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center animate-fade-in-up animation-delay-2000">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -472,13 +547,13 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"
-    } animate-fade-in-up animation-delay-2000`}>
+    }`}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 pt-15 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
             {/* Top row - Title and icon buttons */}
-            <div className="flex justify-between items-start mb-4 lg:mb-0">
+            <div className="flex justify-between items-start mb-4 lg:mb-0 animate-fade-in-up animation-delay-2000">
               <div className="flex-shrink-0 min-w-0 flex-1 pr-4">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
                   Qurius-AI Super Admin
@@ -531,9 +606,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
         {/* System Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
           <StatCard
             title="Total Companies"
             value={systemAnalytics.totalCompanies}
@@ -562,7 +637,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         </div>
 
         {/* Enhanced System Analytics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
           <RatingStatCard
             title="System Rating"
             value={systemAnalytics.averageRating}
@@ -595,7 +670,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         </div>
 
         {/* Analytics Dashboard */}
-        <div className="mb-8">
+        <div className="mb-8 animate-fade-in-up animation-delay-4000">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               System Analytics
@@ -631,7 +706,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -840,12 +915,23 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             <div className="p-6">
               <FAQImportModal
                 onImport={handleFAQImport}
+                onEditExisting={handleFAQEdit}
+                showEditButton={true}
               />
             </div>
           </div>
         </div>
       </>
       )}
+
+      {/* FAQ Edit Modal */}
+      <FAQEditModal
+        isOpen={showFAQEdit}
+        onClose={() => setShowFAQEdit(false)}
+        companyId={selectedCompany?.id || ''}
+        companyName={selectedCompany?.name || ''}
+        onFAQsUpdated={handleFAQsUpdated}
+      />
 
       {/* Integration Code Modal */}
       <IntegrationCodeModal
@@ -872,6 +958,32 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           onClose={() => setShowCrawler(false)}
           companyId={selectedCompany.id || ''}
           companyName={selectedCompany.name || ''}
+        />
+      )}
+
+      {/* Notification Banner */}
+      {showNotificationBanner && unreadCount > 0 && (
+        <NotificationBanner
+          message={`You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
+          actionLabel="View All"
+          onAction={() => setShowNotificationBanner(false)}
+          onDismiss={() => setShowNotificationBanner(false)}
+          type="info"
+          autoDismiss={false}
+        />
+      )}
+
+      {/* FAQ Preview Modal for Notifications */}
+      {showFAQPreview && faqPreviewData && (
+        <FAQPreviewModal
+          isOpen={showFAQPreview}
+          generatedFAQs={faqPreviewData.faqs}
+          companyName={faqPreviewData.companyName}
+          onSaveApproved={handleSaveApprovedFAQs}
+          onClose={() => {
+            setShowFAQPreview(false)
+            setFaqPreviewData(null)
+          }}
         />
       )}
     </div>

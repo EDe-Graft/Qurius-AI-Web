@@ -891,3 +891,336 @@ BEGIN
     ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Notifications Table for Persistent Notifications
+CREATE TABLE public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    company_name TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL, -- 'faq_approval', 'crawl_completion', 'error', 'info'
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE,
+    read_status BOOLEAN DEFAULT FALSE,
+    action_data JSONB, -- Store additional data for actions (e.g., FAQ count, crawl type)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for notifications table
+CREATE INDEX IF NOT EXISTS idx_notifications_company_id ON public.notifications(company_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON public.notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_status ON public.notifications(read_status);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_crawl_session_id ON public.notifications(crawl_session_id);
+
+-- Composite index for efficient queries
+CREATE INDEX IF NOT EXISTS idx_notifications_company_read ON public.notifications(company_id, read_status);
+CREATE INDEX IF NOT EXISTS idx_notifications_company_type ON public.notifications(company_id, type);
+
+-- Enable Row Level Security
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for notifications
+CREATE POLICY "Companies can view their own notifications" ON public.notifications
+  FOR SELECT USING (
+    company_id IN (
+      SELECT id FROM public.companies WHERE id = company_id
+    )
+  );
+
+CREATE POLICY "Service role can insert notifications" ON public.notifications
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can update notifications" ON public.notifications
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Service role can delete notifications" ON public.notifications
+  FOR DELETE USING (true);
+
+-- Function to get unread notifications count for a company
+CREATE OR REPLACE FUNCTION get_unread_notifications_count(p_company_id UUID)
+RETURNS INTEGER AS $$
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM public.notifications
+        WHERE company_id = p_company_id
+        AND read_status = FALSE
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get notifications for a company
+CREATE OR REPLACE FUNCTION get_company_notifications(
+    p_company_id UUID,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE(
+    id UUID,
+    company_id UUID,
+    company_name TEXT,
+    type VARCHAR(50),
+    title TEXT,
+    message TEXT,
+    crawl_session_id UUID,
+    read_status BOOLEAN,
+    action_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        n.id,
+        n.company_id,
+        n.company_name,
+        n.type,
+        n.title,
+        n.message,
+        n.crawl_session_id,
+        n.read_status,
+        n.action_data,
+        n.created_at
+    FROM public.notifications n
+    WHERE n.company_id = p_company_id
+    ORDER BY n.created_at DESC
+    LIMIT p_limit
+    OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to mark notification as read
+CREATE OR REPLACE FUNCTION mark_notification_read(p_notification_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE public.notifications
+    SET read_status = TRUE, updated_at = NOW()
+    WHERE id = p_notification_id;
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to mark all notifications as read for a company
+CREATE OR REPLACE FUNCTION mark_all_notifications_read(p_company_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+    updated_count INTEGER;
+BEGIN
+    UPDATE public.notifications
+    SET read_status = TRUE, updated_at = NOW()
+    WHERE company_id = p_company_id AND read_status = FALSE;
+    
+    GET DIAGNOSTICS updated_count = ROW_COUNT;
+    RETURN updated_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to delete old notifications (7 days)
+CREATE OR REPLACE FUNCTION cleanup_old_notifications(p_days_to_keep INTEGER DEFAULT 7)
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM public.notifications 
+    WHERE created_at < NOW() - INTERVAL '1 day' * p_days_to_keep;
+    
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update timestamps
+CREATE TRIGGER update_notifications_modtime
+BEFORE UPDATE ON public.notifications
+FOR EACH ROW
+EXECUTE FUNCTION update_modified_column();
+
+-- Super Admin Notification Functions
+
+-- Get all notifications for super admin with pagination
+CREATE OR REPLACE FUNCTION get_all_notifications(
+  p_limit INTEGER DEFAULT 50,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  company_id UUID,
+  company_name TEXT,
+  type VARCHAR(50),
+  title TEXT,
+  message TEXT,
+  crawl_session_id UUID,
+  action_data JSONB,
+  read_status BOOLEAN,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    n.id,
+    n.company_id,
+    n.company_name,
+    n.type,
+    n.title,
+    n.message,
+    n.crawl_session_id,
+    n.action_data,
+    n.read_status,
+    n.created_at,
+    n.updated_at
+  FROM public.notifications n
+  ORDER BY n.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get total unread count for super admin (optimized)
+CREATE OR REPLACE FUNCTION get_total_unread_count()
+RETURNS INTEGER AS $$
+DECLARE
+  count_result INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO count_result
+  FROM public.notifications
+  WHERE read_status = FALSE;
+  
+  RETURN count_result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get notifications summary for super admin dashboard
+CREATE OR REPLACE FUNCTION get_super_admin_notifications_summary()
+RETURNS TABLE (
+  total_notifications INTEGER,
+  unread_count INTEGER,
+  recent_notifications JSONB,
+  companies_with_notifications INTEGER
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    (SELECT COUNT(*) FROM public.notifications) as total_notifications,
+    (SELECT COUNT(*) FROM public.notifications WHERE read_status = FALSE) as unread_count,
+    (SELECT jsonb_agg(
+      jsonb_build_object(
+        'id', n.id,
+        'company_name', n.company_name,
+        'type', n.type,
+        'title', n.title,
+        'created_at', n.created_at,
+        'read_status', n.read_status
+      )
+    ) FROM (
+      SELECT * FROM public.notifications 
+      ORDER BY created_at DESC 
+      LIMIT 10
+    ) n) as recent_notifications,
+    (SELECT COUNT(DISTINCT company_id) FROM public.notifications) as companies_with_notifications;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ========================================
+-- OPTIMIZED FAQ RPC FUNCTIONS
+-- ========================================
+
+-- Get company FAQs with pagination and filtering
+CREATE OR REPLACE FUNCTION get_company_faqs(
+  p_company_id UUID,
+  p_limit INTEGER DEFAULT 50,
+  p_offset INTEGER DEFAULT 0,
+  p_source VARCHAR(50) DEFAULT NULL,
+  p_order_by VARCHAR(20) DEFAULT 'created_at',
+  p_order_direction VARCHAR(4) DEFAULT 'DESC'
+)
+RETURNS TABLE (
+  id UUID,
+  company_id UUID,
+  company_name TEXT,
+  question TEXT,
+  answer TEXT,
+  source VARCHAR(50),
+  confidence REAL,
+  popularity_count INTEGER,
+  last_used TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    f.id,
+    f.company_id,
+    f.company_name,
+    f.question,
+    f.answer,
+    f.source,
+    f.confidence,
+    f.popularity_count,
+    f.last_used,
+    f.created_at,
+    f.updated_at
+  FROM public.faqs f
+  WHERE f.company_id = p_company_id
+    AND (p_source IS NULL OR f.source = p_source)
+  ORDER BY 
+    CASE 
+      WHEN p_order_by = 'popularity' THEN f.popularity_count
+      WHEN p_order_by = 'last_used' THEN EXTRACT(EPOCH FROM f.last_used)
+      WHEN p_order_by = 'updated_at' THEN EXTRACT(EPOCH FROM f.updated_at)
+      ELSE EXTRACT(EPOCH FROM f.created_at)
+    END DESC NULLS LAST,
+    f.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get company FAQs count with filtering
+CREATE OR REPLACE FUNCTION get_company_faqs_count(
+  p_company_id UUID,
+  p_source VARCHAR(50) DEFAULT NULL
+)
+RETURNS INTEGER AS $$
+DECLARE
+  count_result INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO count_result
+  FROM public.faqs f
+  WHERE f.company_id = p_company_id
+    AND (p_source IS NULL OR f.source = p_source);
+  
+  RETURN count_result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get company FAQs summary statistics
+CREATE OR REPLACE FUNCTION get_company_faqs_summary(
+  p_company_id UUID
+)
+RETURNS TABLE (
+  total_faqs INTEGER,
+  manual_faqs INTEGER,
+  ai_generated_faqs INTEGER,
+  imported_faqs INTEGER,
+  total_popularity INTEGER,
+  avg_confidence REAL,
+  last_updated TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    COUNT(*) as total_faqs,
+    COUNT(*) FILTER (WHERE source = 'manual') as manual_faqs,
+    COUNT(*) FILTER (WHERE source = 'ai_generated') as ai_generated_faqs,
+    COUNT(*) FILTER (WHERE source = 'imported') as imported_faqs,
+    COALESCE(SUM(popularity_count), 0) as total_popularity,
+    COALESCE(AVG(confidence), 0) as avg_confidence,
+    MAX(updated_at) as last_updated
+  FROM public.faqs
+  WHERE company_id = p_company_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

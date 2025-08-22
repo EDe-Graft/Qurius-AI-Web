@@ -25135,9 +25135,18 @@ class rC {
   }
   async getFAQs(i) {
     try {
-      return (await Ie.get(`${this.BACKEND_URL}/api/companies/${i}/faqs`)).data;
+      const l = await Ie.get(`${this.BACKEND_URL}/api/companies/${i}/faqs`);
+      return l.data && l.data.faqs ? l.data.faqs : Array.isArray(l.data) ? l.data : (console.warn("Unexpected FAQ response structure:", l.data), []);
     } catch (l) {
       throw console.error("Error fetching FAQs:", l), l;
+    }
+  }
+  async getFAQsWithPagination(i, l) {
+    try {
+      const o = new URLSearchParams();
+      return l?.limit && o.append("limit", l.limit.toString()), l?.offset && o.append("offset", l.offset.toString()), l?.source && o.append("source", l.source), l?.orderBy && o.append("orderBy", l.orderBy), l?.includeSummary && o.append("includeSummary", l.includeSummary.toString()), (await Ie.get(`${this.BACKEND_URL}/api/companies/${i}/faqs?${o}`)).data;
+    } catch (o) {
+      throw console.error("Error fetching FAQs with pagination:", o), o;
     }
   }
   async importFAQs(i, l, o) {
@@ -25147,16 +25156,17 @@ class rC {
       throw console.error("Error importing FAQs:", u), u;
     }
   }
-  async updateFAQ(i, l, o, u) {
+  async updateFAQ(i, l, o, u, c) {
     try {
       return (await Ie.put(`${this.BACKEND_URL}/api/companies/update-faqs`, {
         companyId: i,
         companyName: l,
-        question: o,
-        answer: u
+        faqId: o,
+        question: u,
+        answer: c
       })).data;
-    } catch (c) {
-      throw console.error("Error updating FAQ:", c), c;
+    } catch (d) {
+      throw console.error("Error updating FAQ:", d), d;
     }
   }
   async deleteFAQ(i) {
