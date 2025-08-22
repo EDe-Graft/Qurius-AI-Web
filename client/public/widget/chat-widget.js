@@ -25140,30 +25140,23 @@ class rC {
       throw console.error("Error fetching FAQs:", l), l;
     }
   }
-  async importFAQs(i, l) {
+  async importFAQs(i, l, o) {
     try {
-      return (await Ie.post(`${this.BACKEND_URL}/api/companies/${i}/faqs`, { faqs: l })).data;
-    } catch (o) {
-      throw console.error("Error importing FAQs:", o), o;
+      return (await Ie.post(`${this.BACKEND_URL}/api/companies/import-faqs`, { companyId: i, companyName: l, faqs: o })).data;
+    } catch (u) {
+      throw console.error("Error importing FAQs:", u), u;
     }
   }
-  async addFAQ(i, l, o) {
+  async updateFAQ(i, l, o, u) {
     try {
-      return (await Ie.post(`${this.BACKEND_URL}/api/companies/${i}/faqs`, {
-        faqs: [{ question: l, answer: o }]
+      return (await Ie.put(`${this.BACKEND_URL}/api/companies/update-faqs`, {
+        companyId: i,
+        companyName: l,
+        question: o,
+        answer: u
       })).data;
-    } catch (u) {
-      throw console.error("Error adding FAQ:", u), u;
-    }
-  }
-  async updateFAQ(i, l, o) {
-    try {
-      return (await Ie.put(`${this.BACKEND_URL}/api/faqs/${i}`, {
-        question: l,
-        answer: o
-      })).data;
-    } catch (u) {
-      throw console.error("Error updating FAQ:", u), u;
+    } catch (c) {
+      throw console.error("Error updating FAQ:", c), c;
     }
   }
   async deleteFAQ(i) {
