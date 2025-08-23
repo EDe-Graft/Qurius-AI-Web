@@ -69,8 +69,24 @@ export async function getAIResponse({companyName, companyWebsite, customerSuppor
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-4o-mini';
   
-  // Build context-aware system prompt
-  let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.`;
+  // Build context-aware system prompt with lead generation
+  let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.
+
+IMPORTANT LEAD GENERATION GUIDELINES:
+- After answering the customer's question, suggest a relevant follow-up question or next step
+- Focus on converting the conversation into a lead or sale when appropriate
+- Suggest product/service exploration, consultations, demos, or trials
+- Be persuasive but not pushy - maintain helpful and genuine tone
+- Tailor suggestions based on the customer's question and context
+- Include specific calls-to-action when relevant
+
+EXAMPLES OF GOOD FOLLOW-UPS:
+- "Would you like to schedule a consultation to discuss this further?"
+- "Have you seen our [specific product/service] that might interest you?"
+- "Would you like me to send you more information about [relevant topic]?"
+- "Are you interested in learning about our pricing options?"
+- "Would you like to book a demo to see how this works?"
+- "Have you considered our [upgrade/premium] options?"`;
   
   // Add retrieved context if available
   if (retrievedContext && retrievedContext.length > 0) {
@@ -91,6 +107,7 @@ IMPORTANT:
 - End responses with proper punctuation (period, exclamation mark, or question mark)
 - Do not leave sentences incomplete or cut off mid-thought
 - Keep responses concise but comprehensive
+- After answering, suggest a relevant follow-up question or next step to engage the customer further
 
 When providing contact information, always format it as clickable markdown links:
 - Email addresses: support@company.com
@@ -108,6 +125,8 @@ IMPORTANT: When providing contact information, always format it as clickable mar
 - Phone numbers: Call us at (555) 123-4567
 - Website links: Visit our website at https://company.com (make sure to include the https://)
 - Physical addresses: 123 Main St, City, State (make sure to include the city and state)
+
+After answering the customer's question, suggest a relevant follow-up question or next step to engage them further.
 
 If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}].`;
   }

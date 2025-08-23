@@ -854,18 +854,29 @@ app.post('/api/faqs/search', async (req, res) => {
         const confidenceThreshold = 0.78; // Adjust this threshold as needed
         
         if (bestMatch.similarity >= confidenceThreshold) {
+          // High confidence match - always use AI for natural responses
+          console.log('High confidence match (', bestMatch.similarity, ') - using AI for natural response');
+          
+          let aiResponse;
+          let responseSource = 'ai_with_context';
+          let fallbackReason = 'high_confidence';
+          
           if (bestMatch.type === 'faq') {
-            // High confidence FAQ match - use FAQ answer directly
-            console.log('Using FAQ with confidence:', bestMatch.similarity);
-            console.log('FAQ Response:', bestMatch.answer);
+            // High confidence FAQ match - use AI with FAQ context
+            console.log('Using FAQ as context with confidence:', bestMatch.similarity);
             
-            // Record FAQ usage
-            await recordMessageUsage(companyId, companyName, 'faq', sessionId, question, bestMatch.answer, bestMatch.faq_id, bestMatch.similarity, 'faq');
+            aiResponse = await getAIResponse({
+              companyName, 
+              companyWebsite: website, 
+              customerSupportEmail: contact_email, 
+              messageHistory: messages,
+              retrievedContext: searchResults
+            });
             
-            // Track FAQ match for analytics
-            await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq');
+            responseSource = 'ai_with_faq_context';
+            fallbackReason = 'high_confidence_faq';
             
-            // Increment FAQ popularity
+            // Increment FAQ popularity since it was used as context
             try {
               await axios.post(
                 `${supabaseUrl}/rest/v1/rpc/increment_faq_popularity`,
@@ -883,37 +894,37 @@ app.post('/api/faqs/search', async (req, res) => {
               console.warn('⚠️ Failed to increment FAQ popularity (function may not exist):', popularityError.message);
             }
             
-            res.json([{ 
-              question: question, 
-              answer: bestMatch.answer, 
-              source: 'faq',
-              faqId: bestMatch.faq_id,
-              confidence: bestMatch.similarity,
-              messagesLeft: messageLimitCheck.messagesLeft
-            }]);
+            // Track FAQ match for analytics
+            await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'ai_with_faq_context');
+            
           } else {
             // High confidence content match - use AI with context
             console.log('Using content chunk with confidence:', bestMatch.similarity);
-            const aiResponse = await getAIResponse({
+            aiResponse = await getAIResponse({
               companyName, 
               companyWebsite: website, 
               customerSupportEmail: contact_email, 
               messageHistory: messages,
               retrievedContext: searchResults
             });
-            console.log('AI Response with context:', aiResponse);
-
-            // Record AI usage with context
-            await recordMessageUsage(companyId, companyName, 'ai_with_context', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'high_confidence_content');
             
-            res.json([{ 
-              question: question, 
-              answer: aiResponse, 
-              source: 'ai_with_context',
-              confidence: bestMatch.similarity,
-              messagesLeft: messageLimitCheck.messagesLeft
-            }]);
+            responseSource = 'ai_with_context';
+            fallbackReason = 'high_confidence_content';
           }
+          
+          console.log('AI Response with context:', aiResponse);
+
+          // Record AI usage with context
+          await recordMessageUsage(companyId, companyName, responseSource, sessionId, question, aiResponse, bestMatch.faq_id || null, bestMatch.similarity, 'ai', fallbackReason);
+          
+          res.json([{ 
+            question: question, 
+            answer: aiResponse, 
+            source: responseSource,
+            faqId: bestMatch.faq_id || null,
+            confidence: bestMatch.similarity,
+            messagesLeft: messageLimitCheck.messagesLeft
+          }]);
         } else {
           // Low confidence - use RAG with multiple sources
           console.log('Low confidence matches, using RAG with multiple sources');

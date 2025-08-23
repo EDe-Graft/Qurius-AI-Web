@@ -36,22 +36,22 @@ function getLinkTypeAndStyle(href: string) {
 }
 
 // Helper function to get appropriate icon for link type
-function getLinkIcon(type: string) {
-  switch (type) {
-    case 'email':
-      return '📧'
-    case 'phone':
-      return '📞'
-    case 'sms':
-      return '💬'
-    case 'whatsapp':
-      return '📱'
-    case 'external':
-      return '🔗'
-    default:
-      return '🔗'
-  }
-}
+// function getLinkIcon(type: string) {
+//   switch (type) {
+//     case 'email':
+//       return '📧'
+//     case 'phone':
+//       return '📞'
+//     case 'sms':
+//       return '💬'
+//     case 'whatsapp':
+//       return '📱'
+//     case 'external':
+//       return '🔗'
+//     default:
+//       return '🔗'
+//   }
+// }
 
 // Function to detect and convert plain text links to markdown
 function detectAndConvertLinks(text: string): string {
@@ -82,7 +82,7 @@ function detectAndConvertLinks(text: string): string {
 
   // Convert emails to mailto links
   processedText = processedText.replace(emailPattern, (email) => {
-    return `[${email}](mailto:${email})`
+    return `${email}`
   })
 
   // Convert phone numbers to tel links
@@ -90,7 +90,7 @@ function detectAndConvertLinks(text: string): string {
     processedText = processedText.replace(pattern, (phone) => {
       // Clean the phone number for tel: link
       const cleanPhone = phone.replace(/[\s\(\)\-\.]/g, '')
-      return `[${phone}](tel:${cleanPhone})`
+      return `${cleanPhone}`
     })
   })
 
@@ -99,57 +99,57 @@ function detectAndConvertLinks(text: string): string {
     processedText = processedText.replace(pattern, (url) => {
       // Ensure URL has protocol
       const fullUrl = url.startsWith('http') ? url : `https://${url}`
-      return `[${url}](${fullUrl})`
+      return `${fullUrl}`
     })
   })
 
   // Convert addresses to Google Maps links
   processedText = processedText.replace(addressPattern, (address) => {
     const encodedAddress = encodeURIComponent(address)
-    return `[${address}](https://maps.google.com/?q=${encodedAddress})`
+    return `${encodedAddress}`
   })
 
   return processedText
 }
 
 // Function to detect and convert common contact phrases
-function detectContactPhrases(text: string): string {
-  if (!text) return text
+// function detectContactPhrases(text: string): string {
+//   if (!text) return text
 
-  // Common contact phrases that should be converted to links
-  const contactPhrases = [
-    {
-      pattern: /\b(?:contact us|email us|reach us|get in touch)\s+(?:at\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
-      replacement: (match: string, email: string) => `[${match}](mailto:${email})`
-    },
-    {
-      pattern: /\b(?:call us|phone us|dial)\s+(?:at\s+)?(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})\b/gi,
-      replacement: (match: string, phone: string) => {
-        const cleanPhone = phone.replace(/[\s\(\)\-\.]/g, '')
-        return `[${match}](tel:${cleanPhone})`
-      }
-    },
-    {
-      pattern: /\b(?:visit our website|go to our website|check out our website)\s+(?:at\s+)?([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
-      replacement: (match: string, website: string) => {
-        const fullUrl = website.startsWith('http') ? website : `https://${website}`
-        return `[${match}](${fullUrl})`
-      }
-    }
-  ]
+//   // Common contact phrases that should be converted to links
+//   const contactPhrases = [
+//     {
+//       pattern: /\b(?:contact us|email us|reach us|get in touch)\s+(?:at\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
+//       replacement: (match: string, email: string) => `${email}`
+//     },
+//     {
+//       pattern: /\b(?:call us|phone us|dial)\s+(?:at\s+)?(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})\b/gi,
+//       replacement: (match: string, phone: string) => {
+//         const cleanPhone = phone.replace(/[\s\(\)\-\.]/g, '')
+//         return `[${match}](tel:${cleanPhone})`
+//       }
+//     },
+//     {
+//       pattern: /\b(?:visit our website|go to our website|check out our website)\s+(?:at\s+)?([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
+//       replacement: (match: string, website: string) => {
+//         const fullUrl = website.startsWith('http') ? website : `https://${website}`
+//         return `[${match}](${fullUrl})`
+//       }
+//     }
+//   ]
 
-  let processedText = text
+//   let processedText = text
 
-  contactPhrases.forEach(({ pattern, replacement }) => {
-    processedText = processedText.replace(pattern, replacement)
-  })
+//   contactPhrases.forEach(({ pattern, replacement }) => {
+//     processedText = processedText.replace(pattern, replacement)
+//   })
 
-  return processedText
-}
+//   return processedText
+// }
 
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
   // Pre-process content to detect and convert links
-  const processedContent = detectContactPhrases(detectAndConvertLinks(content))
+  const convertedLinksContent = detectAndConvertLinks(content)
 
   return (
     <div className={`prose prose-sm max-w-none dark:prose-invert ${className}`}>
@@ -177,7 +177,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
           h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
           a: ({ children, href }) => {
             const { type, style } = getLinkTypeAndStyle(href || '')
-            const icon = getLinkIcon(type)
+            // const icon = getLinkIcon(type)
             
             // Handle different link types
             if (type === 'email') {
@@ -187,7 +187,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
                   title="Send email"
                 >
-                  <span className="text-xs">{icon}</span>
+                  {/* <span className="text-xs">{icon}</span> */}
                   {children}
                 </a>
               )
@@ -200,7 +200,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
                   title="Call phone number"
                 >
-                  <span className="text-xs">{icon}</span>
+                  {/* <span className="text-xs">{icon}</span> */}
                   {children}
                 </a>
               )
@@ -213,7 +213,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
                   title="Send SMS"
                 >
-                  <span className="text-xs">{icon}</span>
+                  {/* <span className="text-xs">{icon}</span> */}
                   {children}
                 </a>
               )
@@ -226,7 +226,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
                   title="Open WhatsApp"
                 >
-                  <span className="text-xs">{icon}</span>
+                  {/* <span className="text-xs">{icon}</span> */}
                   {children}
                 </a>
               )
@@ -242,7 +242,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   rel="noopener noreferrer"
                   title="Open external link"
                 >
-                  <span className="text-xs">{icon}</span>
+                  {/* <span className="text-xs">{icon}</span> */}
                   {children}
                 </a>
               )
@@ -255,14 +255,14 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                 className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
                 title="Navigate to link"
               >
-                <span className="text-xs">{icon}</span>
+                {/* <span className="text-xs">{icon}</span> */}
                 {children}
               </a>
             )
           },
         }}
       >
-        {processedContent}
+        {convertedLinksContent}
       </ReactMarkdown>
     </div>
   )

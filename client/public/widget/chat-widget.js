@@ -37,7 +37,7 @@ var Jm;
 function iv() {
   return Jm || (Jm = 1, Ku.exports = av()), Ku.exports;
 }
-var O = iv(), Zu = { exports: {} }, ke = {};
+var _ = iv(), Zu = { exports: {} }, ke = {};
 /**
  * @license React
  * react.production.js
@@ -1166,8 +1166,8 @@ function cv() {
       var M = R[H];
       if (M !== null)
         for (R[H] = null, H = 0; H < M.length; H++) {
-          var _ = M[H];
-          _ !== null && (_.lane &= -536870913);
+          var O = M[H];
+          O !== null && (O.lane &= -536870913);
         }
       a &= ~F;
     }
@@ -1375,30 +1375,30 @@ function cv() {
               }), typeof Reflect == "object" && Reflect.construct) {
                 try {
                   Reflect.construct(F, []);
-                } catch (_) {
-                  var M = _;
+                } catch (O) {
+                  var M = O;
                 }
                 Reflect.construct(e, [], F);
               } else {
                 try {
                   F.call();
-                } catch (_) {
-                  M = _;
+                } catch (O) {
+                  M = O;
                 }
                 e.call(F.prototype);
               }
             } else {
               try {
                 throw Error();
-              } catch (_) {
-                M = _;
+              } catch (O) {
+                M = O;
               }
               (F = e()) && typeof F.catch == "function" && F.catch(function() {
               });
             }
-          } catch (_) {
-            if (_ && M && typeof _.stack == "string")
-              return [_.stack, M.stack];
+          } catch (O) {
+            if (O && M && typeof O.stack == "string")
+              return [O.stack, M.stack];
           }
           return [null, null];
         }
@@ -2923,8 +2923,8 @@ Error generating stack: ` + a.message + `
       var F = s.baseState;
       y = 0, H = R = T = null, S = f;
       do {
-        var M = S.lane & -536870913, _ = M !== S.lane;
-        if (_ ? (Le & M) === M : (r & M) === M) {
+        var M = S.lane & -536870913, O = M !== S.lane;
+        if (O ? (Le & M) === M : (r & M) === M) {
           M !== 0 && M === ri && (Rs = !0), H !== null && (H = H.next = {
             lane: 0,
             tag: S.tag,
@@ -2954,19 +2954,19 @@ Error generating stack: ` + a.message + `
                 Gn = !0;
             }
           }
-          M = S.callback, M !== null && (e.flags |= 64, _ && (e.flags |= 8192), _ = s.callbacks, _ === null ? s.callbacks = [M] : _.push(M));
+          M = S.callback, M !== null && (e.flags |= 64, O && (e.flags |= 8192), O = s.callbacks, O === null ? s.callbacks = [M] : O.push(M));
         } else
-          _ = {
+          O = {
             lane: M,
             tag: S.tag,
             payload: S.payload,
             callback: S.callback,
             next: null
-          }, H === null ? (R = H = _, T = F) : H = H.next = _, y |= M;
+          }, H === null ? (R = H = O, T = F) : H = H.next = O, y |= M;
         if (S = S.next, S === null) {
           if (S = s.shared.pending, S === null)
             break;
-          _ = S, S = _.next, _.next = null, s.lastBaseUpdate = _, s.shared.pending = null;
+          O = S, S = O.next, O.next = null, s.lastBaseUpdate = O, s.shared.pending = null;
         }
       } while (!0);
       H === null && (T = F), s.baseState = T, s.firstBaseUpdate = R, s.lastBaseUpdate = H, f === null && (s.shared.lanes = 0), na |= y, e.lanes = y, e.memoizedState = F;
@@ -4135,7 +4135,7 @@ Error generating stack: ` + a.message + `
       }
       return null;
     }
-    function _(C, E, D, Q, ce) {
+    function O(C, E, D, Q, ce) {
       if (typeof Q == "string" && Q !== "" || typeof Q == "number" || typeof Q == "bigint")
         return C = C.get(D) || null, S(E, C, "" + Q, ce);
       if (typeof Q == "object" && Q !== null) {
@@ -4150,7 +4150,7 @@ Error generating stack: ` + a.message + `
             ) || null, R(E, C, Q, ce);
           case K:
             var Me = Q._init;
-            return Q = Me(Q._payload), _(
+            return Q = Me(Q._payload), O(
               C,
               E,
               D,
@@ -4161,7 +4161,7 @@ Error generating stack: ` + a.message + `
         if (ne(Q) || ee(Q))
           return C = C.get(D) || null, H(E, C, Q, ce, null);
         if (typeof Q.then == "function")
-          return _(
+          return O(
             C,
             E,
             D,
@@ -4169,7 +4169,7 @@ Error generating stack: ` + a.message + `
             ce
           );
         if (Q.$$typeof === j)
-          return _(
+          return O(
             C,
             E,
             D,
@@ -4207,7 +4207,7 @@ Error generating stack: ` + a.message + `
         return Be && xa(C, ye), ce;
       }
       for (me = r(me); ye < D.length; ye++)
-        ht = _(
+        ht = O(
           me,
           C,
           ye,
@@ -4243,7 +4243,7 @@ Error generating stack: ` + a.message + `
         return Be && xa(C, ye), ce;
       }
       for (me = r(me); !qe.done; ye++, qe = D.next())
-        qe = _(me, C, ye, qe.value, Q), qe !== null && (e && qe.alternate !== null && me.delete(qe.key === null ? ye : qe.key), E = f(qe, E, ye), Me === null ? ce = qe : Me.sibling = qe, Me = qe);
+        qe = O(me, C, ye, qe.value, Q), qe !== null && (e && qe.alternate !== null && me.delete(qe.key === null ? ye : qe.key), E = f(qe, E, ye), Me === null ? ce = qe : Me.sibling = qe, Me = qe);
       return e && me.forEach(function(nv) {
         return t(C, nv);
       }), Be && xa(C, ye), ce;
@@ -4759,25 +4759,25 @@ Error generating stack: ` + a.message + `
         r,
         T
       ), Gn = !1, M = t.memoizedState, f.state = M, sr(t, r, f, s), or();
-      var _ = t.memoizedState;
-      y !== F || M !== _ || Gn || e !== null && e.dependencies !== null && gl(e.dependencies) ? (typeof S == "function" && (Ks(
+      var O = t.memoizedState;
+      y !== F || M !== O || Gn || e !== null && e.dependencies !== null && gl(e.dependencies) ? (typeof S == "function" && (Ks(
         t,
         a,
         S,
         r
-      ), _ = t.memoizedState), (H = Gn || up(
+      ), O = t.memoizedState), (H = Gn || up(
         t,
         a,
         H,
         r,
         M,
-        _,
+        O,
         T
-      ) || e !== null && e.dependencies !== null && gl(e.dependencies)) ? (R || typeof f.UNSAFE_componentWillUpdate != "function" && typeof f.componentWillUpdate != "function" || (typeof f.componentWillUpdate == "function" && f.componentWillUpdate(r, _, T), typeof f.UNSAFE_componentWillUpdate == "function" && f.UNSAFE_componentWillUpdate(
+      ) || e !== null && e.dependencies !== null && gl(e.dependencies)) ? (R || typeof f.UNSAFE_componentWillUpdate != "function" && typeof f.componentWillUpdate != "function" || (typeof f.componentWillUpdate == "function" && f.componentWillUpdate(r, O, T), typeof f.UNSAFE_componentWillUpdate == "function" && f.UNSAFE_componentWillUpdate(
         r,
-        _,
+        O,
         T
-      )), typeof f.componentDidUpdate == "function" && (t.flags |= 4), typeof f.getSnapshotBeforeUpdate == "function" && (t.flags |= 1024)) : (typeof f.componentDidUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 4), typeof f.getSnapshotBeforeUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 1024), t.memoizedProps = r, t.memoizedState = _), f.props = r, f.state = _, f.context = T, r = H) : (typeof f.componentDidUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 4), typeof f.getSnapshotBeforeUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 1024), r = !1);
+      )), typeof f.componentDidUpdate == "function" && (t.flags |= 4), typeof f.getSnapshotBeforeUpdate == "function" && (t.flags |= 1024)) : (typeof f.componentDidUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 4), typeof f.getSnapshotBeforeUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 1024), t.memoizedProps = r, t.memoizedState = O), f.props = r, f.state = O, f.context = T, r = H) : (typeof f.componentDidUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 4), typeof f.getSnapshotBeforeUpdate != "function" || y === e.memoizedProps && M === e.memoizedState || (t.flags |= 1024), r = !1);
     }
     return f = r, Il(e, t), r = (t.flags & 128) !== 0, f || r ? (f = t.stateNode, a = r && typeof a.getDerivedStateFromError != "function" ? null : f.render(), t.flags |= 1, e !== null && r ? (t.child = di(
       t,
@@ -5927,14 +5927,14 @@ Error generating stack: ` + a.message + `
             }
             var y = 0, S = -1, T = -1, R = 0, H = 0, F = e, M = null;
             t: for (; ; ) {
-              for (var _; F !== a || s !== 0 && F.nodeType !== 3 || (S = y + s), F !== f || r !== 0 && F.nodeType !== 3 || (T = y + r), F.nodeType === 3 && (y += F.nodeValue.length), (_ = F.firstChild) !== null; )
-                M = F, F = _;
+              for (var O; F !== a || s !== 0 && F.nodeType !== 3 || (S = y + s), F !== f || r !== 0 && F.nodeType !== 3 || (T = y + r), F.nodeType === 3 && (y += F.nodeValue.length), (O = F.firstChild) !== null; )
+                M = F, F = O;
               for (; ; ) {
                 if (F === e) break t;
-                if (M === a && ++R === s && (S = y), M === f && ++H === r && (T = y), (_ = F.nextSibling) !== null) break;
+                if (M === a && ++R === s && (S = y), M === f && ++H === r && (T = y), (O = F.nextSibling) !== null) break;
                 F = M, M = F.parentNode;
               }
-              F = _;
+              F = O;
             }
             a = S === -1 || T === -1 ? null : { start: S, end: T };
           } else a = null;
@@ -6373,8 +6373,8 @@ Error generating stack: ` + a.message + `
           s = e.stateNode;
           try {
             Xa(s, "");
-          } catch (_) {
-            Xe(e, e.return, _);
+          } catch (O) {
+            Xe(e, e.return, O);
           }
         }
         r & 4 && e.stateNode != null && (s = e.memoizedProps, lu(
@@ -6390,8 +6390,8 @@ Error generating stack: ` + a.message + `
           r = e.memoizedProps, a = e.stateNode;
           try {
             a.nodeValue = r;
-          } catch (_) {
-            Xe(e, e.return, _);
+          } catch (O) {
+            Xe(e, e.return, O);
           }
         }
         break;
@@ -6399,8 +6399,8 @@ Error generating stack: ` + a.message + `
         if ($l = null, s = cn, cn = Jl(t.containerInfo), Qt(t, e), cn = s, Pt(e), r & 4 && a !== null && a.memoizedState.isDehydrated)
           try {
             _r(t.containerInfo);
-          } catch (_) {
-            Xe(e, e.return, _);
+          } catch (O) {
+            Xe(e, e.return, O);
           }
         uu && (uu = !1, Qp(e));
         break;
@@ -6431,8 +6431,8 @@ Error generating stack: ` + a.message + `
                     var F = T.memoizedProps.style, M = F != null && F.hasOwnProperty("display") ? F.display : null;
                     S.style.display = M == null || typeof M == "boolean" ? "" : ("" + M).trim();
                   }
-                } catch (_) {
-                  Xe(T, T.return, _);
+                } catch (O) {
+                  Xe(T, T.return, O);
                 }
               }
             } else if (t.tag === 6) {
@@ -6440,8 +6440,8 @@ Error generating stack: ` + a.message + `
                 T = t;
                 try {
                   T.stateNode.nodeValue = s ? "" : T.memoizedProps;
-                } catch (_) {
-                  Xe(T, T.return, _);
+                } catch (O) {
+                  Xe(T, T.return, O);
                 }
               }
             } else if ((t.tag !== 22 && t.tag !== 23 || t.memoizedState === null || t === e) && t.child !== null) {
@@ -7134,7 +7134,7 @@ Error generating stack: ` + a.message + `
     } while (!0);
     vn(e);
   }
-  function Wp(e, t, a, r, s, f, y, S, T, R, H, F, M, _) {
+  function Wp(e, t, a, r, s, f, y, S, T, R, H, F, M, O) {
     if (e.timeoutHandle = -1, F = t.subtreeFlags, (F & 8192 || (F & 16785408) === 16785408) && (zr = { stylesheets: null, count: 0, unsuspend: F0 }, Fp(t), F = Y0(), F !== null)) {
       e.cancelPendingCommit = F(
         rm.bind(
@@ -7151,7 +7151,7 @@ Error generating stack: ` + a.message + `
           H,
           1,
           M,
-          _
+          O
         )
       ), ra(e, f, y, !R);
       return;
@@ -7528,8 +7528,8 @@ Error generating stack: ` + a.message + `
               else {
                 var F = S.ownerDocument || document, M = F && F.defaultView || window;
                 if (M.getSelection) {
-                  var _ = M.getSelection(), Se = S.textContent.length, ge = Math.min(T.start, Se), Ye = T.end === void 0 ? ge : Math.min(T.end, Se);
-                  !_.extend && ge > Ye && (y = Ye, Ye = ge, ge = y);
+                  var O = M.getSelection(), Se = S.textContent.length, ge = Math.min(T.start, Se), Ye = T.end === void 0 ? ge : Math.min(T.end, Se);
+                  !O.extend && ge > Ye && (y = Ye, Ye = ge, ge = y);
                   var C = Gf(
                     S,
                     ge
@@ -7537,18 +7537,18 @@ Error generating stack: ` + a.message + `
                     S,
                     Ye
                   );
-                  if (C && E && (_.rangeCount !== 1 || _.anchorNode !== C.node || _.anchorOffset !== C.offset || _.focusNode !== E.node || _.focusOffset !== E.offset)) {
+                  if (C && E && (O.rangeCount !== 1 || O.anchorNode !== C.node || O.anchorOffset !== C.offset || O.focusNode !== E.node || O.focusOffset !== E.offset)) {
                     var D = F.createRange();
-                    D.setStart(C.node, C.offset), _.removeAllRanges(), ge > Ye ? (_.addRange(D), _.extend(E.node, E.offset)) : (D.setEnd(E.node, E.offset), _.addRange(D));
+                    D.setStart(C.node, C.offset), O.removeAllRanges(), ge > Ye ? (O.addRange(D), O.extend(E.node, E.offset)) : (D.setEnd(E.node, E.offset), O.addRange(D));
                   }
                 }
               }
             }
-            for (F = [], _ = S; _ = _.parentNode; )
-              _.nodeType === 1 && F.push({
-                element: _,
-                left: _.scrollLeft,
-                top: _.scrollTop
+            for (F = [], O = S; O = O.parentNode; )
+              O.nodeType === 1 && F.push({
+                element: O,
+                left: O.scrollLeft,
+                top: O.scrollTop
               });
             for (typeof S.focus == "function" && S.focus(), S = 0; S < F.length; S++) {
               var Q = F[S];
@@ -8028,23 +8028,23 @@ Error generating stack: ` + a.message + `
       e: {
         var M = td.get(e);
         if (M !== void 0) {
-          var _ = ol, Se = e;
+          var O = ol, Se = e;
           switch (e) {
             case "keypress":
               if (rl(a) === 0) break e;
             case "keydown":
             case "keyup":
-              _ = yb;
+              O = yb;
               break;
             case "focusin":
-              Se = "focus", _ = ns;
+              Se = "focus", O = ns;
               break;
             case "focusout":
-              Se = "blur", _ = ns;
+              Se = "blur", O = ns;
               break;
             case "beforeblur":
             case "afterblur":
-              _ = ns;
+              O = ns;
               break;
             case "click":
               if (a.button === 2) break e;
@@ -8056,7 +8056,7 @@ Error generating stack: ` + a.message + `
             case "mouseout":
             case "mouseover":
             case "contextmenu":
-              _ = Rf;
+              O = Rf;
               break;
             case "drag":
             case "dragend":
@@ -8066,33 +8066,33 @@ Error generating stack: ` + a.message + `
             case "dragover":
             case "dragstart":
             case "drop":
-              _ = rb;
+              O = rb;
               break;
             case "touchcancel":
             case "touchend":
             case "touchmove":
             case "touchstart":
-              _ = Sb;
+              O = Sb;
               break;
             case Jf:
             case Wf:
             case $f:
-              _ = sb;
+              O = sb;
               break;
             case ed:
-              _ = Ab;
+              O = Ab;
               break;
             case "scroll":
             case "scrollend":
-              _ = ab;
+              O = ab;
               break;
             case "wheel":
-              _ = Tb;
+              O = Tb;
               break;
             case "copy":
             case "cut":
             case "paste":
-              _ = cb;
+              O = cb;
               break;
             case "gotpointercapture":
             case "lostpointercapture":
@@ -8102,11 +8102,11 @@ Error generating stack: ` + a.message + `
             case "pointerout":
             case "pointerover":
             case "pointerup":
-              _ = Mf;
+              O = Mf;
               break;
             case "toggle":
             case "beforetoggle":
-              _ = Cb;
+              O = Cb;
           }
           var ge = (t & 4) !== 0, Ye = !ge && (e === "scroll" || e === "scrollend"), C = ge ? M !== null ? M + "Capture" : null : M;
           ge = [];
@@ -8117,7 +8117,7 @@ Error generating stack: ` + a.message + `
             )), Ye) break;
             E = E.return;
           }
-          0 < ge.length && (M = new _(
+          0 < ge.length && (M = new O(
             M,
             Se,
             null,
@@ -8128,13 +8128,13 @@ Error generating stack: ` + a.message + `
       }
       if ((t & 7) === 0) {
         e: {
-          if (M = e === "mouseover" || e === "pointerover", _ = e === "mouseout" || e === "pointerout", M && a !== Ko && (Se = a.relatedTarget || a.fromElement) && (Va(Se) || Se[Ha]))
+          if (M = e === "mouseover" || e === "pointerover", O = e === "mouseout" || e === "pointerout", M && a !== Ko && (Se = a.relatedTarget || a.fromElement) && (Va(Se) || Se[Ha]))
             break e;
-          if ((_ || M) && (M = H.window === H ? H : (M = H.ownerDocument) ? M.defaultView || M.parentWindow : window, _ ? (Se = a.relatedTarget || a.toElement, _ = R, Se = Se ? Va(Se) : null, Se !== null && (Ye = c(Se), ge = Se.tag, Se !== Ye || ge !== 5 && ge !== 27 && ge !== 6) && (Se = null)) : (_ = null, Se = R), _ !== Se)) {
-            if (ge = Rf, Q = "onMouseLeave", C = "onMouseEnter", E = "mouse", (e === "pointerout" || e === "pointerover") && (ge = Mf, Q = "onPointerLeave", C = "onPointerEnter", E = "pointer"), Ye = _ == null ? M : Vi(_), D = Se == null ? M : Vi(Se), M = new ge(
+          if ((O || M) && (M = H.window === H ? H : (M = H.ownerDocument) ? M.defaultView || M.parentWindow : window, O ? (Se = a.relatedTarget || a.toElement, O = R, Se = Se ? Va(Se) : null, Se !== null && (Ye = c(Se), ge = Se.tag, Se !== Ye || ge !== 5 && ge !== 27 && ge !== 6) && (Se = null)) : (O = null, Se = R), O !== Se)) {
+            if (ge = Rf, Q = "onMouseLeave", C = "onMouseEnter", E = "mouse", (e === "pointerout" || e === "pointerover") && (ge = Mf, Q = "onPointerLeave", C = "onPointerEnter", E = "pointer"), Ye = O == null ? M : Vi(O), D = Se == null ? M : Vi(Se), M = new ge(
               Q,
               E + "leave",
-              _,
+              O,
               a,
               H
             ), M.target = Ye, M.relatedTarget = D, Q = null, Va(H) === R && (ge = new ge(
@@ -8143,9 +8143,9 @@ Error generating stack: ` + a.message + `
               Se,
               a,
               H
-            ), ge.target = D, ge.relatedTarget = Ye, Q = ge), Ye = Q, _ && Se)
+            ), ge.target = D, ge.relatedTarget = Ye, Q = ge), Ye = Q, O && Se)
               t: {
-                for (ge = _, C = Se, E = 0, D = ge; D; D = Ai(D))
+                for (ge = O, C = Se, E = 0, D = ge; D; D = Ai(D))
                   E++;
                 for (D = 0, Q = C; Q; Q = Ai(Q))
                   D++;
@@ -8161,10 +8161,10 @@ Error generating stack: ` + a.message + `
                 ge = null;
               }
             else ge = null;
-            _ !== null && xm(
+            O !== null && xm(
               F,
               M,
-              _,
+              O,
               ge,
               !1
             ), Se !== null && Ye !== null && xm(
@@ -8177,7 +8177,7 @@ Error generating stack: ` + a.message + `
           }
         }
         e: {
-          if (M = R ? Vi(R) : window, _ = M.nodeName && M.nodeName.toLowerCase(), _ === "select" || _ === "input" && M.type === "file")
+          if (M = R ? Vi(R) : window, O = M.nodeName && M.nodeName.toLowerCase(), O === "select" || O === "input" && M.type === "file")
             var ce = Bf;
           else if (qf(M))
             if (Hf)
@@ -8187,7 +8187,7 @@ Error generating stack: ` + a.message + `
               var Me = Ob;
             }
           else
-            _ = M.nodeName, !_ || _.toLowerCase() !== "input" || M.type !== "checkbox" && M.type !== "radio" ? R && Xo(R.elementType) && (ce = Bf) : ce = Ib;
+            O = M.nodeName, !O || O.toLowerCase() !== "input" || M.type !== "checkbox" && M.type !== "radio" ? R && Xo(R.elementType) && (ce = Bf) : ce = Ib;
           if (ce && (ce = ce(e, R))) {
             jf(
               F,
@@ -8816,10 +8816,10 @@ Error generating stack: ` + a.message + `
         break;
       case "input":
         var s = null, f = null, y = null, S = null, T = null, R = null, H = null;
-        for (_ in a) {
-          var F = a[_];
-          if (a.hasOwnProperty(_) && F != null)
-            switch (_) {
+        for (O in a) {
+          var F = a[O];
+          if (a.hasOwnProperty(O) && F != null)
+            switch (O) {
               case "checked":
                 break;
               case "value":
@@ -8827,42 +8827,42 @@ Error generating stack: ` + a.message + `
               case "defaultValue":
                 T = F;
               default:
-                r.hasOwnProperty(_) || Ge(e, t, _, null, r, F);
+                r.hasOwnProperty(O) || Ge(e, t, O, null, r, F);
             }
         }
         for (var M in r) {
-          var _ = r[M];
-          if (F = a[M], r.hasOwnProperty(M) && (_ != null || F != null))
+          var O = r[M];
+          if (F = a[M], r.hasOwnProperty(M) && (O != null || F != null))
             switch (M) {
               case "type":
-                f = _;
+                f = O;
                 break;
               case "name":
-                s = _;
+                s = O;
                 break;
               case "checked":
-                R = _;
+                R = O;
                 break;
               case "defaultChecked":
-                H = _;
+                H = O;
                 break;
               case "value":
-                y = _;
+                y = O;
                 break;
               case "defaultValue":
-                S = _;
+                S = O;
                 break;
               case "children":
               case "dangerouslySetInnerHTML":
-                if (_ != null)
+                if (O != null)
                   throw Error(o(137, t));
                 break;
               default:
-                _ !== F && Ge(
+                O !== F && Ge(
                   e,
                   t,
                   M,
-                  _,
+                  O,
                   r,
                   F
                 );
@@ -8880,14 +8880,14 @@ Error generating stack: ` + a.message + `
         );
         return;
       case "select":
-        _ = y = S = M = null;
+        O = y = S = M = null;
         for (f in a)
           if (T = a[f], a.hasOwnProperty(f) && T != null)
             switch (f) {
               case "value":
                 break;
               case "multiple":
-                _ = T;
+                O = T;
               default:
                 r.hasOwnProperty(f) || Ge(
                   e,
@@ -8919,10 +8919,10 @@ Error generating stack: ` + a.message + `
                   T
                 );
             }
-        t = S, a = y, r = _, M != null ? Ya(e, !!a, M, !1) : !!r != !!a && (t != null ? Ya(e, !!a, t, !0) : Ya(e, !!a, a ? [] : "", !1));
+        t = S, a = y, r = O, M != null ? Ya(e, !!a, M, !1) : !!r != !!a && (t != null ? Ya(e, !!a, t, !0) : Ya(e, !!a, a ? [] : "", !1));
         return;
       case "textarea":
-        _ = M = null;
+        O = M = null;
         for (S in a)
           if (s = a[S], a.hasOwnProperty(S) && s != null && !r.hasOwnProperty(S))
             switch (S) {
@@ -8940,7 +8940,7 @@ Error generating stack: ` + a.message + `
                 M = s;
                 break;
               case "defaultValue":
-                _ = s;
+                O = s;
                 break;
               case "children":
                 break;
@@ -8950,7 +8950,7 @@ Error generating stack: ` + a.message + `
               default:
                 s !== f && Ge(e, t, y, s, r, f);
             }
-        Af(e, M, _);
+        Af(e, M, O);
         return;
       case "option":
         for (var Se in a)
@@ -8970,7 +8970,7 @@ Error generating stack: ` + a.message + `
                 );
             }
         for (T in r)
-          if (M = r[T], _ = a[T], r.hasOwnProperty(T) && M !== _ && (M != null || _ != null))
+          if (M = r[T], O = a[T], r.hasOwnProperty(T) && M !== O && (M != null || O != null))
             switch (T) {
               case "selected":
                 e.selected = M && typeof M != "function" && typeof M != "symbol";
@@ -8982,7 +8982,7 @@ Error generating stack: ` + a.message + `
                   T,
                   M,
                   r,
-                  _
+                  O
                 );
             }
         return;
@@ -9004,7 +9004,7 @@ Error generating stack: ` + a.message + `
         for (var ge in a)
           M = a[ge], a.hasOwnProperty(ge) && M != null && !r.hasOwnProperty(ge) && Ge(e, t, ge, null, r, M);
         for (R in r)
-          if (M = r[R], _ = a[R], r.hasOwnProperty(R) && M !== _ && (M != null || _ != null))
+          if (M = r[R], O = a[R], r.hasOwnProperty(R) && M !== O && (M != null || O != null))
             switch (R) {
               case "children":
               case "dangerouslySetInnerHTML":
@@ -9018,7 +9018,7 @@ Error generating stack: ` + a.message + `
                   R,
                   M,
                   r,
-                  _
+                  O
                 );
             }
         return;
@@ -9034,13 +9034,13 @@ Error generating stack: ` + a.message + `
               M
             );
           for (H in r)
-            M = r[H], _ = a[H], !r.hasOwnProperty(H) || M === _ || M === void 0 && _ === void 0 || Mu(
+            M = r[H], O = a[H], !r.hasOwnProperty(H) || M === O || M === void 0 && O === void 0 || Mu(
               e,
               t,
               H,
               M,
               r,
-              _
+              O
             );
           return;
         }
@@ -9048,7 +9048,7 @@ Error generating stack: ` + a.message + `
     for (var C in a)
       M = a[C], a.hasOwnProperty(C) && M != null && !r.hasOwnProperty(C) && Ge(e, t, C, null, r, M);
     for (F in r)
-      M = r[F], _ = a[F], !r.hasOwnProperty(F) || M === _ || M == null && _ == null || Ge(e, t, F, M, r, _);
+      M = r[F], O = a[F], !r.hasOwnProperty(F) || M === O || M == null && O == null || Ge(e, t, F, M, r, O);
   }
   var Ou = null, _u = null;
   function Zl(e) {
@@ -11911,22 +11911,22 @@ Ie.getAdapter = Lg.getAdapter;
 Ie.HttpStatusCode = Ec;
 Ie.default = Ie;
 const {
-  Axios: xC,
-  AxiosError: AC,
-  CanceledError: wC,
-  isCancel: TC,
-  CancelToken: EC,
-  VERSION: CC,
-  all: kC,
-  Cancel: DC,
-  isAxiosError: zC,
-  spread: RC,
-  toFormData: NC,
-  AxiosHeaders: MC,
-  HttpStatusCode: OC,
-  formToJSON: _C,
-  getAdapter: IC,
-  mergeConfig: UC
+  Axios: vC,
+  AxiosError: SC,
+  CanceledError: xC,
+  isCancel: AC,
+  CancelToken: wC,
+  VERSION: TC,
+  all: EC,
+  Cancel: CC,
+  isAxiosError: kC,
+  spread: DC,
+  toFormData: zC,
+  AxiosHeaders: RC,
+  HttpStatusCode: NC,
+  formToJSON: MC,
+  getAdapter: OC,
+  mergeConfig: _C
 } = Ie;
 /**
  * @license lucide-react v0.525.0 - ISC
@@ -21629,11 +21629,11 @@ function gE(n, i) {
   for (const h of dE)
     Object.hasOwn(i, h.from) && ("" + h.from + (h.to ? "use `" + h.to + "` instead" : "remove it") + cE + h.id, void 0);
   return Ly(n, m), Cx(n, {
-    Fragment: O.Fragment,
+    Fragment: _.Fragment,
     components: u,
     ignoreInvalidStyle: !0,
-    jsx: O.jsx,
-    jsxs: O.jsxs,
+    jsx: _.jsx,
+    jsxs: _.jsxs,
     passKeys: !0,
     passNode: !0
   });
@@ -21670,22 +21670,6 @@ function bE(n) {
   return i.startsWith("mailto:") ? { type: "email", style: "text-green-500 hover:text-green-600" } : i.startsWith("tel:") ? { type: "phone", style: "text-purple-500 hover:text-purple-600" } : i.startsWith("sms:") ? { type: "sms", style: "text-orange-500 hover:text-orange-600" } : i.startsWith("whatsapp:") ? { type: "whatsapp", style: "text-green-500 hover:text-green-600" } : i.startsWith("http://") || i.startsWith("https://") ? { type: "external", style: "text-blue-500 hover:text-blue-600" } : { type: "internal", style: "text-blue-500 hover:text-blue-600" };
 }
 function vE(n) {
-  switch (n) {
-    case "email":
-      return "📧";
-    case "phone":
-      return "📞";
-    case "sms":
-      return "💬";
-    case "whatsapp":
-      return "📱";
-    case "external":
-      return "🔗";
-    default:
-      return "🔗";
-  }
-}
-function SE(n) {
   if (!n) return n;
   const i = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, l = [
     /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
@@ -21705,113 +21689,65 @@ function SE(n) {
     // domain.com/path
   ], u = /\b\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl|Way|Circle|Cir|Terrace|Ter)\b/gi;
   let c = n;
-  return c = c.replace(i, (d) => `[${d}](mailto:${d})`), l.forEach((d) => {
-    c = c.replace(d, (p) => {
-      const g = p.replace(/[\s\(\)\-\.]/g, "");
-      return `[${p}](tel:${g})`;
-    });
+  return c = c.replace(i, (d) => `${d}`), l.forEach((d) => {
+    c = c.replace(d, (p) => `${p.replace(/[\s\(\)\-\.]/g, "")}`);
   }), o.forEach((d) => {
-    c = c.replace(d, (p) => {
-      const g = p.startsWith("http") ? p : `https://${p}`;
-      return `[${p}](${g})`;
-    });
-  }), c = c.replace(u, (d) => {
-    const p = encodeURIComponent(d);
-    return `[${d}](https://maps.google.com/?q=${p})`;
-  }), c;
-}
-function xE(n) {
-  if (!n) return n;
-  const i = [
-    {
-      pattern: /\b(?:contact us|email us|reach us|get in touch)\s+(?:at\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
-      replacement: (o, u) => `[${o}](mailto:${u})`
-    },
-    {
-      pattern: /\b(?:call us|phone us|dial)\s+(?:at\s+)?(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})\b/gi,
-      replacement: (o, u) => {
-        const c = u.replace(/[\s\(\)\-\.]/g, "");
-        return `[${o}](tel:${c})`;
-      }
-    },
-    {
-      pattern: /\b(?:visit our website|go to our website|check out our website)\s+(?:at\s+)?([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/gi,
-      replacement: (o, u) => {
-        const c = u.startsWith("http") ? u : `https://${u}`;
-        return `[${o}](${c})`;
-      }
-    }
-  ];
-  let l = n;
-  return i.forEach(({ pattern: o, replacement: u }) => {
-    l = l.replace(o, u);
-  }), l;
+    c = c.replace(d, (p) => `${p.startsWith("http") ? p : `https://${p}`}`);
+  }), c = c.replace(u, (d) => `${encodeURIComponent(d)}`), c;
 }
 function jy({ content: n, className: i = "" }) {
-  const l = xE(SE(n));
-  return /* @__PURE__ */ O.jsx("div", { className: `prose prose-sm max-w-none dark:prose-invert ${i}`, children: /* @__PURE__ */ O.jsx(
+  const l = vE(n);
+  return /* @__PURE__ */ _.jsx("div", { className: `prose prose-sm max-w-none dark:prose-invert ${i}`, children: /* @__PURE__ */ _.jsx(
     pE,
     {
       components: {
         // Custom styling for markdown elements
-        p: ({ children: o }) => /* @__PURE__ */ O.jsx("p", { className: "mb-2 last:mb-0", children: o }),
-        ul: ({ children: o }) => /* @__PURE__ */ O.jsx("ul", { className: "list-disc list-inside mb-2 space-y-1", children: o }),
-        ol: ({ children: o }) => /* @__PURE__ */ O.jsx("ol", { className: "list-decimal list-inside mb-2 space-y-1", children: o }),
-        li: ({ children: o }) => /* @__PURE__ */ O.jsx("li", { className: "text-sm", children: o }),
-        strong: ({ children: o }) => /* @__PURE__ */ O.jsx("strong", { className: "font-semibold", children: o }),
-        em: ({ children: o }) => /* @__PURE__ */ O.jsx("em", { className: "italic", children: o }),
-        code: ({ children: o }) => /* @__PURE__ */ O.jsx("code", { className: "bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono", children: o }),
-        pre: ({ children: o }) => /* @__PURE__ */ O.jsx("pre", { className: "bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs overflow-x-auto", children: o }),
-        h1: ({ children: o }) => /* @__PURE__ */ O.jsx("h1", { className: "text-lg font-bold mb-2", children: o }),
-        h2: ({ children: o }) => /* @__PURE__ */ O.jsx("h2", { className: "text-base font-bold mb-2", children: o }),
-        h3: ({ children: o }) => /* @__PURE__ */ O.jsx("h3", { className: "text-sm font-bold mb-1", children: o }),
+        p: ({ children: o }) => /* @__PURE__ */ _.jsx("p", { className: "mb-2 last:mb-0", children: o }),
+        ul: ({ children: o }) => /* @__PURE__ */ _.jsx("ul", { className: "list-disc list-inside mb-2 space-y-1", children: o }),
+        ol: ({ children: o }) => /* @__PURE__ */ _.jsx("ol", { className: "list-decimal list-inside mb-2 space-y-1", children: o }),
+        li: ({ children: o }) => /* @__PURE__ */ _.jsx("li", { className: "text-sm", children: o }),
+        strong: ({ children: o }) => /* @__PURE__ */ _.jsx("strong", { className: "font-semibold", children: o }),
+        em: ({ children: o }) => /* @__PURE__ */ _.jsx("em", { className: "italic", children: o }),
+        code: ({ children: o }) => /* @__PURE__ */ _.jsx("code", { className: "bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs font-mono", children: o }),
+        pre: ({ children: o }) => /* @__PURE__ */ _.jsx("pre", { className: "bg-gray-100 dark:bg-gray-800 p-2 rounded text-xs overflow-x-auto", children: o }),
+        h1: ({ children: o }) => /* @__PURE__ */ _.jsx("h1", { className: "text-lg font-bold mb-2", children: o }),
+        h2: ({ children: o }) => /* @__PURE__ */ _.jsx("h2", { className: "text-base font-bold mb-2", children: o }),
+        h3: ({ children: o }) => /* @__PURE__ */ _.jsx("h3", { className: "text-sm font-bold mb-1", children: o }),
         a: ({ children: o, href: u }) => {
-          const { type: c, style: d } = bE(u || ""), p = vE(c);
-          return c === "email" ? /* @__PURE__ */ O.jsxs(
+          const { type: c, style: d } = bE(u || "");
+          return c === "email" ? /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
               className: `${d} underline inline-flex items-center gap-1 hover:no-underline transition-colors`,
               title: "Send email",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
-          ) : c === "phone" ? /* @__PURE__ */ O.jsxs(
+          ) : c === "phone" ? /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
               className: `${d} underline inline-flex items-center gap-1 hover:no-underline transition-colors`,
               title: "Call phone number",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
-          ) : c === "sms" ? /* @__PURE__ */ O.jsxs(
+          ) : c === "sms" ? /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
               className: `${d} underline inline-flex items-center gap-1 hover:no-underline transition-colors`,
               title: "Send SMS",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
-          ) : c === "whatsapp" ? /* @__PURE__ */ O.jsxs(
+          ) : c === "whatsapp" ? /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
               className: `${d} underline inline-flex items-center gap-1 hover:no-underline transition-colors`,
               title: "Open WhatsApp",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
-          ) : c === "external" ? /* @__PURE__ */ O.jsxs(
+          ) : c === "external" ? /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
@@ -21819,21 +21755,15 @@ function jy({ content: n, className: i = "" }) {
               target: "_blank",
               rel: "noopener noreferrer",
               title: "Open external link",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
-          ) : /* @__PURE__ */ O.jsxs(
+          ) : /* @__PURE__ */ _.jsx(
             "a",
             {
               href: u,
               className: `${d} underline inline-flex items-center gap-1 hover:no-underline transition-colors`,
               title: "Navigate to link",
-              children: [
-                /* @__PURE__ */ O.jsx("span", { className: "text-xs", children: p }),
-                o
-              ]
+              children: o
             }
           );
         }
@@ -21970,30 +21900,30 @@ class dn {
     });
   }
 }
-function AE({ message: n, timestamp: i, companyTheme: l }) {
-  return /* @__PURE__ */ O.jsxs("div", { className: "flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row-reverse", children: [
-    /* @__PURE__ */ O.jsx(
+function SE({ message: n, timestamp: i, companyTheme: l }) {
+  return /* @__PURE__ */ _.jsxs("div", { className: "flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row-reverse", children: [
+    /* @__PURE__ */ _.jsx(
       "div",
       {
         className: "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white",
         style: { backgroundColor: l?.primaryColor },
-        children: /* @__PURE__ */ O.jsx(h1, { className: "w-4 h-4" })
+        children: /* @__PURE__ */ _.jsx(h1, { className: "w-4 h-4" })
       }
     ),
-    /* @__PURE__ */ O.jsxs("div", { className: "flex-1 space-y-2 text-right", children: [
-      /* @__PURE__ */ O.jsx(
+    /* @__PURE__ */ _.jsxs("div", { className: "flex-1 space-y-2 text-right", children: [
+      /* @__PURE__ */ _.jsx(
         "div",
         {
           className: "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed text-white rounded-br-md",
           style: { backgroundColor: l?.primaryColor },
-          children: /* @__PURE__ */ O.jsx(jy, { content: n })
+          children: /* @__PURE__ */ _.jsx(jy, { content: n })
         }
       ),
-      i && /* @__PURE__ */ O.jsx("div", { className: "text-xs text-gray-500 dark:text-gray-400 px-2 text-right", children: i })
+      i && /* @__PURE__ */ _.jsx("div", { className: "text-xs text-gray-500 dark:text-gray-400 px-2 text-right", children: i })
     ] })
   ] });
 }
-function wE({
+function xE({
   message: n,
   messageIndex: i,
   liked: l,
@@ -22069,23 +21999,23 @@ function wE({
       console.error("Failed to copy message:", Y);
     }
   };
-  return /* @__PURE__ */ O.jsxs(O.Fragment, { children: [
-    /* @__PURE__ */ O.jsxs("div", { className: "flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row", children: [
-      /* @__PURE__ */ O.jsx(
+  return /* @__PURE__ */ _.jsxs(_.Fragment, { children: [
+    /* @__PURE__ */ _.jsxs("div", { className: "flex gap-3 max-w-[98%] mx-auto px-4 py-6 flex-row", children: [
+      /* @__PURE__ */ _.jsx(
         "div",
         {
           className: "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400",
           style: { backgroundColor: d?.backgroundColor },
-          children: /* @__PURE__ */ O.jsx(Vg, { className: "w-4 h-4" })
+          children: /* @__PURE__ */ _.jsx(Vg, { className: "w-4 h-4" })
         }
       ),
-      L && /* @__PURE__ */ O.jsxs("div", { className: "flex-1 space-y-2 text-left", children: [
-        /* @__PURE__ */ O.jsx(
+      L && /* @__PURE__ */ _.jsxs("div", { className: "flex-1 space-y-2 text-left", children: [
+        /* @__PURE__ */ _.jsx(
           "div",
           {
             className: "inline-block max-w-[98%] px-4 py-3 rounded-2xl text-sm leading-relaxed text-gray-900 dark:text-gray-100 rounded-bl-md",
             style: { backgroundColor: d?.backgroundColor },
-            children: /* @__PURE__ */ O.jsx(
+            children: /* @__PURE__ */ _.jsx(
               jy,
               {
                 content: k && !c && p ? w : n
@@ -22093,9 +22023,9 @@ function wE({
             )
           }
         ),
-        !k && /* @__PURE__ */ O.jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
-          i !== 0 && /* @__PURE__ */ O.jsxs(O.Fragment, { children: [
-            /* @__PURE__ */ O.jsx(
+        !k && /* @__PURE__ */ _.jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
+          i !== 0 && /* @__PURE__ */ _.jsxs(_.Fragment, { children: [
+            /* @__PURE__ */ _.jsx(
               "button",
               {
                 onClick: () => {
@@ -22105,10 +22035,10 @@ function wE({
                 },
                 className: "p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
                 title: "Like this response",
-                children: /* @__PURE__ */ O.jsx(p1, { className: La("w-3 h-3 text-gray-500 hover:text-green-500", l === "like" ? "text-green-500" : "text-gray-500") })
+                children: /* @__PURE__ */ _.jsx(p1, { className: La("w-3 h-3 text-gray-500 hover:text-green-500", l === "like" ? "text-green-500" : "text-gray-500") })
               }
             ),
-            /* @__PURE__ */ O.jsx(
+            /* @__PURE__ */ _.jsx(
               "button",
               {
                 onClick: () => {
@@ -22118,21 +22048,21 @@ function wE({
                 },
                 className: "p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
                 title: "Dislike this response",
-                children: /* @__PURE__ */ O.jsx(f1, { className: La("w-3 h-3 text-gray-500 hover:text-red-500", l === "dislike" ? "text-red-500" : "text-gray-500") })
+                children: /* @__PURE__ */ _.jsx(f1, { className: La("w-3 h-3 text-gray-500 hover:text-red-500", l === "dislike" ? "text-red-500" : "text-gray-500") })
               }
             ),
-            /* @__PURE__ */ O.jsx(
+            /* @__PURE__ */ _.jsx(
               "button",
               {
                 onClick: re,
                 className: "p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
                 title: "Copy message",
-                children: /* @__PURE__ */ O.jsx(JS, { className: "w-3 h-3 text-gray-500 hover:text-blue-500" })
+                children: /* @__PURE__ */ _.jsx(JS, { className: "w-3 h-3 text-gray-500 hover:text-blue-500" })
               }
             )
           ] }),
-          K && /* @__PURE__ */ O.jsx("span", { className: "text-xs text-green-500 ml-1", children: "Copied!" }),
-          o && /* @__PURE__ */ O.jsx(
+          K && /* @__PURE__ */ _.jsx("span", { className: "text-xs text-green-500 ml-1", children: "Copied!" }),
+          o && /* @__PURE__ */ _.jsx(
             "div",
             {
               className: "text-xs text-gray-500 dark:text-gray-400 px-2 text-right",
@@ -22142,20 +22072,20 @@ function wE({
         ] })
       ] })
     ] }),
-    J && /* @__PURE__ */ O.jsx("div", { className: "fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-center justify-center z-50", children: /* @__PURE__ */ O.jsxs("div", { className: "bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4", children: [
-      /* @__PURE__ */ O.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-        /* @__PURE__ */ O.jsx("h3", { className: "text-lg font-semibold text-gray-900 dark:text-gray-100", children: "Help us improve" }),
-        /* @__PURE__ */ O.jsx(
+    J && /* @__PURE__ */ _.jsx("div", { className: "fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-center justify-center z-50", children: /* @__PURE__ */ _.jsxs("div", { className: "bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4", children: [
+      /* @__PURE__ */ _.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+        /* @__PURE__ */ _.jsx("h3", { className: "text-lg font-semibold text-gray-900 dark:text-gray-100", children: "Help us improve" }),
+        /* @__PURE__ */ _.jsx(
           "button",
           {
             onClick: () => j(!1),
             className: "p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700",
-            children: /* @__PURE__ */ O.jsx(y1, { className: "w-5 h-5 text-gray-500" })
+            children: /* @__PURE__ */ _.jsx(y1, { className: "w-5 h-5 text-gray-500" })
           }
         )
       ] }),
-      /* @__PURE__ */ O.jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 mb-4", children: "What could we have done better? (Optional)" }),
-      /* @__PURE__ */ O.jsx(
+      /* @__PURE__ */ _.jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 mb-4", children: "What could we have done better? (Optional)" }),
+      /* @__PURE__ */ _.jsx(
         "textarea",
         {
           value: ue,
@@ -22165,8 +22095,8 @@ function wE({
           rows: 3
         }
       ),
-      /* @__PURE__ */ O.jsxs("div", { className: "flex gap-2 mt-4", children: [
-        /* @__PURE__ */ O.jsx(
+      /* @__PURE__ */ _.jsxs("div", { className: "flex gap-2 mt-4", children: [
+        /* @__PURE__ */ _.jsx(
           "button",
           {
             onClick: () => j(!1),
@@ -22174,7 +22104,7 @@ function wE({
             children: "Cancel"
           }
         ),
-        /* @__PURE__ */ O.jsx(
+        /* @__PURE__ */ _.jsx(
           "button",
           {
             onClick: ee,
@@ -22187,16 +22117,16 @@ function wE({
     ] }) })
   ] });
 }
-function TE({ message: n, messageIndex: i, liked: l, isUser: o, timestamp: u, onStreamingChange: c, skipStreaming: d, companyTheme: p, isLastAiMessage: g, companyName: m, companyId: h, onRatingChange: v, onStreamingComplete: w }) {
-  return o ? /* @__PURE__ */ O.jsx(
-    AE,
+function AE({ message: n, messageIndex: i, liked: l, isUser: o, timestamp: u, onStreamingChange: c, skipStreaming: d, companyTheme: p, isLastAiMessage: g, companyName: m, companyId: h, onRatingChange: v, onStreamingComplete: w }) {
+  return o ? /* @__PURE__ */ _.jsx(
+    SE,
     {
       message: n,
       timestamp: u,
       companyTheme: p
     }
-  ) : /* @__PURE__ */ O.jsx(
-    wE,
+  ) : /* @__PURE__ */ _.jsx(
+    xE,
     {
       message: n,
       messageIndex: i,
@@ -22213,26 +22143,26 @@ function TE({ message: n, messageIndex: i, liked: l, isUser: o, timestamp: u, on
     }
   );
 }
-function EE({ companyTheme: n }) {
-  return /* @__PURE__ */ O.jsxs("div", { className: "flex gap-3 max-w-4xl mx-auto px-4 py-6", children: [
-    /* @__PURE__ */ O.jsx(
+function wE({ companyTheme: n }) {
+  return /* @__PURE__ */ _.jsxs("div", { className: "flex gap-3 max-w-4xl mx-auto px-4 py-6", children: [
+    /* @__PURE__ */ _.jsx(
       "div",
       {
         className: "flex-shrink-0 w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 flex items-center justify-center",
         style: { backgroundColor: n?.backgroundColor || "#f3f4f6" },
-        children: /* @__PURE__ */ O.jsx(Vg, { className: "w-4 h-4" })
+        children: /* @__PURE__ */ _.jsx(Vg, { className: "w-4 h-4" })
       }
     ),
-    /* @__PURE__ */ O.jsx("div", { className: "flex-1", children: /* @__PURE__ */ O.jsx("div", { className: "inline-block bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-md", children: /* @__PURE__ */ O.jsxs("div", { className: "flex space-x-1", children: [
-      /* @__PURE__ */ O.jsx("div", { className: "w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" }),
-      /* @__PURE__ */ O.jsx(
+    /* @__PURE__ */ _.jsx("div", { className: "flex-1", children: /* @__PURE__ */ _.jsx("div", { className: "inline-block bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-2xl rounded-bl-md", children: /* @__PURE__ */ _.jsxs("div", { className: "flex space-x-1", children: [
+      /* @__PURE__ */ _.jsx("div", { className: "w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce" }),
+      /* @__PURE__ */ _.jsx(
         "div",
         {
           className: "w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce",
           style: { animationDelay: "0.1s" }
         }
       ),
-      /* @__PURE__ */ O.jsx(
+      /* @__PURE__ */ _.jsx(
         "div",
         {
           className: "w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-bounce",
@@ -22247,7 +22177,7 @@ function ug(n, i) {
     return n(i);
   n != null && (n.current = i);
 }
-function CE(...n) {
+function TE(...n) {
   return (i) => {
     let l = !1;
     const o = n.map((u) => {
@@ -22264,35 +22194,35 @@ function CE(...n) {
   };
 }
 // @__NO_SIDE_EFFECTS__
-function kE(n) {
-  const i = /* @__PURE__ */ zE(n), l = pe.forwardRef((o, u) => {
-    const { children: c, ...d } = o, p = pe.Children.toArray(c), g = p.find(NE);
+function EE(n) {
+  const i = /* @__PURE__ */ kE(n), l = pe.forwardRef((o, u) => {
+    const { children: c, ...d } = o, p = pe.Children.toArray(c), g = p.find(zE);
     if (g) {
       const m = g.props.children, h = p.map((v) => v === g ? pe.Children.count(m) > 1 ? pe.Children.only(null) : pe.isValidElement(m) ? m.props.children : null : v);
-      return /* @__PURE__ */ O.jsx(i, { ...d, ref: u, children: pe.isValidElement(m) ? pe.cloneElement(m, void 0, h) : null });
+      return /* @__PURE__ */ _.jsx(i, { ...d, ref: u, children: pe.isValidElement(m) ? pe.cloneElement(m, void 0, h) : null });
     }
-    return /* @__PURE__ */ O.jsx(i, { ...d, ref: u, children: c });
+    return /* @__PURE__ */ _.jsx(i, { ...d, ref: u, children: c });
   });
   return l.displayName = `${n}.Slot`, l;
 }
-var DE = /* @__PURE__ */ kE("Slot");
+var CE = /* @__PURE__ */ EE("Slot");
 // @__NO_SIDE_EFFECTS__
-function zE(n) {
+function kE(n) {
   const i = pe.forwardRef((l, o) => {
     const { children: u, ...c } = l;
     if (pe.isValidElement(u)) {
-      const d = OE(u), p = ME(c, u.props);
-      return u.type !== pe.Fragment && (p.ref = o ? CE(o, d) : d), pe.cloneElement(u, p);
+      const d = NE(u), p = RE(c, u.props);
+      return u.type !== pe.Fragment && (p.ref = o ? TE(o, d) : d), pe.cloneElement(u, p);
     }
     return pe.Children.count(u) > 1 ? pe.Children.only(null) : null;
   });
   return i.displayName = `${n}.SlotClone`, i;
 }
-var RE = Symbol("radix.slottable");
-function NE(n) {
-  return pe.isValidElement(n) && typeof n.type == "function" && "__radixId" in n.type && n.type.__radixId === RE;
+var DE = Symbol("radix.slottable");
+function zE(n) {
+  return pe.isValidElement(n) && typeof n.type == "function" && "__radixId" in n.type && n.type.__radixId === DE;
 }
-function ME(n, i) {
+function RE(n, i) {
   const l = { ...i };
   for (const o in i) {
     const u = n[o], c = i[o];
@@ -22303,11 +22233,11 @@ function ME(n, i) {
   }
   return { ...n, ...l };
 }
-function OE(n) {
+function NE(n) {
   let i = Object.getOwnPropertyDescriptor(n.props, "ref")?.get, l = i && "isReactWarning" in i && i.isReactWarning;
   return l ? n.ref : (i = Object.getOwnPropertyDescriptor(n, "ref")?.get, l = i && "isReactWarning" in i && i.isReactWarning, l ? n.props.ref : n.props.ref || n.ref);
 }
-const cg = (n) => typeof n == "boolean" ? `${n}` : n === 0 ? "0" : n, fg = Gg, _E = (n, i) => (l) => {
+const cg = (n) => typeof n == "boolean" ? `${n}` : n === 0 ? "0" : n, fg = Gg, ME = (n, i) => (l) => {
   var o;
   if (i?.variants == null) return fg(n, l?.class, l?.className);
   const { variants: u, defaultVariants: c } = i, d = Object.keys(u).map((m) => {
@@ -22336,7 +22266,7 @@ const cg = (n) => typeof n == "boolean" ? `${n}` : n === 0 ? "0" : n, fg = Gg, _
     ] : m;
   }, []);
   return fg(n, d, g, l?.class, l?.className);
-}, IE = _E(
+}, OE = ME(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
@@ -22368,18 +22298,18 @@ function By({
   asChild: o = !1,
   ...u
 }) {
-  const c = o ? DE : "button";
-  return /* @__PURE__ */ O.jsx(
+  const c = o ? CE : "button";
+  return /* @__PURE__ */ _.jsx(
     c,
     {
       "data-slot": "button",
-      className: La(IE({ variant: i, size: l, className: n })),
+      className: La(OE({ variant: i, size: l, className: n })),
       ...u
     }
   );
 }
-function UE({ className: n, ...i }) {
-  return /* @__PURE__ */ O.jsx(
+function _E({ className: n, ...i }) {
+  return /* @__PURE__ */ _.jsx(
     "textarea",
     {
       "data-slot": "textarea",
@@ -22391,16 +22321,16 @@ function UE({ className: n, ...i }) {
     }
   );
 }
-function LE({ onSendMessage: n, isLoading: i = !1, placeholder: l = "Type your message...", companyTheme: o, verifiedPlan: u }) {
+function IE({ onSendMessage: n, isLoading: i = !1, placeholder: l = "Type your message...", companyTheme: o, verifiedPlan: u }) {
   const [c, d] = pe.useState(""), p = (h) => {
     h.preventDefault(), c.trim() && !i && (n(c.trim()), d(""));
   }, g = (h) => {
     h.key === "Enter" && !h.shiftKey && (h.preventDefault(), p(h));
   }, m = o?.primaryColor ? ay(o.primaryColor, 20) : void 0;
-  return /* @__PURE__ */ O.jsx("div", { className: "border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900", children: /* @__PURE__ */ O.jsxs("div", { className: "max-w-4xl mx-auto p-4", children: [
-    /* @__PURE__ */ O.jsxs("form", { onSubmit: p, className: "relative", children: [
-      /* @__PURE__ */ O.jsx(
-        UE,
+  return /* @__PURE__ */ _.jsx("div", { className: "border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900", children: /* @__PURE__ */ _.jsxs("div", { className: "max-w-4xl mx-auto p-4", children: [
+    /* @__PURE__ */ _.jsxs("form", { onSubmit: p, className: "relative", children: [
+      /* @__PURE__ */ _.jsx(
+        _E,
         {
           value: c,
           onChange: (h) => d(h.target.value),
@@ -22425,7 +22355,7 @@ function LE({ onSendMessage: n, isLoading: i = !1, placeholder: l = "Type your m
           rows: 1
         }
       ),
-      /* @__PURE__ */ O.jsxs(
+      /* @__PURE__ */ _.jsxs(
         By,
         {
           type: "submit",
@@ -22455,17 +22385,17 @@ function LE({ onSendMessage: n, isLoading: i = !1, placeholder: l = "Type your m
             o?.primaryColor && (h.currentTarget.style.backgroundColor = o.primaryColor);
           },
           children: [
-            i ? /* @__PURE__ */ O.jsx(Pg, { className: "h-4 w-4 animate-spin" }) : /* @__PURE__ */ O.jsx(o1, { className: "h-4 w-4 text-white" }),
-            /* @__PURE__ */ O.jsx("span", { className: "sr-only", children: "Send message" })
+            i ? /* @__PURE__ */ _.jsx(Pg, { className: "h-4 w-4 animate-spin" }) : /* @__PURE__ */ _.jsx(o1, { className: "h-4 w-4 text-white" }),
+            /* @__PURE__ */ _.jsx("span", { className: "sr-only", children: "Send message" })
           ]
         }
       )
     ] }),
-    /* @__PURE__ */ O.jsx("div", { className: "mt-2 text-xs text-gray-500 dark:text-gray-400 text-center", children: "Press Enter to send, Shift + Enter for new line" }),
-    u === "free" && /* @__PURE__ */ O.jsxs("div", { className: "mt-1 text-xs text-gray-400 dark:text-gray-500 text-center", children: [
+    /* @__PURE__ */ _.jsx("div", { className: "mt-2 text-xs text-gray-500 dark:text-gray-400 text-center", children: "Press Enter to send, Shift + Enter for new line" }),
+    u === "free" && /* @__PURE__ */ _.jsxs("div", { className: "mt-1 text-xs text-gray-400 dark:text-gray-500 text-center", children: [
       "Powered by",
       " ",
-      /* @__PURE__ */ O.jsx(
+      /* @__PURE__ */ _.jsx(
         "a",
         {
           href: "https://qurius.app",
@@ -22478,7 +22408,7 @@ function LE({ onSendMessage: n, isLoading: i = !1, placeholder: l = "Type your m
     ] })
   ] }) });
 }
-const qE = {
+const UE = {
   common: {
     loading: "Loading...",
     error: "Error",
@@ -22707,7 +22637,7 @@ const qE = {
     getStartedButton: "Get Started",
     viewAdminButton: "View Admin Dashboard"
   }
-}, jE = {
+}, LE = {
   common: {
     loading: "Cargando...",
     error: "Error",
@@ -22936,7 +22866,7 @@ const qE = {
     getStartedButton: "Comenzar",
     viewAdminButton: "Ver Panel de Administración"
   }
-}, BE = {
+}, qE = {
   common: {
     loading: "Chargement...",
     error: "Erreur",
@@ -23165,7 +23095,7 @@ const qE = {
     getStartedButton: "Commencer",
     viewAdminButton: "Voir l'administrateur"
   }
-}, HE = {
+}, jE = {
   common: {
     loading: "Laden...",
     error: "Fehler",
@@ -23394,7 +23324,7 @@ const qE = {
     getStartedButton: "Comenzar",
     viewAdminButton: "Ver Administrador"
   }
-}, VE = {
+}, BE = {
   common: {
     loading: "加载中...",
     error: "错误",
@@ -23623,7 +23553,7 @@ const qE = {
     getStartedButton: "开始",
     viewAdminButton: "查看管理员"
   }
-}, QE = {
+}, HE = {
   common: {
     loading: "読み込み中...",
     error: "エラー",
@@ -23852,7 +23782,7 @@ const qE = {
     getStartedButton: "はじめる",
     viewAdminButton: "管理者を見る"
   }
-}, PE = {
+}, VE = {
   common: {
     loading: "Carregando...",
     error: "Erro",
@@ -24081,7 +24011,7 @@ const qE = {
     getStartedButton: "Começar",
     viewAdminButton: "Ver Administrador"
   }
-}, FE = {
+}, QE = {
   common: {
     loading: "Caricamento...",
     error: "Errore",
@@ -24310,7 +24240,7 @@ const qE = {
     getStartedButton: "Inizia",
     viewAdminButton: "Vedi amministratore"
   }
-}, GE = {
+}, PE = {
   common: {
     loading: "Загрузка...",
     error: "Ошибка",
@@ -24539,7 +24469,7 @@ const qE = {
     getStartedButton: "Начать",
     viewAdminButton: "Просмотреть администратора"
   }
-}, YE = {
+}, FE = {
   common: {
     loading: "로딩 중...",
     error: "오류",
@@ -24769,18 +24699,18 @@ const qE = {
     viewAdminButton: "Ver Administrador"
   }
 }, dg = {
-  en: qE,
-  es: jE,
-  fr: BE,
-  de: HE,
-  zh: VE,
-  ja: QE,
-  pt: PE,
-  it: FE,
-  ru: GE,
-  ko: YE
+  en: UE,
+  es: LE,
+  fr: qE,
+  de: jE,
+  zh: BE,
+  ja: HE,
+  pt: VE,
+  it: QE,
+  ru: PE,
+  ko: FE
 };
-function XE(n, i) {
+function GE(n, i) {
   const l = i.split(".");
   let o = dg[n];
   for (const u of l)
@@ -24796,7 +24726,7 @@ function XE(n, i) {
     }
   return typeof o == "string" ? o : i;
 }
-function KE(n, i) {
+function YE(n, i) {
   return n.replace(/\{(\w+)\}/g, (l, o) => i[o] ?? "");
 }
 const Hy = pe.createContext(void 0), jc = {
@@ -24821,12 +24751,12 @@ const Hy = pe.createContext(void 0), jc = {
   it: "🇮🇹",
   ru: "🇷🇺",
   ko: "🇰🇷"
-}, ZE = () => {
+}, XE = () => {
   const n = navigator.language.toLowerCase();
   return n.startsWith("es") ? "es" : n.startsWith("fr") ? "fr" : n.startsWith("de") ? "de" : n.startsWith("zh") ? "zh" : n.startsWith("ja") ? "ja" : n.startsWith("pt") ? "pt" : n.startsWith("it") ? "it" : n.startsWith("ru") ? "ru" : n.startsWith("ko") ? "ko" : "en";
 };
-function JE({ children: n }) {
-  const [i, l] = pe.useState(ZE), [o, u] = pe.useState(!1);
+function KE({ children: n }) {
+  const [i, l] = pe.useState(XE), [o, u] = pe.useState(!1);
   pe.useEffect(() => {
     const g = localStorage.getItem("qurius_language");
     g && Object.keys(jc).includes(g) && l(g);
@@ -24835,13 +24765,13 @@ function JE({ children: n }) {
     u(!0), l(g), localStorage.setItem("qurius_language", g), setTimeout(() => {
       u(!1);
     }, 300);
-  }, []), d = pe.useCallback((g) => XE(i, g), [i]), p = pe.useMemo(() => ({
+  }, []), d = pe.useCallback((g) => GE(i, g), [i]), p = pe.useMemo(() => ({
     currentLanguage: i,
     setLanguage: c,
     t: d,
     isLanguageChanging: o
   }), [i, c, d, o]);
-  return /* @__PURE__ */ O.jsx(Hy.Provider, { value: p, children: n });
+  return /* @__PURE__ */ _.jsx(Hy.Provider, { value: p, children: n });
 }
 function Vy() {
   const n = pe.useContext(Hy);
@@ -24849,49 +24779,49 @@ function Vy() {
     throw new Error("useLanguage must be used within a LanguageProvider");
   return n;
 }
-function WE({ className: n = "", variant: i = "dropdown", companyName: l, companyId: o }) {
+function ZE({ className: n = "", variant: i = "dropdown", companyName: l, companyId: o }) {
   const { currentLanguage: u, setLanguage: c, isLanguageChanging: d } = Vy(), [p, g] = pe.useState(!1), m = (h) => {
     c(h), g(!1), l && dn.trackLanguageChange(l, o || "", h);
   };
-  return i === "buttons" ? /* @__PURE__ */ O.jsx("div", { className: `flex flex-wrap gap-1 ${n}`, children: Object.entries(jc).map(([h, v]) => /* @__PURE__ */ O.jsxs(
+  return i === "buttons" ? /* @__PURE__ */ _.jsx("div", { className: `flex flex-wrap gap-1 ${n}`, children: Object.entries(jc).map(([h, v]) => /* @__PURE__ */ _.jsxs(
     "button",
     {
       onClick: () => m(h),
       disabled: d,
       className: `flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${u === h ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"} ${d ? "opacity-50 cursor-not-allowed" : ""}`,
       children: [
-        /* @__PURE__ */ O.jsx("span", { className: "mr-2", children: vc[h] }),
+        /* @__PURE__ */ _.jsx("span", { className: "mr-2", children: vc[h] }),
         v
       ]
     },
     h
-  )) }) : /* @__PURE__ */ O.jsxs("div", { className: `relative ${n}`, children: [
-    /* @__PURE__ */ O.jsxs(
+  )) }) : /* @__PURE__ */ _.jsxs("div", { className: `relative ${n}`, children: [
+    /* @__PURE__ */ _.jsxs(
       "button",
       {
         onClick: () => g(!p),
         disabled: d,
         className: "flex items-center px-1 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
         children: [
-          /* @__PURE__ */ O.jsx($S, { className: "h-4 w-4 mr-1" }),
-          /* @__PURE__ */ O.jsx("span", { className: "mr-1", children: vc[u] }),
-          /* @__PURE__ */ O.jsx(Qg, { className: `h-4 w-4 ml-1 transition-transform ${p ? "rotate-180" : ""}` })
+          /* @__PURE__ */ _.jsx($S, { className: "h-4 w-4 mr-1" }),
+          /* @__PURE__ */ _.jsx("span", { className: "mr-1", children: vc[u] }),
+          /* @__PURE__ */ _.jsx(Qg, { className: `h-4 w-4 ml-1 transition-transform ${p ? "rotate-180" : ""}` })
         ]
       }
     ),
-    p && /* @__PURE__ */ O.jsx("div", { className: "absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50", children: /* @__PURE__ */ O.jsx("div", { className: "py-1", children: Object.entries(jc).map(([h, v]) => /* @__PURE__ */ O.jsxs(
+    p && /* @__PURE__ */ _.jsx("div", { className: "absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50", children: /* @__PURE__ */ _.jsx("div", { className: "py-1", children: Object.entries(jc).map(([h, v]) => /* @__PURE__ */ _.jsxs(
       "button",
       {
         onClick: () => m(h),
         className: `w-full flex items-center px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${u === h ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"}`,
         children: [
-          /* @__PURE__ */ O.jsx("span", { className: "mr-3", children: vc[h] }),
+          /* @__PURE__ */ _.jsx("span", { className: "mr-3", children: vc[h] }),
           v
         ]
       },
       h
     )) }) }),
-    p && /* @__PURE__ */ O.jsx(
+    p && /* @__PURE__ */ _.jsx(
       "div",
       {
         className: "fixed inset-0 z-40",
@@ -24900,7 +24830,7 @@ function WE({ className: n = "", variant: i = "dropdown", companyName: l, compan
     )
   ] });
 }
-class $E {
+class JE {
   static BACKEND_URL = "https://qurius-ai.onrender.com";
   // Generate theme from primary color
   static generateThemeFromPrimary(i, l, o) {
@@ -24927,28 +24857,28 @@ class $E {
     }
   }
 }
-const eC = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "https://qurius-ai.onrender.com", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
+const WE = { BASE_URL: "/", DEV: !1, MODE: "production", PROD: !0, SSR: !1, VITE_BACKEND_URL: "https://qurius-ai.onrender.com", VITE_JINA_API_KEY: "demo-jina-key", VITE_OPEN_ROUTER_API_KEY: "demo-openrouter-key", VITE_SUPABASE_ANON_KEY: "demo-key", VITE_SUPABASE_PROJECT_URL: "https://demo.supabase.co", VITE_SUPABASE_SERVICE_ROLE_KEY: "demo-service-key" };
 function Vn(n, i = "") {
   const l = typeof process < "u" ? process.env?.[n] : void 0;
-  return (typeof import.meta < "u" ? eC?.[n] : void 0) ?? l ?? i;
+  return (typeof import.meta < "u" ? WE?.[n] : void 0) ?? l ?? i;
 }
-const tC = {
+const $E = {
   projectUrl: Vn("VITE_SUPABASE_PROJECT_URL"),
   anonKey: Vn("VITE_SUPABASE_ANON_KEY"),
   serviceRoleKey: Vn("VITE_SUPABASE_SERVICE_ROLE_KEY")
-}, nC = {
+}, eC = {
   apiUrl: Vn("VITE_OPEN_ROUTER_URL", "https://openrouter.ai/api/v1"),
   apiKey: Vn("VITE_OPEN_ROUTER_API_KEY"),
   sourceUrl: Vn("VITE_SOURCE_URL", "http://localhost:8081")
-}, aC = {
+}, tC = {
   apiUrl: Vn("VITE_JINA_API_URL", "https://api.jina.ai/v1/embeddings"),
   apiKey: Vn("VITE_JINA_API_KEY")
 }, Qy = {
   backendUrl: Vn("VITE_BACKEND_URL", "http://localhost:3000"),
-  ...tC,
-  ...nC,
-  ...aC
-}, iC = {
+  ...$E,
+  ...eC,
+  ...tC
+}, nC = {
   en: "en",
   es: "es",
   fr: "fr",
@@ -25055,7 +24985,7 @@ class hg {
     try {
       return (await Ie.post(`${pg}?key=${u}`, {
         q: i,
-        target: iC[l],
+        target: nC[l],
         source: o || "en"
       }, {
         headers: {
@@ -25080,7 +25010,7 @@ class hg {
     return await this.translate(i, l, "en");
   }
 }
-class rC {
+class aC {
   BACKEND_URL = Qy.backendUrl;
   // Get FAQ answer using semantic search
   async getAnswer(i, l, o) {
@@ -25177,8 +25107,8 @@ class rC {
     }
   }
 }
-const lC = new rC();
-function oC({
+const iC = new aC();
+function rC({
   defaultTheme: n,
   toggleTheme: i,
   isMinimized: l,
@@ -25186,7 +25116,7 @@ function oC({
   isThemeChanging: u,
   companyData: c
 }) {
-  const d = pe.useRef(null), p = pe.useRef(null), { t: g, currentLanguage: m } = Vy(), [h, v] = pe.useState(null), w = n === "dark", [x, k] = pe.useState(!0), [z, L] = pe.useState(!1), [q, J] = pe.useState(!1), { name: j, plan: ue, logo_url: W, id: I } = c || {}, le = () => KE(g("chat.welcomeWithCompany"), { companyName: j || "AI" }), [K, se] = pe.useState([]), [Te, ie] = pe.useState(!1), [ee, re] = pe.useState(!1), [Y, ne] = pe.useState(!1), [N, G] = pe.useState(!0), [P, Ee] = pe.useState(0), b = () => {
+  const d = pe.useRef(null), p = pe.useRef(null), { t: g, currentLanguage: m } = Vy(), [h, v] = pe.useState(null), w = n === "dark", [x, k] = pe.useState(!0), [z, L] = pe.useState(!1), [q, J] = pe.useState(!1), { name: j, plan: ue, logo_url: W, id: I } = c || {}, le = () => YE(g("chat.welcomeWithCompany"), { companyName: j || "AI" }), [K, se] = pe.useState([]), [Te, ie] = pe.useState(!1), [ee, re] = pe.useState(!1), [Y, ne] = pe.useState(!1), [N, G] = pe.useState(!0), [P, Ee] = pe.useState(0), b = () => {
     p.current && P > 0 && (p.current.scrollTop = P);
   }, V = () => {
     p.current && (p.current.scrollTop = p.current.scrollHeight);
@@ -25212,7 +25142,7 @@ function oC({
     };
     se([ae]), j && dn.trackLanguageChange(j, I || "", m);
   }, [m]), pe.useEffect(() => {
-    j ? (k(!0), console.log("🔄 Fetching company theme via service..."), $E.getCompanyTheme(j, I || "", w).then((ae) => {
+    j ? (k(!0), console.log("🔄 Fetching company theme via service..."), JE.getCompanyTheme(j, I || "", w).then((ae) => {
       v(ae), setTimeout(() => {
         k(!1), L(!0);
       }, 100);
@@ -25285,7 +25215,7 @@ function oC({
       console.log("🤖 Getting FAQ answer...");
       const Ue = xe(K, be);
       console.log("📝 Conversation context:", Ue.length, "messages");
-      const $e = await lC.getAnswer(be, Ue, c);
+      const $e = await iC.getAnswer(be, Ue, c);
       if ($e) {
         if ($e.source === "limit_reached" || $e.limitReached) {
           console.log("⚠️ Message limit reached, showing limit message");
@@ -25351,7 +25281,7 @@ function oC({
       (be, Ue) => Ue === ae ? { ...be, isMessageStreamed: !0 } : be
     ));
   }, we = h?.primaryColor ? ay(h.primaryColor, 20) : void 0;
-  return l ? /* @__PURE__ */ O.jsx(
+  return l ? /* @__PURE__ */ _.jsx(
     "div",
     {
       className: x && !z ? "animate-spin" : "animate-bounce",
@@ -25363,8 +25293,8 @@ function oC({
         maxWidth: "400px",
         maxHeight: "600px"
       },
-      children: /* @__PURE__ */ O.jsxs("div", { className: "relative group", children: [
-        /* @__PURE__ */ O.jsx(
+      children: /* @__PURE__ */ _.jsxs("div", { className: "relative group", children: [
+        /* @__PURE__ */ _.jsx(
           "button",
           {
             onClick: o,
@@ -25378,14 +25308,14 @@ function oC({
             onMouseLeave: (ae) => {
               ae.currentTarget.style.backgroundColor = h?.primaryColor || "#007bff";
             },
-            children: x && !z ? /* @__PURE__ */ O.jsx("div", { className: "w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" }) : /* @__PURE__ */ O.jsx(Sh, { className: "h-7 w-7" })
+            children: x && !z ? /* @__PURE__ */ _.jsx("div", { className: "w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" }) : /* @__PURE__ */ _.jsx(Sh, { className: "h-7 w-7" })
           }
         ),
-        ue === "free" && /* @__PURE__ */ O.jsxs("div", { className: "absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none", children: [
-          /* @__PURE__ */ O.jsxs("div", { className: "bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg", children: [
+        ue === "free" && /* @__PURE__ */ _.jsxs("div", { className: "absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none", children: [
+          /* @__PURE__ */ _.jsxs("div", { className: "bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg", children: [
             "Powered by",
             " ",
-            /* @__PURE__ */ O.jsx(
+            /* @__PURE__ */ _.jsx(
               "a",
               {
                 href: "https://qurius.app",
@@ -25397,11 +25327,11 @@ function oC({
               }
             )
           ] }),
-          /* @__PURE__ */ O.jsx("div", { className: "absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" })
+          /* @__PURE__ */ _.jsx("div", { className: "absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" })
         ] })
       ] })
     }
-  ) : q ? /* @__PURE__ */ O.jsxs(
+  ) : q ? /* @__PURE__ */ _.jsxs(
     "div",
     {
       className: La(
@@ -25432,20 +25362,20 @@ function oC({
         backgroundColor: h?.backgroundColor || "#FFFFFF"
       },
       children: [
-        u && /* @__PURE__ */ O.jsx(
+        u && /* @__PURE__ */ _.jsx(
           "div",
           {
             className: "absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg",
             style: { backgroundColor: h?.backgroundColor + "CC" },
-            children: /* @__PURE__ */ O.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
-              /* @__PURE__ */ O.jsx(
+            children: /* @__PURE__ */ _.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
+              /* @__PURE__ */ _.jsx(
                 Pg,
                 {
                   className: "w-12 h-12 animate-spin",
                   style: { color: h?.primaryColor }
                 }
               ),
-              /* @__PURE__ */ O.jsx(
+              /* @__PURE__ */ _.jsx(
                 "p",
                 {
                   className: "text-sm font-medium",
@@ -25456,23 +25386,23 @@ function oC({
             ] })
           }
         ),
-        /* @__PURE__ */ O.jsxs("div", { className: "flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800", children: [
-          /* @__PURE__ */ O.jsxs("div", { className: "flex items-center gap-3", children: [
-            W ? /* @__PURE__ */ O.jsx("div", { className: "w-8 h-8 rounded-full flex items-center justify-center", children: /* @__PURE__ */ O.jsx("img", { src: W, alt: "Company Logo", className: "w-7 h-7" }) }) : (
+        /* @__PURE__ */ _.jsxs("div", { className: "flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800", children: [
+          /* @__PURE__ */ _.jsxs("div", { className: "flex items-center gap-3", children: [
+            W ? /* @__PURE__ */ _.jsx("div", { className: "w-8 h-8 rounded-full flex items-center justify-center", children: /* @__PURE__ */ _.jsx("img", { src: W, alt: "Company Logo", className: "w-7 h-7" }) }) : (
               // Default logo
-              /* @__PURE__ */ O.jsx("div", { className: "w-8 h-8 rounded-full flex items-center justify-center", style: { backgroundColor: h?.primaryColor }, children: /* @__PURE__ */ O.jsx(Sh, { className: "w-4 h-4 text-white" }) })
+              /* @__PURE__ */ _.jsx("div", { className: "w-8 h-8 rounded-full flex items-center justify-center", style: { backgroundColor: h?.primaryColor }, children: /* @__PURE__ */ _.jsx(Sh, { className: "w-4 h-4 text-white" }) })
             ),
-            /* @__PURE__ */ O.jsxs("div", { children: [
-              /* @__PURE__ */ O.jsxs("h3", { className: "font-semibold text-gray-900 dark:text-gray-100 text-sm", children: [
+            /* @__PURE__ */ _.jsxs("div", { children: [
+              /* @__PURE__ */ _.jsxs("h3", { className: "font-semibold text-gray-900 dark:text-gray-100 text-sm", children: [
                 j,
                 " Assistant"
               ] }),
-              /* @__PURE__ */ O.jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Online now" })
+              /* @__PURE__ */ _.jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "Online now" })
             ] })
           ] }),
-          /* @__PURE__ */ O.jsxs("div", { className: "flex justify-end gap-1", children: [
-            ue === "pro" && /* @__PURE__ */ O.jsx(
-              WE,
+          /* @__PURE__ */ _.jsxs("div", { className: "flex justify-end gap-1", children: [
+            ue === "pro" && /* @__PURE__ */ _.jsx(
+              ZE,
               {
                 variant: "dropdown",
                 className: "scale-65",
@@ -25480,7 +25410,7 @@ function oC({
                 companyId: I || ""
               }
             ),
-            ue !== "free" && /* @__PURE__ */ O.jsx(
+            ue !== "free" && /* @__PURE__ */ _.jsx(
               "button",
               {
                 onClick: () => {
@@ -25488,33 +25418,33 @@ function oC({
                 },
                 disabled: u,
                 className: "p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50",
-                children: n === "dark" ? /* @__PURE__ */ O.jsx(u1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" }) : /* @__PURE__ */ O.jsx(r1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" })
+                children: n === "dark" ? /* @__PURE__ */ _.jsx(u1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" }) : /* @__PURE__ */ _.jsx(r1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" })
               }
             ),
-            /* @__PURE__ */ O.jsx(
+            /* @__PURE__ */ _.jsx(
               "button",
               {
                 onClick: () => {
                   p.current && Ee(p.current.scrollTop), o?.();
                 },
                 className: "p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
-                children: /* @__PURE__ */ O.jsx(a1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" })
+                children: /* @__PURE__ */ _.jsx(a1, { className: "h-4 w-4 text-gray-600 dark:text-gray-400" })
               }
             )
           ] })
         ] }),
-        /* @__PURE__ */ O.jsxs(
+        /* @__PURE__ */ _.jsxs(
           "div",
           {
             ref: p,
             className: "flex-1 overflow-y-auto bg-white dark:bg-gray-900",
             onScroll: $,
             children: [
-              /* @__PURE__ */ O.jsxs("div", { className: "py-4 pb-8", children: [
+              /* @__PURE__ */ _.jsxs("div", { className: "py-4 pb-8", children: [
                 K.map((ae, je) => {
                   const be = !ae.isUser && je === K.length - 1;
-                  return /* @__PURE__ */ O.jsx(
-                    TE,
+                  return /* @__PURE__ */ _.jsx(
+                    AE,
                     {
                       message: ae.content,
                       messageIndex: je,
@@ -25533,13 +25463,13 @@ function oC({
                     `${je}-${ae.content.substring(0, 20)}`
                   );
                 }),
-                Te && /* @__PURE__ */ O.jsx(EE, { companyTheme: h })
+                Te && /* @__PURE__ */ _.jsx(wE, { companyTheme: h })
               ] }),
-              /* @__PURE__ */ O.jsx("div", { ref: d, className: "h-2" })
+              /* @__PURE__ */ _.jsx("div", { ref: d, className: "h-2" })
             ]
           }
         ),
-        !N && !Y && /* @__PURE__ */ O.jsx("div", { className: "absolute bottom-27 right-4 z-10", children: /* @__PURE__ */ O.jsxs(
+        !N && !Y && /* @__PURE__ */ _.jsx("div", { className: "absolute bottom-27 right-4 z-10", children: /* @__PURE__ */ _.jsxs(
           By,
           {
             onClick: V,
@@ -25562,13 +25492,13 @@ function oC({
               h?.primaryColor && (ae.currentTarget.style.backgroundColor = h.primaryColor);
             },
             children: [
-              /* @__PURE__ */ O.jsx(Qg, { className: "h-4 w-4" }),
-              /* @__PURE__ */ O.jsx("span", { className: "sr-only", children: "Scroll to bottom" })
+              /* @__PURE__ */ _.jsx(Qg, { className: "h-4 w-4" }),
+              /* @__PURE__ */ _.jsx("span", { className: "sr-only", children: "Scroll to bottom" })
             ]
           }
         ) }),
-        /* @__PURE__ */ O.jsx(
-          LE,
+        /* @__PURE__ */ _.jsx(
+          IE,
           {
             onSendMessage: oe,
             isLoading: Te,
@@ -25582,7 +25512,7 @@ function oC({
     }
   ) : null;
 }
-const sC = 400, uC = 1300, Oa = {
+const lC = 400, oC = 1300, Oa = {
   light: {
     containerBackground: "#ffffff",
     messageBackground: "#f5f5f5",
@@ -25612,7 +25542,7 @@ const sC = 400, uC = 1300, Oa = {
   toggleTheme: () => {
   },
   isThemeChanging: !1
-}), cC = ({ children: n, initialTheme: i }) => {
+}), sC = ({ children: n, initialTheme: i }) => {
   const l = () => {
     if (i)
       return i;
@@ -25628,8 +25558,8 @@ const sC = 400, uC = 1300, Oa = {
     d(!0), setTimeout(() => {
       p(h), setTimeout(() => {
         d(!1);
-      }, uC);
-    }, sC);
+      }, oC);
+    }, lC);
   };
   pe.useEffect(() => {
     const h = window.matchMedia("(prefers-color-scheme: dark)"), v = (w) => {
@@ -25640,7 +25570,7 @@ const sC = 400, uC = 1300, Oa = {
     typeof window < "u" && (o ? document.documentElement.classList.add("dark") : document.documentElement.classList.remove("dark"), document.body.style.backgroundColor = o ? Oa.dark.containerBackground : Oa.light.containerBackground, document.body.style.color = o ? Oa.dark.text : Oa.light.text);
   }, [o]);
   const m = o ? Oa.dark : Oa.light;
-  return /* @__PURE__ */ O.jsx(Py.Provider, { value: {
+  return /* @__PURE__ */ _.jsx(Py.Provider, { value: {
     colors: m,
     defaultTheme: o ? "dark" : "light",
     isDark: o,
@@ -25648,14 +25578,14 @@ const sC = 400, uC = 1300, Oa = {
     toggleTheme: g,
     isThemeChanging: c
   }, children: n });
-}, fC = () => {
+}, uC = () => {
   const n = pe.useContext(Py);
   if (!n)
     throw new Error("useTheme must be used within a ThemeProvider");
   return n;
 };
 let ho = null;
-const dC = async (n, i, l) => {
+const cC = async (n, i, l) => {
   try {
     return console.log("🔑 Validating widget key:", n, "for company with id:", i), (await Ie.get(`${l}/api/validate-key`, {
       params: { key: n, companyId: i }
@@ -25664,22 +25594,22 @@ const dC = async (n, i, l) => {
     const u = o;
     return console.error("Key validation failed:", u.response?.data || u.message), { valid: !1, error: "Validation failed" };
   }
-}, pC = async (n, i) => {
+}, fC = async (n, i) => {
   try {
     return console.log("🏢 Fetching company data for ID:", n), (await Ie.get(`${i}/api/companies/${n}`)).data;
   } catch (l) {
     const o = l;
     throw console.error("Failed to fetch company data:", o.response?.data || o.message), new Error("Failed to fetch company data");
   }
-}, mC = (n, i) => (console.log("🔍 Verifying plan authenticity:", { scriptPlan: n, companyPlan: i }), n === "free" ? n : n === i ? (console.log("✅ Plan verification successful: plans match"), i) : (console.log("⚠️ Plan mismatch detected: using company plan as source of truth"), console.log("Script plan:", n, "Company plan:", i), i)), hC = async (n) => {
+}, dC = (n, i) => (console.log("🔍 Verifying plan authenticity:", { scriptPlan: n, companyPlan: i }), n === "free" ? n : n === i ? (console.log("✅ Plan verification successful: plans match"), i) : (console.log("⚠️ Plan mismatch detected: using company plan as source of truth"), console.log("Script plan:", n, "Company plan:", i), i)), pC = async (n) => {
   const i = n.key, l = n.companyId, o = n.plan, u = window.location.hostname === "qurius.app" ? "https://qurius-ai.onrender.com" : "http://localhost:3000";
-  let c = await dC(i, l, u);
+  let c = await cC(i, l, u);
   if (!c?.valid)
     return console.error("Widget key validation failed:", c.error), !1;
   try {
-    const d = await pC(l, u);
+    const d = await fC(l, u);
     console.log("✅ Company data fetched successfully:", d);
-    const p = mC(o, d.plan);
+    const p = dC(o, d.plan);
     return n.companyData = {
       ...d,
       plan: p
@@ -25689,23 +25619,23 @@ const dC = async (n, i, l) => {
     return console.error("❌ Failed to fetch company data:", d), !1;
   }
 };
-function gC(n, i) {
+function mC(n, i) {
   ho && ho.unmount(), ho = dv.createRoot(n), ho.render(
-    /* @__PURE__ */ O.jsx(go.StrictMode, { children: /* @__PURE__ */ O.jsx(cC, { initialTheme: i.theme, children: /* @__PURE__ */ O.jsx(JE, { children: /* @__PURE__ */ O.jsx(yC, { config: i }) }) }) })
+    /* @__PURE__ */ _.jsx(go.StrictMode, { children: /* @__PURE__ */ _.jsx(sC, { initialTheme: i.theme, children: /* @__PURE__ */ _.jsx(KE, { children: /* @__PURE__ */ _.jsx(hC, { config: i }) }) }) })
   );
 }
-function yC({ config: n }) {
-  const { defaultTheme: i, toggleTheme: l, isThemeChanging: o } = fC(), [u, c] = go.useState(!0), [d, p] = go.useState(!1);
+function hC({ config: n }) {
+  const { defaultTheme: i, toggleTheme: l, isThemeChanging: o } = uC(), [u, c] = go.useState(!0), [d, p] = go.useState(!1);
   if (go.useEffect(() => {
-    hC(n).then(p);
+    pC(n).then(p);
   }, [n]), !d)
     return null;
   const g = () => {
     const m = !u;
     c(m), console.log(m ? "Widget minimized, chat button should be visible" : "Widget expanded, chat button should be hidden");
   };
-  return /* @__PURE__ */ O.jsx(
-    oC,
+  return /* @__PURE__ */ _.jsx(
+    rC,
     {
       defaultTheme: i,
       toggleTheme: l,
@@ -25716,10 +25646,10 @@ function yC({ config: n }) {
     }
   );
 }
-const bC = {
-  init: gC
+const gC = {
+  init: mC
 };
-typeof window < "u" && (window.QuriusChatWidget = bC);
+typeof window < "u" && (window.QuriusChatWidget = gC);
 export {
-  bC as default
+  gC as default
 };
