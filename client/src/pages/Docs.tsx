@@ -251,7 +251,8 @@ export function Docs() {
               </p>
               
               <CodeBlock 
-                code={`<!-- Add a simple script to your website's <body> section -->
+                code={`<!-- Add this script right before the closing </body> tag -->
+
 <script src="widget-source.js" data-company="your-company-name" data-id="your-company-id" data-key="your-api-key" data-theme="light/dark"></script>
 `}
                 title="Widget Integration Code"
@@ -323,7 +324,7 @@ export function Docs() {
                 Base URL
               </h3>
               <CodeBlock 
-                code={`https://qurius-ai.com/api/v1`}
+                code={`https://qurius.app/api/v1`}
                 title="API Base URL"
               />
             </div>
@@ -438,7 +439,7 @@ export function Docs() {
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
                   <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">AI Generation</h4>
                   <p className="text-purple-800 dark:text-purple-200 text-sm">
-                    Generate FAQs from your website content
+                    Generate FAQs from your website content using our highly advanced web crawler.
                   </p>
                 </div>
               </div>
@@ -471,7 +472,7 @@ export function Docs() {
                 We provide industry-specific FAQ templates to help you get started quickly:
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['E-commerce', 'Healthcare', 'Education', 'Legal', 'Real Estate', 'Restaurant', 'Automotive', 'Technology'].map((industry) => (
+                {['E-commerce', 'Healthcare', 'Education', 'Legal', 'Real Estate', 'Travel', 'Finance', 'Entertainment', 'Restaurant', 'Automotive', 'Technology', 'Other'].map((industry) => (
                   <div key={industry} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{industry}</span>
                   </div>
