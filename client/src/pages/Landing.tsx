@@ -179,8 +179,8 @@ export function Landing() {
               See Qurius AI in Action
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-4 md:px-0 max-w-3xl mx-auto">
-              Watch our 1-minute demo showing how easy it is to install and set up Qurius AI on your website. 
-              See the installation process and discover the immediate benefits for your customer support.
+              Watch our demo showing how easy it is to transform your website into an intelligent, personalized experience. 
+              See the installation process and discover how Qurius AI provides 24/7 customer intelligence and analytics.
             </p>
           </div>
           
@@ -221,7 +221,7 @@ export function Landing() {
                   2-Minute Setup
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Simple installation process with just one line of code
+                  Simple installation process with intelligent knowledge management
                 </p>
               </div>
               
@@ -233,7 +233,7 @@ export function Landing() {
                   Instant Benefits
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  See immediate improvements in customer support efficiency
+                  See immediate improvements in customer intelligence and analytics
                 </p>
               </div>
               
@@ -254,7 +254,7 @@ export function Landing() {
             <div className="text-center mt-8 md:mt-12">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
                 <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base mb-4">
-                  💡 <strong>Ready to transform your customer support? </strong> 
+                  💡 <strong>Ready to transform your customer experience? </strong> 
                   Get started with Qurius AI today and see the difference.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -416,7 +416,7 @@ export function Landing() {
               Try Our AI Right Now
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-4 md:px-0">
-              Experience the power of Qurius AI firsthand. Click the chat icon to ask any questions!
+              Experience the power of Qurius AI's intelligent knowledge management and analytics firsthand. Click the chat icon to ask any questions!
             </p>
           </div>
           
@@ -455,7 +455,7 @@ export function Landing() {
           <div className="text-center mt-8">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
               <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base">
-                💡 <strong>This chatbot is powered by Qurius AI!</strong> It's the same technology we provide to our customers. 
+                💡 <strong>This chatbot is powered by Qurius AI!</strong> It's the same intelligent knowledge management and analytics technology we provide to our customers. 
                 Try asking any question to see our AI in action.
               </p>
             </div>
