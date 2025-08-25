@@ -54,7 +54,7 @@ class QuriusCrawler {
   /**
    * Main crawling function for a company website
    */
-  async crawlCompanyWebsite(companyId, baseUrl) {
+  async crawlCompanyWebsite(companyId, baseUrl, automationContext = null) {
     let crawlData = null
     
     try {
@@ -171,6 +171,25 @@ class QuriusCrawler {
         await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
       }
       
+      // Store content hashes for change detection if this is an automated crawl
+      if (automationContext?.isAutomated) {
+        try {
+          const { ChangeDetectionService } = await import('../services/changeDetectionService.js')
+          const changeDetectionService = new ChangeDetectionService()
+          
+          // Store content hashes for all crawled content
+          await changeDetectionService.batchStoreContentHashes(
+            companyId, 
+            crawlData.content, 
+            crawlData.sessionId
+          )
+          
+          console.log(`💾 Stored content hashes for change detection`)
+        } catch (hashError) {
+          console.warn('⚠️ Failed to store content hashes:', hashError.message)
+        }
+      }
+
       // Create crawl completion notification
       try {
         await this.createCrawlCompletionNotification(crawlData.companyId, crawlData.companyName, crawlData.sessionId, crawlData.pages.length, aiFAQs.length)

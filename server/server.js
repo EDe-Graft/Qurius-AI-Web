@@ -13,6 +13,8 @@ import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, s
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
+import automationRoutes from './crawler/automation-api.js';
+import scheduler from './services/schedulerService.js';
 
 const app = express();;
 const PORT = process.env.PORT || 3001;
@@ -241,6 +243,9 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_RATE_LIMIT === '
 
 // Crawler routes
 app.use('/api/crawler', crawlerRoutes);
+
+// Automation routes
+app.use('/api/automation', automationRoutes);
 
 // Production monitoring endpoints
 app.get('/api/status', (req, res) => {
@@ -3188,18 +3193,6 @@ app.get('/api/crawler/session/:sessionId', async (req, res) => {
 //   }
 // });
 
-
-// ========================================
-// START SERVER
-// ========================================
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
-  console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
-}); 
-
 // ========================================
 
 // Get notifications summary for super admin dashboard
@@ -3239,6 +3232,65 @@ app.get('/api/notifications/all/summary', async (req, res) => {
       error: 'Failed to fetch notifications summary',
       details: error.response?.data || error.message 
     });
+  }
+});
+
+// ========================================
+// AUTOMATION API ENDPOINTS
+// ========================================
+
+// Get scheduler status
+app.get('/api/automation/status', async (req, res) => {
+  try {
+    const status = await scheduler.getStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('❌ Error getting scheduler status:', error);
+    res.status(500).json({ error: 'Failed to get scheduler status' });
+  }
+});
+
+// Start/stop scheduler
+app.post('/api/automation/scheduler', async (req, res) => {
+  try {
+    const { action } = req.body;
+    
+    if (action === 'start') {
+      await scheduler.start();
+      res.json({ message: 'Scheduler started successfully' });
+    } else if (action === 'stop') {
+      await scheduler.stop();
+      res.json({ message: 'Scheduler stopped successfully' });
+    } else {
+      res.status(400).json({ error: 'Invalid action. Use "start" or "stop"' });
+    }
+  } catch (error) {
+    console.error('❌ Error controlling scheduler:', error);
+    res.status(500).json({ error: 'Failed to control scheduler' });
+  }
+});
+
+// Get automation analytics for a company
+app.get('/api/companies/:companyId/automation/analytics', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { days = 30 } = req.query;
+
+    const { data, error } = await supabase
+      .from('automation_analytics')
+      .select('*')
+      .eq('company_id', companyId)
+      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Error getting automation analytics:', error);
+    res.status(500).json({ error: 'Failed to get automation analytics' });
   }
 });
 
@@ -3581,3 +3633,23 @@ app.get('/api/subscriptions', async (req, res) => {
     });
   }
 });
+
+
+// ========================================
+// START SERVER
+// ========================================
+
+// Start server
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 Health check: ${process.env.BACKEND_URL}/api/health`);
+  console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
+  
+  // Start the crawl scheduler
+  try {
+    await scheduler.start();
+    console.log('✅ Crawl scheduler started successfully');
+  } catch (error) {
+    console.error('❌ Failed to start crawl scheduler:', error);
+  }
+}); 
