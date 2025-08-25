@@ -167,7 +167,9 @@ class QuriusCrawler {
       await this.updateCrawlStatus(crawlData.sessionId, 'ready_for_review', 100, `${aiFAQs.length} AI-generated FAQs ready for review`)
       
       // Send email notification
-      await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+      if (aiFAQs.length > 0) {
+        await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+      }
       
       // Create crawl completion notification
       try {
@@ -1753,7 +1755,7 @@ class QuriusCrawler {
       })
 
       await sendEmail({
-        to: 'edgquansah@gmail.com',
+        to: company.admin_email || company.contact_email || 'qurius.ai@gmail.com',
         subject: `🤖 AI FAQ Generation Complete - ${company.name}`,
         html: emailHtml
       })
