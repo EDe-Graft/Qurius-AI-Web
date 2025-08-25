@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -80,6 +81,9 @@ interface DashboardData {
   }
 }
 
+// Backend URL configuration
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+
 const AutomationManager: React.FC = () => {
   const [schedules, setSchedules] = useState<CrawlSchedule[]>([])
   const [analytics, setAnalytics] = useState<AutomationAnalytics[]>([])
@@ -112,30 +116,26 @@ const AutomationManager: React.FC = () => {
     try {
       setLoading(true)
       const [schedulesRes, analyticsRes, dashboardRes, statusRes] = await Promise.all([
-        fetch('/api/automation/schedules'),
-        fetch('/api/automation/analytics'),
-        fetch('/api/automation/dashboard'),
-        fetch('/api/automation/status')
+        axios.get(`${BACKEND_URL}/api/automation/schedules`),
+        axios.get(`${BACKEND_URL}/api/automation/analytics`),
+        axios.get(`${BACKEND_URL}/api/automation/dashboard`),
+        axios.get(`${BACKEND_URL}/api/automation/status`)
       ])
 
-      if (schedulesRes.ok) {
-        const schedulesData = await schedulesRes.json()
-        setSchedules(schedulesData.schedules || [])
+      if (schedulesRes.status === 200) {
+        setSchedules(schedulesRes.data.schedules || [])
       }
 
-      if (analyticsRes.ok) {
-        const analyticsData = await analyticsRes.json()
-        setAnalytics(analyticsData.analytics || [])
+      if (analyticsRes.status === 200) {
+        setAnalytics(analyticsRes.data.analytics || [])
       }
 
-      if (dashboardRes.ok) {
-        const dashboardData = await dashboardRes.json()
-        setDashboardData(dashboardData)
+      if (dashboardRes.status === 200) {
+        setDashboardData(dashboardRes.data)
       }
 
-      if (statusRes.ok) {
-        const statusData = await statusRes.json()
-        setSchedulerStatus(statusData)
+      if (statusRes.status === 200) {
+        setSchedulerStatus(statusRes.data)
       }
 
     } catch (err) {
@@ -148,13 +148,11 @@ const AutomationManager: React.FC = () => {
 
   const handleSchedulerControl = async (action: 'start' | 'stop') => {
     try {
-      const response = await fetch('/api/automation/scheduler', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+      const response = await axios.post(`${BACKEND_URL}/api/automation/scheduler`, {
+        action
       })
 
-      if (response.ok) {
+      if (response.status === 200) {
         await fetchData()
       } else {
         setError(`Failed to ${action} scheduler`)
@@ -166,13 +164,9 @@ const AutomationManager: React.FC = () => {
 
   const handleCreateSchedule = async () => {
     try {
-      const response = await fetch('/api/automation/schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      const response = await axios.post(`${BACKEND_URL}/api/automation/schedules`, formData)
 
-      if (response.ok) {
+      if (response.status === 201) {
         setShowCreateModal(false)
         setFormData({
           company_id: '',
@@ -186,31 +180,25 @@ const AutomationManager: React.FC = () => {
         })
         await fetchData()
       } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to create schedule')
+        setError(response.data?.error || 'Failed to create schedule')
       }
-    } catch (err) {
-      setError('Failed to create schedule')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to create schedule')
     }
   }
 
   const handleUpdateSchedule = async (id: string, updates: Partial<CrawlSchedule>) => {
     try {
-      const response = await fetch(`/api/automation/schedules/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      })
+      const response = await axios.put(`${BACKEND_URL}/api/automation/schedules/${id}`, updates)
 
-      if (response.ok) {
+      if (response.status === 200) {
         setEditingSchedule(null)
         await fetchData()
       } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to update schedule')
+        setError(response.data?.error || 'Failed to update schedule')
       }
-    } catch (err) {
-      setError('Failed to update schedule')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update schedule')
     }
   }
 
@@ -218,35 +206,31 @@ const AutomationManager: React.FC = () => {
     if (!confirm('Are you sure you want to delete this schedule?')) return
 
     try {
-      const response = await fetch(`/api/automation/schedules/${id}`, {
-        method: 'DELETE'
-      })
+      const response = await axios.delete(`${BACKEND_URL}/api/automation/schedules/${id}`)
 
-      if (response.ok) {
+      if (response.status === 200) {
         await fetchData()
       } else {
         setError('Failed to delete schedule')
       }
-    } catch (err) {
-      setError('Failed to delete schedule')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete schedule')
     }
   }
 
   const handleManualTrigger = async (companyId: string) => {
     try {
-      const response = await fetch(`/api/automation/trigger/${companyId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: false })
+      const response = await axios.post(`${BACKEND_URL}/api/automation/trigger/${companyId}`, {
+        force: false
       })
 
-      if (response.ok) {
+      if (response.status === 200) {
         await fetchData()
       } else {
         setError('Failed to trigger manual crawl')
       }
-    } catch (err) {
-      setError('Failed to trigger manual crawl')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to trigger manual crawl')
     }
   }
 
@@ -276,27 +260,27 @@ const AutomationManager: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Dashboard Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduler Status</CardTitle>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <Card className="p-3 md:p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+            <CardTitle className="text-xs md:text-sm font-medium">Scheduler Status</CardTitle>
             {schedulerStatus?.isRunning ? (
-              <Activity className="h-4 w-4 text-green-600" />
+              <Activity className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
             ) : (
-              <Pause className="h-4 w-4 text-red-600" />
+              <Pause className="h-3 w-3 md:h-4 md:w-4 text-red-600" />
             )}
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-0 pb-0">
+            <div className="text-lg md:text-2xl font-bold">
               {schedulerStatus?.isRunning ? 'Running' : 'Stopped'}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -305,39 +289,39 @@ const AutomationManager: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Schedules</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-3 md:p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+            <CardTitle className="text-xs md:text-sm font-medium">Active Schedules</CardTitle>
+            <Calendar className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData?.activeSchedules || 0}</div>
+          <CardContent className="px-0 pb-0">
+            <div className="text-lg md:text-2xl font-bold">{dashboardData?.activeSchedules || 0}</div>
             <p className="text-xs text-muted-foreground">
               {dashboardData?.companiesDueForCrawling?.length || 0} due for crawling
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Executions</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-3 md:p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+            <CardTitle className="text-xs md:text-sm font-medium">Recent Executions</CardTitle>
+            <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData?.summary?.totalExecutions || 0}</div>
+          <CardContent className="px-0 pb-0">
+            <div className="text-lg md:text-2xl font-bold">{dashboardData?.summary?.totalExecutions || 0}</div>
             <p className="text-xs text-muted-foreground">
               {dashboardData?.summary?.successfulExecutions || 0} successful
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-3 md:p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+            <CardTitle className="text-xs md:text-sm font-medium">Success Rate</CardTitle>
+            <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-0 pb-0">
+            <div className="text-lg md:text-2xl font-bold">
               {dashboardData?.summary?.totalExecutions 
                 ? Math.round((dashboardData.summary.successfulExecutions / dashboardData.summary.totalExecutions) * 100)
                 : 0}%
@@ -351,20 +335,20 @@ const AutomationManager: React.FC = () => {
 
       {/* Scheduler Controls */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Settings className="h-4 w-4 md:h-5 md:w-5" />
             Scheduler Controls
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Control the automation scheduler and monitor its status
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
             <div className="flex-1">
               <p className="text-sm font-medium">Scheduler Status</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {schedulerStatus?.isRunning ? 'Running' : 'Stopped'} - 
                 Checking every {schedulerStatus?.checkIntervalMinutes || 5} minutes
               </p>
@@ -374,23 +358,25 @@ const AutomationManager: React.FC = () => {
                 onClick={() => handleSchedulerControl('start')}
                 disabled={schedulerStatus?.isRunning}
                 size="sm"
+                className="flex-1 md:flex-none"
               >
-                <Play className="h-4 w-4 mr-2" />
-                Start
+                <Play className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Start</span>
               </Button>
               <Button
                 onClick={() => handleSchedulerControl('stop')}
                 disabled={!schedulerStatus?.isRunning}
                 variant="outline"
                 size="sm"
+                className="flex-1 md:flex-none"
               >
-                <Pause className="h-4 w-4 mr-2" />
-                Stop
+                <Pause className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Stop</span>
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm">
             <div>
               <p className="font-medium">Active Crawls</p>
               <p className="text-muted-foreground">
@@ -415,64 +401,67 @@ const AutomationManager: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="schedules" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="schedules">Crawl Schedules</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="recent">Recent Activity</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="schedules" className="text-xs md:text-sm">Schedules</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
+          <TabsTrigger value="recent" className="text-xs md:text-sm">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedules" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Crawl Schedules</h3>
-            <Button onClick={() => setShowCreateModal(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+            <h3 className="text-base md:text-lg font-medium">Crawl Schedules</h3>
+            <Button onClick={() => setShowCreateModal(true)} size="sm" className="w-full md:w-auto">
+              <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
               Add Schedule
             </Button>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3 md:gap-4">
             {schedules.map((schedule) => (
               <Card key={schedule.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{schedule.companies?.name}</h4>
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h4 className="font-medium text-sm md:text-base truncate">{schedule.companies?.name}</h4>
                         {getStatusIcon(schedule.is_active)}
-                        <Badge className={getFrequencyColor(schedule.frequency)}>
+                        <Badge className={`${getFrequencyColor(schedule.frequency)} text-xs`}>
                           {schedule.frequency}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-xs md:text-sm text-muted-foreground mb-2 break-all">
                         {schedule.base_url}
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs text-muted-foreground">
                         <span>Next: {new Date(schedule.next_crawl).toLocaleDateString()}</span>
                         <span>Max pages: {schedule.max_pages}</span>
                         <span>Threshold: {Math.round(schedule.change_threshold * 100)}%</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 md:gap-2">
                       <Button
                         onClick={() => handleManualTrigger(schedule.company_id)}
                         size="sm"
                         variant="outline"
+                        className="flex-1 md:flex-none"
                       >
-                        <Play className="h-4 w-4" />
+                        <Play className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                       <Button
                         onClick={() => setEditingSchedule(schedule)}
                         size="sm"
                         variant="outline"
+                        className="flex-1 md:flex-none"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                       <Button
                         onClick={() => handleDeleteSchedule(schedule.id)}
                         size="sm"
                         variant="outline"
+                        className="flex-1 md:flex-none"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                     </div>
                   </div>
@@ -483,29 +472,27 @@ const AutomationManager: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <h3 className="text-lg font-medium">Automation Analytics</h3>
-          <div className="grid gap-4">
+          <h3 className="text-base md:text-lg font-medium">Automation Analytics</h3>
+          <div className="grid gap-3 md:gap-4">
             {analytics.slice(0, 10).map((analytic) => (
               <Card key={analytic.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{analytic.companies?.name}</h4>
-                        <Badge variant={analytic.error_message ? "destructive" : "default"}>
-                          {analytic.trigger_type}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{new Date(analytic.created_at).toLocaleString()}</span>
-                        <span>Changes: {analytic.content_changes_detected}</span>
-                        <span>New FAQs: {analytic.new_faqs_generated}</span>
-                        <span>Time: {Math.round(analytic.execution_time_ms / 1000)}s</span>
-                      </div>
-                      {analytic.error_message && (
-                        <p className="text-sm text-red-600 mt-2">{analytic.error_message}</p>
-                      )}
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-medium text-sm md:text-base truncate">{analytic.companies?.name}</h4>
+                      <Badge variant={analytic.error_message ? "destructive" : "default"} className="text-xs">
+                        {analytic.trigger_type}
+                      </Badge>
                     </div>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                      <span>{new Date(analytic.created_at).toLocaleString()}</span>
+                      <span>Changes: {analytic.content_changes_detected}</span>
+                      <span>New FAQs: {analytic.new_faqs_generated}</span>
+                      <span>Time: {Math.round(analytic.execution_time_ms / 1000)}s</span>
+                    </div>
+                    {analytic.error_message && (
+                      <p className="text-xs md:text-sm text-red-600 mt-2 break-words">{analytic.error_message}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -514,25 +501,23 @@ const AutomationManager: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="recent" className="space-y-4">
-          <h3 className="text-lg font-medium">Recent Activity</h3>
-          <div className="grid gap-4">
+          <h3 className="text-base md:text-lg font-medium">Recent Activity</h3>
+          <div className="grid gap-3 md:gap-4">
             {dashboardData?.recentAnalytics?.slice(0, 10).map((analytic) => (
               <Card key={analytic.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{analytic.companies?.name}</h4>
-                        <Badge variant={analytic.error_message ? "destructive" : "default"}>
-                          {analytic.trigger_type}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{new Date(analytic.created_at).toLocaleString()}</span>
-                        <span>Changes: {analytic.content_changes_detected}</span>
-                        <span>New FAQs: {analytic.new_faqs_generated}</span>
-                        <span>Time: {Math.round(analytic.execution_time_ms / 1000)}s</span>
-                      </div>
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-medium text-sm md:text-base truncate">{analytic.companies?.name}</h4>
+                      <Badge variant={analytic.error_message ? "destructive" : "default"} className="text-xs">
+                        {analytic.trigger_type}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                      <span>{new Date(analytic.created_at).toLocaleString()}</span>
+                      <span>Changes: {analytic.content_changes_detected}</span>
+                      <span>New FAQs: {analytic.new_faqs_generated}</span>
+                      <span>Time: {Math.round(analytic.execution_time_ms / 1000)}s</span>
                     </div>
                   </div>
                 </CardContent>
@@ -544,39 +529,41 @@ const AutomationManager: React.FC = () => {
 
       {/* Create/Edit Schedule Modal */}
       {(showCreateModal || editingSchedule) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">
                 {editingSchedule ? 'Edit Schedule' : 'Create Schedule'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="company_id">Company ID</Label>
+                <Label htmlFor="company_id" className="text-sm">Company ID</Label>
                 <Input
                   id="company_id"
                   value={formData.company_id}
                   onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
                   placeholder="Enter company ID"
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label htmlFor="base_url">Base URL</Label>
+                <Label htmlFor="base_url" className="text-sm">Base URL</Label>
                 <Input
                   id="base_url"
                   value={formData.base_url}
                   onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
                   placeholder="https://example.com"
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label htmlFor="frequency">Frequency</Label>
+                <Label htmlFor="frequency" className="text-sm">Frequency</Label>
                 <Select
                   value={formData.frequency}
                   onValueChange={(value) => setFormData({ ...formData, frequency: value as any })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -586,24 +573,26 @@ const AutomationManager: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="max_pages">Max Pages</Label>
+                  <Label htmlFor="max_pages" className="text-sm">Max Pages</Label>
                   <Input
                     id="max_pages"
                     type="number"
                     value={formData.max_pages}
                     onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) })}
+                    className="text-sm"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="change_threshold">Change Threshold (%)</Label>
+                  <Label htmlFor="change_threshold" className="text-sm">Change Threshold (%)</Label>
                   <Input
                     id="change_threshold"
                     type="number"
                     step="0.1"
                     value={formData.change_threshold * 100}
                     onChange={(e) => setFormData({ ...formData, change_threshold: parseFloat(e.target.value) / 100 })}
+                    className="text-sm"
                   />
                 </div>
               </div>
@@ -613,7 +602,7 @@ const AutomationManager: React.FC = () => {
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="is_active">Active</Label>
+                <Label htmlFor="is_active" className="text-sm">Active</Label>
               </div>
               <div className="flex gap-2">
                 <Button

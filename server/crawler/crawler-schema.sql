@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS crawl_sessions (
 CREATE TABLE IF NOT EXISTS crawl_schedules (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  company_name TEXT NOT NULL,
   base_url TEXT NOT NULL,
   frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly')),
   next_crawl TIMESTAMP WITH TIME ZONE NOT NULL,

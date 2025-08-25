@@ -126,7 +126,7 @@ router.get('/schedules', async (req, res) => {
         companies (
           id,
           name,
-          email
+          contact_email
         )
       `)
       .order('created_at', { ascending: false })
@@ -576,6 +576,139 @@ router.post('/trigger/:companyId', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error triggering manual crawl:', error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
+})
+
+// ========================================
+// ANALYTICS ENDPOINTS
+// ========================================
+
+/**
+ * Get automation analytics
+ * GET /api/automation/analytics
+ */
+router.get('/analytics', async (req, res) => {
+  try {
+    const { company_id, limit = 50 } = req.query
+
+    let query = supabase
+      .from('automation_analytics')
+      .select(`
+        *,
+        companies (
+          name
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit))
+
+    if (company_id) {
+      query = query.eq('company_id', company_id)
+    }
+
+    const { data: analytics, error } = await query
+
+    if (error) {
+      console.error('❌ Failed to fetch automation analytics:', error)
+      // If table doesn't exist, return empty array
+      if (error.code === '42P01') {
+        return res.json({
+          analytics: [],
+          total: 0
+        })
+      }
+      return res.status(500).json({
+        error: 'Failed to fetch automation analytics'
+      })
+    }
+
+    res.json({
+      analytics,
+      total: analytics.length
+    })
+
+  } catch (error) {
+    console.error('❌ Error fetching automation analytics:', error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
+})
+
+/**
+ * Get automation dashboard data
+ * GET /api/automation/dashboard
+ */
+router.get('/dashboard', async (req, res) => {
+  try {
+    // Get scheduler status
+    const schedulerStatus = scheduler.getStatus()
+
+    // Get active schedules count
+    const { count: activeSchedules } = await supabase
+      .from('crawl_schedules')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+
+    // Get companies due for crawling
+    const { data: companiesDueForCrawling } = await supabase
+      .from('crawl_schedules')
+      .select(`
+        *,
+        companies (
+          id,
+          name,
+          contact_email
+        )
+      `)
+      .eq('is_active', true)
+      .lte('next_crawl', new Date().toISOString())
+
+    // Get recent analytics
+    // Get recent analytics
+    const { data: recentAnalytics, error: analyticsError } = await supabase
+      .from('automation_analytics')
+      .select(`
+        *,
+        companies (
+          name
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    // Get summary statistics
+    const { data: summaryData, error: summaryError } = await supabase
+      .from('automation_analytics')
+      .select('trigger_type, error_message')
+
+    const summary = {
+      totalExecutions: summaryData?.length || 0,
+      successfulExecutions: summaryData?.filter(a => !a.error_message).length || 0,
+      failedExecutions: summaryData?.filter(a => a.error_message).length || 0
+    }
+
+    // Handle missing tables gracefully
+    if (analyticsError && analyticsError.code === '42P01') {
+      console.warn('⚠️ automation_analytics table does not exist yet')
+    }
+    if (summaryError && summaryError.code === '42P01') {
+      console.warn('⚠️ automation_analytics table does not exist yet')
+    }
+
+    res.json({
+      scheduler: schedulerStatus,
+      activeSchedules: activeSchedules || 0,
+      companiesDueForCrawling: companiesDueForCrawling || [],
+      recentAnalytics: recentAnalytics || [],
+      summary
+    })
+
+  } catch (error) {
+    console.error('❌ Error fetching dashboard data:', error)
     res.status(500).json({
       error: 'Internal server error'
     })
