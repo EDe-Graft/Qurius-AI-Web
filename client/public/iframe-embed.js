@@ -68,7 +68,7 @@
             width: 100vw;
             height: 100vh;
             z-index: 999999;
-            border-radius: 0;
+            border-radius: 12px;
             overflow: hidden;
             background: transparent;
             background-color: transparent;
@@ -83,7 +83,7 @@
             width: ${WIDGET_CONFIG.widgetWidth};
             height: ${WIDGET_CONFIG.widgetHeight};
             z-index: 999999;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
             background: transparent;
             background-color: transparent;
@@ -317,7 +317,7 @@
                             width: 100vw;
                             height: 100vh;
                             z-index: 999999;
-                            border-radius: 0;
+                            border-radius: 12px;
                             overflow: hidden;
                             background: transparent;
                             background-color: transparent;
@@ -334,7 +334,7 @@
                             width: 400px;
                             height: 600px;
                             z-index: 999999;
-                            border-radius: 12px;
+                            border-radius: 16px;
                             overflow: hidden;
                             background: transparent;
                             background-color: transparent;
