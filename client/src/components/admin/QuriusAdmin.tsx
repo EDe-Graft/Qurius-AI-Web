@@ -2,15 +2,12 @@ import { useState, useEffect } from "react"
 import { 
   Building2, 
   Plus,
-  Settings,
   Activity,
   Sun,
   Moon,
   LogOut,
-  FileText,
   Globe,
   DollarSign,
-  Download,
   ThumbsUp,
 
 } from "lucide-react"
@@ -29,6 +26,7 @@ import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import AutomationManager from "@/components/admin/AutomationManager"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -736,168 +734,34 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <Download className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Integration Code
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedCompany 
-                    ? `View integration code for ${selectedCompany.name}`
-                    : 'View integration codes for companies'
-                  }
-                </p>
-              </div>
-            </div>
-            {selectedCompany ? (
-              <Button
-                onClick={handleQuickActionIntegration}
-                className="mt-4 w-full"
-                variant="outline"
-              >
-                View Integration Code
-              </Button>
-            ) : (
-              <p className="text-xs text-gray-500 mt-2">
-                Select a company from the dropdown above to view their integration code
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  FAQ Management
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedCompany 
-                    ? `Manage FAQs for ${selectedCompany.name}`
-                    : 'Import and manage FAQs for all companies'
-                  }
-                </p>
-              </div>
-            </div>
-            {selectedCompany ? (
-              <Button
-                onClick={handleQuickActionFAQ}
-                className="mt-4 w-full"
-                variant="outline"
-              >
-                Manage FAQs
-              </Button>
-            ) : (
-              <p className="text-xs text-gray-500 mt-2">
-                Select a company from the dropdown above to manage their FAQs
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                  <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Widget Settings
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedCompany 
-                    ? `Configure widget for ${selectedCompany.name}`
-                    : 'Configure widget themes for companies'
-                  }
-                </p>
-              </div>
-            </div>
-            {selectedCompany ? (
-              <Button
-                onClick={handleQuickActionWidget}
-                className="mt-4 w-full"
-                variant="outline"
-              >
-                Configure Widget
-              </Button>
-            ) : (
-              <p className="text-xs text-gray-500 mt-2">
-                Select a company from the dropdown above to configure their widget
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Content Processor
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedCompany 
-                    ? `Auto-generate FAQs from ${selectedCompany.name}'s website or documents`
-                    : 'Auto-generate FAQs from company websites or uploaded documents'
-                  }
-                </p>
-              </div>
-            </div>
-            {selectedCompany ? (
-              <Button
-                onClick={handleQuickActionCrawler}
-                className="mt-4 w-full"
-                variant="outline"
-              >
-                Process Content
-              </Button>
-            ) : (
-              <p className="text-xs text-gray-500 mt-2">
-                Select a company from the dropdown above to process their content
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Automation Management
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Manage automated crawling schedules and monitor automation performance
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowAutomationManager(true)}
-              className="mt-4 w-full"
-              variant="outline"
-            >
-              Manage Automation
-            </Button>
-          </div>
-        </div>
+        <QuickActions
+          actions={[
+            createIntegrationAction(
+              handleQuickActionIntegration,
+              selectedCompany?.name,
+              !selectedCompany
+            ),
+            createFAQManagementAction(
+              handleQuickActionFAQ,
+              selectedCompany?.name,
+              !selectedCompany
+            ),
+            createWidgetSettingsAction(
+              handleQuickActionWidget,
+              selectedCompany?.name,
+              !selectedCompany
+            ),
+            createContentProcessorAction(
+              handleQuickActionCrawler,
+              selectedCompany?.name,
+              !selectedCompany
+            ),
+            createAutomationManagementAction(
+              () => setShowAutomationManager(true)
+            )
+          ]}
+          gridCols="4"
+        />
 
         {/* Companies Table */}
         {!loading && !error && (

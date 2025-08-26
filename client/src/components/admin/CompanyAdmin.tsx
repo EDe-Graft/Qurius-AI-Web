@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react"
 import { 
   Activity,
-  FileText,
-  Settings,
   Users,
   MessageCircle,
   Eye,
-  Download,
   LogOut,
   Sun,
   Moon,
@@ -14,7 +11,6 @@ import {
   Globe,
   Mail,
   Calendar,
-  Search
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
@@ -27,6 +23,7 @@ import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { NotificationBanner } from "@/components/admin/NotificationBanner"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -466,113 +463,31 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in-up animation-delay-4000">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <Download className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Integration Code
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Get your widget integration code
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowIntegrationCode(true)}
-              className="mt-4 w-full"
-              variant="outline"
-            >
-              View Integration Code
-            </Button>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  FAQ Management
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Import and manage your FAQs
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowFAQImport(true)}
-              className="mt-4 w-full"
-              variant="outline"
-            >
-              Manage FAQs
-            </Button>
-          </div>
-
-          {/* Widget Settings for non-free users */}
-          {company?.plan !== 'free' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                  <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Widget Settings
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Customize your chat widget
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowWidgetConfig(true)}
-              className="mt-4 w-full"
-              variant="outline"
-            >
-              Configure Widget
-            </Button>
-          </div>
-          )}
-
-          {/* Website Crawler for pro users */}
-          {company?.plan === 'pro' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Content Processor
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Auto-generate FAQs from your website or uploaded documents
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowCrawler(true)}
-              className="mt-4 w-full"
-              variant="outline"
-            >
-              Process Content
-            </Button>
-          </div>
-          )}
-        </div>
+        <QuickActions
+          actions={[
+            createIntegrationAction(
+              () => setShowIntegrationCode(true),
+              company?.name
+            ),
+            createFAQManagementAction(
+              () => setShowFAQImport(true),
+              company?.name
+            ),
+            ...(company?.plan !== 'free' ? [
+              createWidgetSettingsAction(
+                () => setShowWidgetConfig(true),
+                company?.name
+              )
+            ] : []),
+            ...(company?.plan === 'pro' ? [
+              createContentProcessorAction(
+                () => setShowCrawler(true),
+                company?.name
+              )
+            ] : [])
+          ]}
+          gridCols="3"
+        />
 
         {/* Company Information */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
