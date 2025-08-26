@@ -3646,10 +3646,10 @@ app.listen(PORT, async () => {
   console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
   
   // Start the crawl scheduler
-  try {
-    await scheduler.start();
-    console.log('✅ Crawl scheduler started successfully');
-  } catch (error) {
-    console.error('❌ Failed to start crawl scheduler:', error);
-  }
+  // try {
+  //   await scheduler.start();
+  //   console.log('✅ Crawl scheduler started successfully');
+  // } catch (error) {
+  //   console.error('❌ Failed to start crawl scheduler:', error);
+  // }
 }); 

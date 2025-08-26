@@ -38,6 +38,7 @@ export function Onboarding() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [isPageLoading, setIsPageLoading] = useState(true)
+  const [isSetupLoading, setIsSetupLoading] = useState(false)
   const { t } = useLanguage()
 
   useEffect(() => {
@@ -100,6 +101,7 @@ export function Onboarding() {
 
   const handleCompleteSetup = async () => {
     setLoading(true)
+    setIsSetupLoading(true)
     setError("")
 
     try {
@@ -117,9 +119,16 @@ export function Onboarding() {
       sessionStorage.setItem('customerEmail', companyData.email) // Add customer email to sessionStorage
 
       setCompanyData(prev => ({ ...prev, id: newCompany.id || "" }))
-      setCurrentStep(3) // Move to complete step
+      
+      // Add a small delay to show the loading animation
+      setTimeout(() => {
+        setIsSetupLoading(false)
+        setCurrentStep(3) // Move to complete step
+      }, 1500)
+      
     } catch (err: any) {
       setError(err.message || "Failed to create company")
+      setIsSetupLoading(false)
     } finally {
       setLoading(false)
     }
@@ -154,6 +163,28 @@ export function Onboarding() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Setup loading animation
+  if (isSetupLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+            Setting up your AI assistant...
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-base mb-4">
+            We're configuring your personalized AI chat widget with your company information and preferences.
+          </p>
+          <div className="flex justify-center space-x-2">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
         </div>
       </div>
     )
