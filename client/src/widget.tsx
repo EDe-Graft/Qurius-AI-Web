@@ -100,7 +100,7 @@ const initializeWidget = async (config: WidgetConfig) => {
   const scriptPlan = config.plan
   
   // Use the same backend URL logic as embed.js
-  const backendUrl = window.location.hostname === 'qurius.app' ? 'https://qurius-ai.onrender.com' : 'http://localhost:3000'
+  const backendUrl = 'https://qurius-ai.onrender.com'
   
   // Validate demo key or widget key before initializing widget
   let validationResult = await validateWidgetKey(key, companyId, backendUrl)
