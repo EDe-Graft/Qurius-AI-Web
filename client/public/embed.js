@@ -4,9 +4,12 @@
 
   // Configuration
   const CONFIG = {
-    scriptUrl: window.location.hostname === 'localhost' ? 'dist/widget/chat-widget.umd.cjs' : 'widget/chat-widget.umd.cjs', // Points to React widget
-    cssUrl: window.location.hostname === 'localhost' ? 'dist/widget/chat-widget.css' : 'widget/chat-widget.css', // CSS file for styling
-    apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com',
+    // scriptUrl: window.location.hostname === 'localhost' ? 'dist/widget/chat-widget.umd.cjs' : 'https://qurius.app/widget/chat-widget.umd.cjs', // Points to React widget
+    // cssUrl: window.location.hostname === 'localhost' ? 'dist/widget/chat-widget.css' : 'https://qurius.app/widget/chat-widget.css', // CSS file for styling
+    // apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com',
+    scriptUrl: 'https://qurius.app/widget/chat-widget.umd.cjs',
+    cssUrl: 'https://qurius.app/widget/chat-widget.css',
+    apiUrl: 'https://qurius-ai.onrender.com',
     defaultTheme: 'light'
   };
   
