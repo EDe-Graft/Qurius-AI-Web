@@ -31,20 +31,19 @@
     const WIDGET_CONFIG = {
         apiUrl: (() => {
             const hostname = window.location.hostname;
-            if (hostname === 'qurius.app' || hostname.includes('vercel.app')) {
-                return 'https://qurius-ai.onrender.com';
-            } else {
-                // For local development, use localhost
+            if (hostname === 'localhost') {
                 return 'http://localhost:3000';
+            } else {
+                return 'https://qurius-ai.onrender.com';
             }
         })(),
         iframeUrl: (() => {
             const hostname = window.location.hostname;
-            if (hostname === 'qurius.app' || hostname.includes('vercel.app')) {
-                return 'https://qurius.app/widget/wix-widget-iframe-modular.html';
+            if (hostname === 'localhost') {
+                return 'public/widget/wix-widget-iframe-modular.html';
             } else {
                 // For local development, use relative path
-                return 'public/widget/wix-widget-iframe-modular.html';
+                return 'https://qurius.app/widget/wix-widget-iframe-modular.html';
             }
         })(),
         // Responsive dimensions
