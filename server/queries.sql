@@ -943,7 +943,9 @@ CREATE TABLE public.notifications (
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     crawl_session_id UUID REFERENCES public.crawl_sessions(id) ON DELETE CASCADE,
-    read_status BOOLEAN DEFAULT FALSE,
+    read_status BOOLEAN DEFAULT FALSE, -- Legacy field for backward compatibility
+    read_by_super_admin BOOLEAN DEFAULT FALSE, -- New field for Super Admin read status
+    read_by_company BOOLEAN DEFAULT FALSE, -- New field for Company read status
     action_data JSONB, -- Store additional data for actions (e.g., FAQ count, crawl type)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -953,12 +955,16 @@ CREATE TABLE public.notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_company_id ON public.notifications(company_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON public.notifications(type);
 CREATE INDEX IF NOT EXISTS idx_notifications_read_status ON public.notifications(read_status);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_by_super_admin ON public.notifications(read_by_super_admin);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_by_company ON public.notifications(read_by_company);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_crawl_session_id ON public.notifications(crawl_session_id);
 
 -- Composite index for efficient queries
 CREATE INDEX IF NOT EXISTS idx_notifications_company_read ON public.notifications(company_id, read_status);
 CREATE INDEX IF NOT EXISTS idx_notifications_company_type ON public.notifications(company_id, type);
+CREATE INDEX IF NOT EXISTS idx_notifications_company_read_by_company ON public.notifications(company_id, read_by_company);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_by_super_admin_status ON public.notifications(read_by_super_admin);
 
 -- Enable Row Level Security
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -988,7 +994,7 @@ BEGIN
         SELECT COUNT(*)
         FROM public.notifications
         WHERE company_id = p_company_id
-        AND read_status = FALSE
+        AND read_by_company = FALSE
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -1008,6 +1014,8 @@ RETURNS TABLE(
     message TEXT,
     crawl_session_id UUID,
     read_status BOOLEAN,
+    read_by_super_admin BOOLEAN,
+    read_by_company BOOLEAN,
     action_data JSONB,
     created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
@@ -1022,6 +1030,8 @@ BEGIN
         n.message,
         n.crawl_session_id,
         n.read_status,
+        n.read_by_super_admin,
+        n.read_by_company,
         n.action_data,
         n.created_at
     FROM public.notifications n
@@ -1033,26 +1043,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to mark notification as read
-CREATE OR REPLACE FUNCTION mark_notification_read(p_notification_id UUID)
+CREATE OR REPLACE FUNCTION mark_notification_read(p_notification_id UUID, p_user_type VARCHAR(20) DEFAULT 'company')
 RETURNS BOOLEAN AS $$
 BEGIN
-    UPDATE public.notifications
-    SET read_status = TRUE, updated_at = NOW()
-    WHERE id = p_notification_id;
+    IF p_user_type = 'super_admin' THEN
+        UPDATE public.notifications
+        SET read_by_super_admin = TRUE, updated_at = NOW()
+        WHERE id = p_notification_id;
+    ELSE
+        UPDATE public.notifications
+        SET read_by_company = TRUE, updated_at = NOW()
+        WHERE id = p_notification_id;
+    END IF;
     
     RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Function to mark all notifications as read for a company
-CREATE OR REPLACE FUNCTION mark_all_notifications_read(p_company_id UUID)
+CREATE OR REPLACE FUNCTION mark_all_notifications_read(p_company_id UUID, p_user_type VARCHAR(20) DEFAULT 'company')
 RETURNS INTEGER AS $$
 DECLARE
     updated_count INTEGER;
 BEGIN
-    UPDATE public.notifications
-    SET read_status = TRUE, updated_at = NOW()
-    WHERE company_id = p_company_id AND read_status = FALSE;
+    IF p_user_type = 'super_admin' THEN
+        UPDATE public.notifications
+        SET read_by_super_admin = TRUE, updated_at = NOW()
+        WHERE company_id = p_company_id AND read_by_super_admin = FALSE;
+    ELSE
+        UPDATE public.notifications
+        SET read_by_company = TRUE, updated_at = NOW()
+        WHERE company_id = p_company_id AND read_by_company = FALSE;
+    END IF;
     
     GET DIAGNOSTICS updated_count = ROW_COUNT;
     RETURN updated_count;
@@ -1096,6 +1118,8 @@ RETURNS TABLE (
   crawl_session_id UUID,
   action_data JSONB,
   read_status BOOLEAN,
+  read_by_super_admin BOOLEAN,
+  read_by_company BOOLEAN,
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE
 ) AS $$
@@ -1111,6 +1135,8 @@ BEGIN
     n.crawl_session_id,
     n.action_data,
     n.read_status,
+    n.read_by_super_admin,
+    n.read_by_company,
     n.created_at,
     n.updated_at
   FROM public.notifications n
@@ -1128,7 +1154,7 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO count_result
   FROM public.notifications
-  WHERE read_status = FALSE;
+  WHERE read_by_super_admin = FALSE;
   
   RETURN count_result;
 END;

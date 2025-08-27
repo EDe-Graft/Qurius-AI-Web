@@ -2926,6 +2926,7 @@ app.get('/api/notifications/:companyId/unread-count', async (req, res) => {
 app.put('/api/notifications/:notificationId/read', async (req, res) => {
   try {
     const { notificationId } = req.params;
+    const { userType = 'company' } = req.body; // Default to 'company' for backward compatibility
 
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -2934,11 +2935,12 @@ app.put('/api/notifications/:notificationId/read', async (req, res) => {
       return res.status(500).json({ error: 'Database configuration missing' });
     }
 
-    // Mark notification as read
+    // Mark notification as read with user type
     const response = await axios.post(
       `${supabaseUrl}/rest/v1/rpc/mark_notification_read`,
       {
-        p_notification_id: notificationId
+        p_notification_id: notificationId,
+        p_user_type: userType
       },
       {
         headers: {
@@ -2963,6 +2965,7 @@ app.put('/api/notifications/:notificationId/read', async (req, res) => {
 app.put('/api/notifications/:companyId/mark-all-read', async (req, res) => {
   try {
     const { companyId } = req.params;
+    const { userType = 'company' } = req.body; // Default to 'company' for backward compatibility
 
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -2971,11 +2974,12 @@ app.put('/api/notifications/:companyId/mark-all-read', async (req, res) => {
       return res.status(500).json({ error: 'Database configuration missing' });
     }
 
-    // Mark all notifications as read
+    // Mark all notifications as read with user type
     const response = await axios.post(
       `${supabaseUrl}/rest/v1/rpc/mark_all_notifications_read`,
       {
-        p_company_id: companyId
+        p_company_id: companyId,
+        p_user_type: userType
       },
       {
         headers: {

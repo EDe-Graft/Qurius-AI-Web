@@ -4,10 +4,24 @@ import { Bell, X, Check, AlertCircle, Info, AlertTriangle, ChevronDown } from 'l
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/context/NotificationContext';
+import { useAuth } from '@/context/AuthContext'; // Added import for useAuth
 
 export function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, isLoading } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth(); // Add this to determine user type
+
+  // Determine if user is super admin
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email === 'admin@qurius.ai';
+
+  // Helper function to determine if notification is read for current user
+  const isNotificationRead = (notification: any) => {
+    if (isSuperAdmin) {
+      return notification.read_by_super_admin || false;
+    } else {
+      return notification.read_by_company || false;
+    }
+  };
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -61,7 +75,7 @@ export function NotificationCenter() {
   };
 
   const handleNotificationClick = (notification: any) => {
-    if (!notification.read) {
+    if (!isNotificationRead(notification)) {
       markAsRead(notification.id);
     }
     
@@ -148,7 +162,7 @@ export function NotificationCenter() {
                         <div
                           key={notification.id}
                           className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                            !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            !isNotificationRead(notification) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                           }`}
                           onClick={() => handleNotificationClick(notification)}
                         >
@@ -259,7 +273,7 @@ export function NotificationCenter() {
                     <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
-                        !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        !isNotificationRead(notification) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >

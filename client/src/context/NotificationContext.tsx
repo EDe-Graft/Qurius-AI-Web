@@ -13,6 +13,8 @@ interface NotificationItem {
   message: string;
   timestamp: Date;
   read: boolean;
+  read_by_super_admin?: boolean;
+  read_by_company?: boolean;
   action?: NotificationAction;
   crawl_session_id?: string;
 }
@@ -71,7 +73,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       title: dbNotification.title,
       message: dbNotification.message,
       timestamp: new Date(dbNotification.created_at),
-      read: dbNotification.read_status,
+      read: dbNotification.read_status || false, // Legacy field for backward compatibility
+      read_by_super_admin: dbNotification.read_by_super_admin || false,
+      read_by_company: dbNotification.read_by_company || false,
       crawl_session_id: dbNotification.crawl_session_id,
       action: dbNotification.type === 'faq_approval' ? {
         label: 'Review FAQs',
@@ -161,12 +165,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Mark notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
-      const success = await notificationService.markAsRead(id);
+      // Determine user type based on current context
+      const userType = currentCompanyId ? 'company' : 'super_admin';
+      const success = await notificationService.markAsRead(id, userType);
       if (success) {
         setNotifications(prev => 
           prev.map(notification => 
             notification.id === id 
-              ? { ...notification, read: true }
+              ? { 
+                  ...notification, 
+                  read: true,
+                  read_by_super_admin: userType === 'super_admin' ? true : notification.read_by_super_admin,
+                  read_by_company: userType === 'company' ? true : notification.read_by_company
+                }
               : notification
           )
         );
@@ -175,25 +186,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } catch (err: any) {
       console.error('Failed to mark notification as read:', err);
     }
-  }, []);
+  }, [currentCompanyId]);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
       if (currentCompanyId) {
         // Company-specific mode
-        const updatedCount = await notificationService.markAllAsRead(currentCompanyId);
+        const userType = 'company';
+        const updatedCount = await notificationService.markAllAsRead(currentCompanyId, userType);
         if (updatedCount > 0) {
           setNotifications(prev => 
-            prev.map(notification => ({ ...notification, read: true }))
+            prev.map(notification => ({ 
+              ...notification, 
+              read: true,
+              read_by_company: true
+            }))
           );
           setUnreadCount(0);
         }
       } else {
         // Super admin mode - mark all notifications as read
-        // For now, we'll mark them as read locally since we don't have a bulk API
+        // Since we don't have a bulk API for all companies, we'll mark them locally
         setNotifications(prev => 
-          prev.map(notification => ({ ...notification, read: true }))
+          prev.map(notification => ({ 
+            ...notification, 
+            read: true,
+            read_by_super_admin: true
+          }))
         );
         setUnreadCount(0);
       }

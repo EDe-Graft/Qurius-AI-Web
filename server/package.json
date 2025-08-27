@@ -10,7 +10,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "setup-automation": "node setup-automation.js",
     "test-automation": "node test-automation.js",
-    "automation-status": "node setup-automation.js status"
+    "automation-status": "node setup-automation.js status",
+    "update-notification-schema": "node update-notification-schema.js",
+    "test-notification-read-status": "node test-notification-read-status.js"
   },
   "dependencies": {
     "@react-email/components": "^0.4.0",

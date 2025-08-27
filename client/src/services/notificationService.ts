@@ -10,6 +10,8 @@ export interface Notification {
   message: string;
   crawl_session_id?: string;
   read_status: boolean;
+  read_by_super_admin?: boolean;
+  read_by_company?: boolean;
   action_data?: any;
   created_at: string;
 }
@@ -76,9 +78,11 @@ class NotificationService {
   }
 
   // Mark notification as read
-  async markAsRead(notificationId: string): Promise<boolean> {
+  async markAsRead(notificationId: string, userType: 'super_admin' | 'company' = 'company'): Promise<boolean> {
     try {
-      const response = await axios.put(`${this.BACKEND_URL}/api/notifications/${notificationId}/read`);
+      const response = await axios.put(`${this.BACKEND_URL}/api/notifications/${notificationId}/read`, {
+        userType
+      });
       return response.data.success;
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -87,9 +91,11 @@ class NotificationService {
   }
 
   // Mark all notifications as read for a company
-  async markAllAsRead(companyId: string): Promise<number> {
+  async markAllAsRead(companyId: string, userType: 'super_admin' | 'company' = 'company'): Promise<number> {
     try {
-      const response = await axios.put(`${this.BACKEND_URL}/api/notifications/${companyId}/mark-all-read`);
+      const response = await axios.put(`${this.BACKEND_URL}/api/notifications/${companyId}/mark-all-read`, {
+        userType
+      });
       return response.data.updated_count;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
