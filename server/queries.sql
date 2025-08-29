@@ -285,8 +285,19 @@ CREATE TABLE public.company_content_chunks (
   content_type VARCHAR(50), -- 'main_content', 'section', 'paragraph', 'heading_with_context', 'list_item', 'document_section', 'fallback_text'
   priority VARCHAR(20) DEFAULT 'medium', -- 'high', 'medium', 'low'
   source_url TEXT, -- URL where this content was found
+  section_id VARCHAR(255),
+  section_class VARCHAR(500),
+  section_selector VARCHAR(500),
+  section_text TEXT,
+  anchor_link VARCHAR(500),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+
+-- Add indexes for better performance on section queries
+CREATE INDEX IF NOT EXISTS idx_content_chunks_section_id ON company_content_chunks(section_id);
+CREATE INDEX IF NOT EXISTS idx_content_chunks_anchor_link ON company_content_chunks(anchor_link);
+CREATE INDEX IF NOT EXISTS idx_content_chunks_section_text ON company_content_chunks USING gin(to_tsvector('english', section_text));
 
 -- Primary indexes for performance
 CREATE INDEX IF NOT EXISTS idx_company_content_chunks_company_id ON public.company_content_chunks(company_id);
@@ -377,7 +388,12 @@ CREATE OR REPLACE FUNCTION find_relevant_content_chunks(
     similarity REAL,
     content_type VARCHAR(50),
     priority VARCHAR(20),
-    source_url TEXT
+    source_url TEXT,
+    section_id VARCHAR(255),
+    section_class VARCHAR(500),
+    section_selector VARCHAR(500),
+    section_text TEXT,
+    anchor_link VARCHAR(500)
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -387,7 +403,12 @@ BEGIN
         (1 - (ccc.embedding <=> p_query_embedding))::REAL AS similarity,
         ccc.content_type::VARCHAR(50),
         ccc.priority::VARCHAR(20),
-        ccc.source_url::TEXT
+        ccc.source_url::TEXT,
+        ccc.section_id::VARCHAR(255),
+        ccc.section_class::VARCHAR(500),
+        ccc.section_selector::VARCHAR(500),
+        ccc.section_text::TEXT,
+        ccc.anchor_link::VARCHAR(500)
     FROM public.company_content_chunks ccc
     WHERE ccc.company_id = p_company_id
     AND (p_priority IS NULL OR ccc.priority = p_priority)

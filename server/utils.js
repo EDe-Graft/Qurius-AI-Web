@@ -344,7 +344,31 @@ function enhanceResponseWithLinks(response, retrievedContext) {
 
     console.log('📄 Content with URLs found:', contentWithUrls.map(c => c.source_url));
 
-    // If response doesn't contain any links but we have content with URLs, add a helpful note
+    // STEP 1: Enhance existing links in the response with section information
+    let enhancedResponse = response;
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+    
+    while ((match = linkRegex.exec(response)) !== null) {
+      const fullMatch = match[0];
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      // Find matching content with section information
+      const matchingContent = contentWithUrls.find(context => 
+        context.source_url === linkUrl && context.anchor_link
+      );
+      
+      if (matchingContent && matchingContent.anchor_link) {
+        const enhancedUrl = `${linkUrl}${matchingContent.anchor_link}`;
+        const enhancedLink = `[${linkText}](${enhancedUrl})`;
+        
+        console.log(`🔗 Enhancing existing link: ${fullMatch} → ${enhancedLink}`);
+        enhancedResponse = enhancedResponse.replace(fullMatch, enhancedLink);
+      }
+    }
+
+    // STEP 2: Add related pages section if no links exist
     if (!response.includes('[') && !response.includes('http')) {
       // Deduplicate URLs from retrievedContext before processing
       const uniqueUrls = [];
@@ -363,10 +387,10 @@ function enhanceResponseWithLinks(response, retrievedContext) {
       if (relevantUrls.length > 0) {
         // Check for existing links to avoid duplicates
         const existingUrls = new Set();
-        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-        let match;
-        while ((match = linkRegex.exec(response)) !== null) {
-          existingUrls.add(match[2]);
+        const existingLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+        let existingMatch;
+        while ((existingMatch = existingLinkRegex.exec(enhancedResponse)) !== null) {
+          existingUrls.add(existingMatch[2]);
         }
 
         console.log('🔗 Existing URLs in response:', Array.from(existingUrls));
@@ -379,52 +403,32 @@ function enhanceResponseWithLinks(response, retrievedContext) {
         if (newUrls.length > 0) {
           const linkSection = '\n\n**Related Pages:**\n' + 
             newUrls.map(context => {
-              const pageName = context.source_url.split('/').pop() || 'Learn More';
-              return `- [${pageName}](${context.source_url})`;
+              // Use section text if available, otherwise use page name
+              const pageName = context.section_text || context.source_url.split('/').pop() || 'Learn More';
+              // Include anchor link if available
+              const fullUrl = context.anchor_link ? `${context.source_url}${context.anchor_link}` : context.source_url;
+              return `- [${pageName}](${fullUrl})`;
             }).join('\n');
           
           console.log('📝 Adding link section:', linkSection);
-          return response + linkSection;
+          return enhancedResponse + linkSection;
         }
       }
     }
+
+    return enhancedResponse;
   }
 
   console.log('✅ No link enhancement needed');
   return response;
 }
 
-// Helper function to validate and truncate AI responses
-// function validateAIResponse(response, maxLength = 800) {
-//   if (!response || typeof response !== 'string') {
-//     return 'I apologize, but I encountered an issue. Please contact our support team for assistance.';
-//   }
-  
-//   // Only truncate if response is extremely long (over 800 characters)
-//   if (response.length > maxLength) {
-//     const truncated = response.substring(0, maxLength);
-//     // Find the last complete sentence
-//     const lastPeriod = truncated.lastIndexOf('.');
-//     const lastExclamation = truncated.lastIndexOf('!');
-//     const lastQuestion = truncated.lastIndexOf('?');
-    
-//     const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
-    
-//     if (lastSentenceEnd > maxLength * 0.7) { // If we can find a good sentence break
-//       return truncated.substring(0, lastSentenceEnd + 1);
-//     } else {
-//       return truncated + '...';
-//     }
-//   }
-  
-//   return response;
-// }
 
 // Get AI response using OpenAI
 export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = []}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
-  const model = 'openai/gpt-4o-mini';
+  const model = 'deepseek/deepseek-chat-v3.1:free';
   
   // Assess content quality
   const companyData = { name: companyName, website: companyWebsite, contact_email: customerSupportEmail };
@@ -476,6 +480,17 @@ LINK REQUIREMENTS:
 - If you've already linked a page, do NOT link it again anywhere else in your response
 - Check your entire response before adding any new links to ensure no duplicates
 
+SECTION-SPECIFIC LINKING:
+- When you have section information available (section_id, section_text, anchor_link), use it to create precise links
+- If content has an anchor_link, include it in the URL: [Page Name](URL#section-id)
+- This helps users navigate directly to the relevant section of the page
+- Example: If pricing info is in section "pricing", use: [Pricing](https://company.com/#pricing)
+- Always prefer section-specific links when available for better user experience
+- CRITICAL: When the context includes anchor_link information, ALWAYS use it in your links
+- Do NOT create basic links when section-specific links are available
+- The anchor_link format is: #section-id (e.g., #pricing, #contact, #about)
+- Combine the base URL with the anchor_link: baseURL + anchor_link
+
 CONTENT QUALITY CONTEXT:
 - Current content quality: ${contentQuality.quality} (score: ${contentQuality.score}/100)
 - Content items available: ${contentQuality.contentCount}
@@ -495,9 +510,6 @@ IMPORTANT LEAD GENERATION GUIDELINES:
 - Be persuasive but not pushy - maintain helpful and genuine tone
 - Tailor suggestions based on the customer's question and context
 - Include specific calls-to-action when relevant
-- CRITICAL: ALWAYS end with a follow-up question to engage the customer further and convert them into a lead
-- Do NOT include duplicate links - each page should only be linked once
-- If you've already provided relevant links, focus on the follow-up question for conversion
 
 RESPONSE STRUCTURE:
 1. Answer the customer's question clearly and concisely
@@ -520,15 +532,27 @@ EXAMPLES OF GOOD FOLLOW-UPS:
   
   // Add retrieved context if available
   if (retrievedContext && retrievedContext.length > 0) {
+    // console.log('🔍 Context being passed to AI:', retrievedContext.map(ctx => ({
+    //   type: ctx.type,
+    //   hasSectionInfo: !!(ctx.section_id || ctx.anchor_link),
+    //   section_id: ctx.section_id,
+    //   section_text: ctx.section_text,
+    //   anchor_link: ctx.anchor_link,
+    //   source_url: ctx.source_url
+    // })));
+    
     systemPrompt += `\n\nUse the following company information to answer questions:`;
     
     retrievedContext.forEach((context, index) => {
       if (context.type === 'faq') {
         systemPrompt += `\n- FAQ: ${context.question} - ${context.answer}`;
       } else if (context.type === 'content') {
-        // Include source URL if available
+        // Include source URL and section information if available
         const sourceUrl = context.source_url ? ` (Source: ${context.source_url})` : '';
-        systemPrompt += `\n- Company Information: ${context.content}${sourceUrl}`;
+        const sectionInfo = context.section_text ? ` (Section: ${context.section_text})` : '';
+        const anchorInfo = context.anchor_link ? ` (Anchor: ${context.anchor_link})` : '';
+        const fullUrl = context.source_url && context.anchor_link ? ` (Full URL: ${context.source_url}${context.anchor_link})` : '';
+        systemPrompt += `\n- Company Information: ${context.content}${sourceUrl}${sectionInfo}${anchorInfo}${fullUrl}`;
       }
     });
     
@@ -541,6 +565,7 @@ IMPORTANT:
 - Keep responses concise but comprehensive
 - After answering, suggest a relevant follow-up question or next step to engage the customer further
 - When referencing information from the company website, ALWAYS include the source URL in your response
+- If section information is available, include the specific section anchor link for precise navigation
 
 LINK FORMATTING REQUIREMENTS:
 - When referencing content with a source URL, format as: [Page Name](URL)
@@ -556,13 +581,12 @@ LINK FORMATTING REQUIREMENTS:
 - If creating a "Related Pages" section, ensure each URL appears only once
 - Do NOT list the same URL multiple times in Related Pages or any other section
 
-When providing contact information, always format it as clickable markdown links:
-- Email addresses: [support@company.com](mailto:support@company.com)
-- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
-- Website links: [Visit our website](https://company.com)
-- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
-
-If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}].`;
+SECTION-SPECIFIC LINK FORMATTING:
+- When referencing content with section information, include the anchor link: [Section Name](URL#section-id)
+- For example: [Pricing Plans](https://company.com/pricing#pricing-plans)
+- Use the section text as the link text when available
+- If no section text, use a descriptive name based on the content
+- Always include the anchor link (#section-id) when section information is available`;
   } else {
     // Fallback to original prompt if no context
     systemPrompt += ` If you don't know something specific about the company look it up on the company website [${companyWebsite}] if available and relevant. 
@@ -617,21 +641,15 @@ If you don't find the information on the website, suggest they contact customer 
 
     // Validate and process the response
     const aiResponse = response.data.choices[0].message.content;
-    // const validatedResponse = validateAIResponse(aiResponse);
     const deduplicatedResponse = removeDuplicateLinks(aiResponse);
-    const enhancedResponse = enhanceResponseWithLinks(deduplicatedResponse, retrievedContext);
 
     console.log('✅ AI response received and processed:', {
       originalLength: aiResponse.length,
-      validatedLength: validatedResponse.length,
       deduplicatedLength: deduplicatedResponse.length,
-      enhancedLength: enhancedResponse.length,
-      wasTruncated: aiResponse.length !== validatedResponse.length,
-      wasDeduplicated: validatedResponse.length !== deduplicatedResponse.length,
-      wasEnhanced: deduplicatedResponse.length !== enhancedResponse.length
+      wasDeduplicated: aiResponse.length !== deduplicatedResponse.length
     });
 
-    return enhancedResponse;
+    return deduplicatedResponse;
   } catch (error) {
     console.error('❌ OpenRouter API error details:', {
       status: error.response?.status,
@@ -1767,7 +1785,7 @@ export function chunkContent(content, maxChunkSize = 500) {
 }
 
 // Search content chunks using embeddings with priority weighting
-export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
+export async function searchContentChunks(queryEmbedding, companyId, topK = 5) {
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -1782,7 +1800,7 @@ export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
       {
         p_company_id: companyId,
         p_query_embedding: queryEmbedding,
-        p_top_k: Math.ceil(topK * 0.6), // 60% high priority
+        p_top_k: Math.ceil(topK * 0.7), // 70% high priority
         p_priority: 'high'
       },
       {
@@ -1800,7 +1818,7 @@ export async function searchContentChunks(queryEmbedding, companyId, topK = 3) {
       {
         p_company_id: companyId,
         p_query_embedding: queryEmbedding,
-        p_top_k: Math.ceil(topK * 0.4), // 40% medium priority
+        p_top_k: Math.ceil(topK * 0.3), // 30% medium priority
         p_priority: 'medium'
       },
       {
@@ -1858,6 +1876,9 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
         type: 'content',
         source: 'company_content',
         source_url: result.source_url, // Include source URL for content chunks
+        section_id: result.section_id, // Include section ID
+        section_text: result.section_text, // Include section text
+        anchor_link: result.anchor_link, // Include anchor link
         priority: result.priority || 'medium'
       }))
     ].sort((a, b) => {
@@ -1876,7 +1897,10 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
     console.log(`📊 Result breakdown:`, {
       faqs: allResults.filter(r => r.type === 'faq').length,
       content: allResults.filter(r => r.type === 'content').length,
-      withUrls: allResults.filter(r => r.source_url).length
+      withUrls: allResults.filter(r => r.source_url).length,
+      withSections: allResults.filter(r => r.section_id || r.anchor_link).length,
+      withSectionIds: allResults.filter(r => r.section_id).length,
+      withAnchorLinks: allResults.filter(r => r.anchor_link).length
     });
 
     return allResults;

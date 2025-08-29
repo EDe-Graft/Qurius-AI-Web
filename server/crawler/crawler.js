@@ -374,6 +374,87 @@ class QuriusCrawler {
   }
 
   /**
+   * Extract section information from HTML elements
+   */
+  extractSectionInfo($, element) {
+    const $el = $(element)
+    
+    // Get section ID
+    const sectionId = $el.attr('id') || null
+    
+    // Get section classes
+    const sectionClass = $el.attr('class') || null
+    
+    // Generate CSS selector
+    const sectionSelector = this.generateCSSSelector($el)
+    
+    // Get section text (heading or title)
+    const sectionText = this.extractSectionText($el)
+    
+    // Generate anchor link
+    const anchorLink = sectionId ? `#${sectionId}` : null
+    
+    return {
+      section_id: sectionId,
+      section_class: sectionClass,
+      section_selector: sectionSelector,
+      section_text: sectionText,
+      anchor_link: anchorLink
+    }
+  }
+
+  /**
+   * Generate CSS selector for an element
+   */
+  generateCSSSelector($el) {
+    const tag = $el.prop('tagName').toLowerCase()
+    const id = $el.attr('id')
+    const classes = $el.attr('class')
+    
+    if (id) {
+      return `#${id}`
+    } else if (classes) {
+      const classList = classes.split(' ').filter(c => c.trim())
+      if (classList.length > 0) {
+        return `${tag}.${classList.join('.')}`
+      }
+    }
+    
+    return tag
+  }
+
+  /**
+   * Extract section text (heading or title) from an element
+   */
+  extractSectionText($el) {
+    // Look for heading elements within this element
+    const heading = $el.find('h1, h2, h3, h4, h5, h6').first()
+    if (heading.length > 0) {
+      return heading.text().trim()
+    }
+    
+    // Look for title attributes
+    const title = $el.attr('title') || $el.attr('aria-label')
+    if (title) {
+      return title.trim()
+    }
+    
+    // Look for data attributes that might contain section names
+    const dataSection = $el.attr('data-section') || $el.attr('data-name')
+    if (dataSection) {
+      return dataSection.trim()
+    }
+    
+    // If element has an ID, use it as section text
+    const id = $el.attr('id')
+    if (id) {
+      return id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    }
+    
+    return null
+  }
+
+  /**
    * Extract content from a single page using Cheerio (static HTML)
    */
   extractPageContent($, url) {
@@ -424,7 +505,7 @@ class QuriusCrawler {
     const extractedTexts = new Set() // Track extracted text to avoid duplicates
     
     // Helper function to add content if not already extracted
-    const addUniqueContent = (type, text, priority = 'medium', source = url) => {
+    const addUniqueContent = (type, text, priority = 'medium', source = url, sectionInfo = null) => {
       if (!text || text.length < 50) return
       
       const normalizedText = text.toLowerCase().replace(/\s+/g, ' ').trim()
@@ -438,7 +519,8 @@ class QuriusCrawler {
         type,
         text: text.trim(),
         source,
-        priority
+        priority,
+        section_info: sectionInfo // Store section info with content
       })
       console.log(`📄 Found ${type} content (${text.length} chars)`)
     }
@@ -447,7 +529,8 @@ class QuriusCrawler {
     $('main, article, .content, .main, #content, #main').each((i, el) => {
       const rawText = $(el).text().trim()
       const cleanedText = this.cleanTextContent(rawText)
-      addUniqueContent('main_content', cleanedText, 'high')
+      const sectionInfo = this.extractSectionInfo($, el)
+      addUniqueContent('main_content', cleanedText, 'high', url, sectionInfo)
     })
     
     // Get text from sections (avoid overlapping with main content)
@@ -459,7 +542,8 @@ class QuriusCrawler {
       
       const rawText = $(el).text().trim()
       const cleanedText = this.cleanTextContent(rawText)
-      addUniqueContent('section', cleanedText, 'medium')
+      const sectionInfo = this.extractSectionInfo($, el)
+      addUniqueContent('section', cleanedText, 'medium', url, sectionInfo)
     })
     
     // Get text from paragraphs (avoid overlapping with main content and sections)
@@ -469,8 +553,10 @@ class QuriusCrawler {
         return
       }
       
-      const text = $(el).text().trim()
-      addUniqueContent('paragraph', text, 'medium')
+      const rawText = $(el).text().trim()
+      const cleanedText = this.cleanTextContent(rawText)
+      const sectionInfo = this.extractSectionInfo($, el)
+      addUniqueContent('paragraph', cleanedText, 'medium', url, sectionInfo)
     })
     
     // Get headings with context (avoid overlapping)
@@ -487,7 +573,7 @@ class QuriusCrawler {
         const combinedText = nextContent.length > 20 ? 
           `${heading}: ${nextContent}` : heading
         
-        addUniqueContent('heading_with_context', combinedText, 'high')
+        addUniqueContent('heading_with_context', combinedText, 'high', url)
       }
     })
     
@@ -499,7 +585,7 @@ class QuriusCrawler {
       }
       
       const text = $(el).text().trim()
-      addUniqueContent('list_item', text, 'medium')
+      addUniqueContent('list_item', text, 'medium', url)
     })
     
     console.log(`📊 Content extraction summary for ${url}:`)
@@ -524,7 +610,7 @@ class QuriusCrawler {
         console.log(`📄 Fallback extraction found ${textChunks.length} text chunks`)
         
         textChunks.forEach((chunk, index) => {
-          addUniqueContent('fallback_text', chunk, 'medium')
+          addUniqueContent('fallback_text', chunk, 'medium', url)
         })
       } else {
         console.log(`⚠️ Fallback extraction also failed - body text too short (${allText.length} chars)`)
@@ -1181,7 +1267,8 @@ class QuriusCrawler {
                 const { questionEmbedding } = await getEmbedding(chunk, '');
                 console.log(`✅ Embedding generated successfully`);
                 
-                chunkData.push({
+                // Include section information if available
+                const chunkDataItem = {
                   company_id: crawlData.companyId,
                   content: chunk,
                   crawl_session_id: crawlData.sessionId,
@@ -1192,13 +1279,24 @@ class QuriusCrawler {
                   priority: contentItem.priority || 'medium',
                   source_url: contentItem.source,
                   content_hash: this.hashContent(chunk)
-                });
+                };
+
+                // Add section information if available
+                if (contentItem.section_info) {
+                  chunkDataItem.section_id = contentItem.section_info.section_id;
+                  chunkDataItem.section_class = contentItem.section_info.section_class;
+                  chunkDataItem.section_selector = contentItem.section_info.section_selector;
+                  chunkDataItem.section_text = contentItem.section_info.section_text;
+                  chunkDataItem.anchor_link = contentItem.section_info.anchor_link;
+                }
+                
+                chunkData.push(chunkDataItem);
                 console.log(`📝 Chunk added to batch (with embedding)`);
               } catch (embeddingError) {
                 console.warn(`⚠️ Failed to generate embeddings for content chunk ${chunkIndex}:`, embeddingError.message);
                 console.warn(`⚠️ Embedding error details:`, embeddingError);
                 // Still save chunk without embedding
-                chunkData.push({
+                const chunkDataItem = {
                   company_id: crawlData.companyId,
                   content: chunk,
                   crawl_session_id: crawlData.sessionId,
@@ -1208,7 +1306,18 @@ class QuriusCrawler {
                   priority: contentItem.priority || 'medium',
                   source_url: contentItem.source,
                   content_hash: this.hashContent(chunk)
-                });
+                };
+
+                // Add section information if available
+                if (contentItem.section_info) {
+                  chunkDataItem.section_id = contentItem.section_info.section_id;
+                  chunkDataItem.section_class = contentItem.section_info.section_class;
+                  chunkDataItem.section_selector = contentItem.section_info.section_selector;
+                  chunkDataItem.section_text = contentItem.section_info.section_text;
+                  chunkDataItem.anchor_link = contentItem.section_info.anchor_link;
+                }
+                
+                chunkData.push(chunkDataItem);
                 console.log(`📝 Chunk added to batch (without embedding)`);
               }
             }

@@ -28,30 +28,16 @@ function getLinkTypeAndStyle(href: string) {
   }
   
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    // Check if it's a section link (contains #)
+    if (url.includes('#')) {
+      return { type: 'section', style: 'text-blue-500 hover:text-blue-600' }
+    }
     return { type: 'external', style: 'text-blue-500 hover:text-blue-600' }
   }
   
   // Default for relative links or unknown protocols
   return { type: 'internal', style: 'text-blue-500 hover:text-blue-600' }
 }
-
-// Helper function to get appropriate icon for link type
-// function getLinkIcon(type: string) {
-//   switch (type) {
-//     case 'email':
-//       return '📧'
-//     case 'phone':
-//       return '📞'
-//     case 'sms':
-//       return '💬'
-//     case 'whatsapp':
-//       return '📱'
-//     case 'external':
-//       return '🔗'
-//     default:
-//       return '🔗'
-//   }
-// }
 
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
   return (
@@ -139,6 +125,19 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                   target="_blank" 
                   rel="noopener noreferrer"
                   title="Open external link"
+                >
+                  {children}
+                </a>
+              )
+            }
+            
+            // Section links (external URLs with anchor links)
+            if (type === 'section') {
+              return (
+                <a 
+                  href={href} 
+                  className={`${style} underline inline-flex items-center gap-1 hover:no-underline transition-colors`}
+                  title="Navigate to section"
                 >
                   {children}
                 </a>

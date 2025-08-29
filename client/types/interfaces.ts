@@ -116,3 +116,19 @@ export interface Message {
     timestamp: string
     isMessageStreamed?: boolean // Track if this message has been streamed
 }
+
+export interface ContentChunk {
+  id: number;
+  company_id: string;
+  content: string;
+  content_type: string;
+  source_url: string;
+  priority: string;
+  embedding: number[];
+  created_at: string;
+  section_id?: string;
+  section_class?: string;
+  section_selector?: string;
+  section_text?: string;
+  anchor_link?: string;
+}
