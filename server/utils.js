@@ -468,6 +468,20 @@ RESPONSE GUIDELINES:
 - Always include relevant links when available
 - If you don't know something, say so and suggest contacting support
 - CRITICAL: ALWAYS end with a relevant follow-up question to engage the customer further and convert them into a lead
+- FORMAT RESPONSES WITH PROPER LINE SPACING for better readability
+- Use bullet points and numbered lists when appropriate
+- Separate different sections with line breaks
+- Make responses easy to scan and read
+
+FORMATTING REQUIREMENTS:
+- Add line breaks between different topics or sections
+- Use bullet points (•) for lists of options or features
+- Use numbered lists (1., 2., 3.) for step-by-step instructions
+- Separate contact information with line breaks
+- Add space before follow-up questions
+- Use bold text (**text**) for emphasis on important points
+- Keep paragraphs short and scannable
+- Ensure proper spacing around links and contact information
 
 LINK REQUIREMENTS:
 - When referencing information from the company website, ALWAYS include the source URL
@@ -513,7 +527,7 @@ IMPORTANT LEAD GENERATION GUIDELINES:
 
 RESPONSE STRUCTURE:
 1. Answer the customer's question clearly and concisely
-2. Provide relevant links and information
+2. Provide relevant links and information with proper formatting
 3. ALWAYS end with a follow-up question designed to convert the customer into a lead
 
 EXAMPLES OF GOOD FOLLOW-UPS:
@@ -649,7 +663,10 @@ If you don't find the information on the website, suggest they contact customer 
       wasDeduplicated: aiResponse.length !== deduplicatedResponse.length
     });
 
-    return deduplicatedResponse;
+    // Format the response with proper line spacing
+    const formattedResponse = formatAIResponse(deduplicatedResponse);
+
+    return formattedResponse;
   } catch (error) {
     console.error('❌ OpenRouter API error details:', {
       status: error.response?.status,
@@ -2193,4 +2210,58 @@ export async function getContentQualityInsights(companyId) {
       lastUpdated: new Date().toISOString()
     };
   }
+}
+
+// Helper function to format AI responses with proper line spacing and readability
+function formatAIResponse(response) {
+  if (!response || typeof response !== 'string') {
+    return response;
+  }
+
+  console.log('🎨 Formatting AI response for better readability');
+
+  let formatted = response;
+
+  // 1. Add line breaks before bullet points and numbered lists
+  formatted = formatted.replace(/([.!?])\s*([•\-\*]\s)/g, '$1\n\n$2');
+  formatted = formatted.replace(/([.!?])\s*(\d+\.\s)/g, '$1\n\n$2');
+
+  // 2. Add line breaks before "Related Pages" section
+  formatted = formatted.replace(/([.!?])\s*(\*\*Related Pages:\*\*)/g, '$1\n\n$2');
+
+  // 3. Add line breaks before contact information sections
+  formatted = formatted.replace(/([.!?])\s*(\*\*Contact Information:\*\*)/g, '$1\n\n$2');
+  formatted = formatted.replace(/([.!?])\s*(\*\*Get in Touch:\*\*)/g, '$1\n\n$2');
+
+  // 4. Add line breaks before follow-up questions (common patterns)
+  formatted = formatted.replace(/([.!?])\s*(Would you like|Have you|Are you|What|How|When|Where|Why)\s/g, '$1\n\n$2 ');
+  formatted = formatted.replace(/([.!?])\s*(Is there|Do you|Can I|Should I|Could you)\s/g, '$1\n\n$2 ');
+
+  // 5. Add line breaks before action items or next steps
+  formatted = formatted.replace(/([.!?])\s*(\*\*Next Steps:\*\*)/g, '$1\n\n$2');
+  formatted = formatted.replace(/([.!?])\s*(\*\*To get started:\*\*)/g, '$1\n\n$2');
+
+  // 6. Add line breaks before email/contact suggestions
+  formatted = formatted.replace(/([.!?])\s*(\[Contact|\[Email|\[Call|\[Visit)/g, '$1\n\n$2');
+
+  // 7. Clean up excessive line breaks (more than 2 consecutive)
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+  // 8. Ensure proper spacing around markdown links
+  formatted = formatted.replace(/([.!?])\s*(\[[^\]]+\]\([^)]+\))/g, '$1\n\n$2');
+
+  // 9. Add line breaks before FAQ-style responses
+  formatted = formatted.replace(/([.!?])\s*(Here's what|Here's how|Here are|This is)/g, '$1\n\n$2');
+
+  // 10. Ensure proper spacing for lists within responses
+  formatted = formatted.replace(/([.!?])\s*(\n\s*[•\-\*]\s)/g, '$1\n\n$2');
+
+  // 11. Clean up any remaining excessive whitespace
+  formatted = formatted.replace(/\s{3,}/g, ' ');
+
+  // 12. Ensure the response ends with proper spacing
+  formatted = formatted.trim();
+
+  console.log('✅ Response formatting complete. Original length:', response.length, 'Formatted length:', formatted.length);
+  return formatted;
 }
