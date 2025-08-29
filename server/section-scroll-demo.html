@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section Scroll Handler Demo - Qurius.app</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header {
+            background: #333;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .content {
+            margin-top: 80px;
+            padding: 2rem;
+        }
+        
+        .section {
+            min-height: 400px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .section h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+        }
+        
+        .demo-links {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        
+        .demo-links a {
+            display: inline-block;
+            margin: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        
+        .demo-links a:hover {
+            background: #0056b3;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Qurius.app - Section Scroll Demo</h1>
+    </div>
+    
+    <div class="content">
+        <div class="info-box">
+            <h3>🎯 Section Scroll Handler Demo</h3>
+            <p>This page demonstrates the section scroll functionality. Try clicking the links below or visit this page with a hash in the URL (e.g., <code>?section=pricing</code>).</p>
+        </div>
+        
+        <div class="demo-links">
+            <h3>Test Links:</h3>
+            <a href="#hero">Hero Section</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#contact">Contact</a>
+            <a href="#about">About</a>
+        </div>
+        
+        <div id="hero" class="section">
+            <h2>Hero Section</h2>
+            <p>Welcome to Qurius.app! This is the hero section of our website.</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        </div>
+        
+        <div id="features" class="section">
+            <h2>Features</h2>
+            <p>Discover the amazing features of our platform:</p>
+            <ul>
+                <li>AI-powered chatbot</li>
+                <li>Smart FAQ management</li>
+                <li>Analytics dashboard</li>
+                <li>Multi-language support</li>
+            </ul>
+        </div>
+        
+        <div id="pricing" class="section">
+            <h2>Pricing Plans</h2>
+            <p>Choose the perfect plan for your business:</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                    <h3>Free Plan</h3>
+                    <p><strong>$0/month</strong></p>
+                    <p>500 messages per month</p>
+                </div>
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                    <h3>Starter Plan</h3>
+                    <p><strong>$29/month</strong></p>
+                    <p>10,000 messages per month</p>
+                </div>
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                    <h3>Pro Plan</h3>
+                    <p><strong>$99/month</strong></p>
+                    <p>Unlimited messages</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="contact" class="section">
+            <h2>Contact Us</h2>
+            <p>Get in touch with our team:</p>
+            <p><strong>Email:</strong> support@qurius.app</p>
+            <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+            <p><strong>Address:</strong> 123 Main St, City, State 12345</p>
+        </div>
+        
+        <div id="about" class="section">
+            <h2>About Qurius</h2>
+            <p>Qurius is an AI-powered customer service platform that helps businesses provide better support to their customers.</p>
+            <p>Our mission is to make customer service more efficient, accurate, and personalized through the power of artificial intelligence.</p>
+        </div>
+    </div>
+
+    <!-- Include the Section Scroll Handler -->
+    <script src="section-scroll-handler.js"></script>
+    
+    <script>
+        // Additional demo functionality
+        console.log('🎉 Demo page loaded!');
+        console.log('🔗 Try visiting this page with a hash: https://your-domain.com/demo.html#pricing');
+        
+        // Add some interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers to demo links
+            const demoLinks = document.querySelectorAll('.demo-links a');
+            demoLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    console.log(`🔗 Demo link clicked: ${this.href}`);
+                });
+            });
+            
+            // Show current hash in console
+            if (window.location.hash) {
+                console.log(`📍 Current hash: ${window.location.hash}`);
+            }
+        });
+    </script>
+</body>
+</html> 
