@@ -165,6 +165,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Mark notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
+      console.log('🔍 Marking notification as read:', { id, type: typeof id, length: id?.length });
+      
+      // Check if ID is a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        console.error('❌ Invalid notification ID format:', id);
+        return;
+      }
+      
       // Determine user type based on current context
       const userType = currentCompanyId ? 'company' : 'super_admin';
       const success = await notificationService.markAsRead(id, userType);

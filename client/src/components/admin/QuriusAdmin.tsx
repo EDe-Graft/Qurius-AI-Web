@@ -24,7 +24,7 @@ import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
-import { NotificationBanner } from "@/components/admin/NotificationBanner"
+// import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import AutomationManager from "@/components/admin/AutomationManager"
 import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
@@ -47,7 +47,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const { signOut } = useAuth()
   const { 
     loadAllNotifications, 
-    unreadCount, 
+    // unreadCount, 
     showFAQPreview, 
     selectedSessionId, 
     closeFAQPreview 
@@ -59,7 +59,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
   // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
-  const [showNotificationBanner, setShowNotificationBanner] = useState(false)
+  // const [showNotificationBanner, setShowNotificationBanner] = useState(false)
   const [showAutomationManager, setShowAutomationManager] = useState(false)
 
   // Enhanced analytics state
@@ -71,10 +71,10 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     revenueGrowth: number
     totalRatings: number
     averageRating: number
-    totalFAQMatches: number
-    totalAIFallbacks: number
-    averageFAQMatchRate: number
-    averageAIFallbackRate: number
+    totalContentMatches: number
+    totalTrueAIFallbacks: number
+    averageContentMatchRate: number
+    averageTrueAIFallbackRate: number
   }>({
     totalCompanies: 0,
     activeWidgets: 0,
@@ -83,10 +83,10 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     revenueGrowth: 0,
     totalRatings: 0,
     averageRating: 0,
-    totalFAQMatches: 0,
-    totalAIFallbacks: 0,
-    averageFAQMatchRate: 0,
-    averageAIFallbackRate: 0
+    totalContentMatches: 0,
+    totalTrueAIFallbacks: 0,
+    averageContentMatchRate: 0,
+    averageTrueAIFallbackRate: 0
   })
 
   // Selected company for Quick Actions
@@ -245,9 +245,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         await loadAllNotifications()
         
         // Show notification banner if there are unread notifications
-        if (unreadCount > 0) {
-          setShowNotificationBanner(true)
-        }
+        // if (unreadCount > 0) {
+        //   setShowNotificationBanner(true)
+        // }
       } catch (err: any) {
         console.error('Error loading companies:', err)
         setError(err.message || 'Failed to load companies')
@@ -264,8 +264,8 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     try {
       let totalRatings = 0
       let totalRatingSum = 0
-      let totalFAQMatches = 0
-      let totalAIFallbacks = 0
+      let totalContentMatches = 0
+      let totalTrueAIFallbacks = 0
       let totalQueries = 0
 
       // Get analytics for each company
@@ -279,8 +279,8 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
             totalRatings += analytics.totalRatings || 0
             totalRatingSum += (analytics.averageRating || 0) * (analytics.totalRatings || 0)
-            totalFAQMatches += faqPerformance.faqMatches || 0
-            totalAIFallbacks += faqPerformance.aiFallbacks || 0
+            totalContentMatches += analytics.contentMatchRate ? Math.round((analytics.contentMatchRate / 100) * (faqPerformance.totalQueries || 0)) : 0
+            totalTrueAIFallbacks += analytics.trueAIFallbackRate ? Math.round((analytics.trueAIFallbackRate / 100) * (faqPerformance.totalQueries || 0)) : 0
             totalQueries += faqPerformance.totalQueries || 0
           } catch (error) {
             console.error(`Failed to load analytics for company ${company.id}:`, error)
@@ -302,11 +302,12 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         revenueGrowth: companies.length > 0 ? 8.2 : 0,
         totalRatings,
         averageRating: totalRatings > 0 ? totalRatingSum / totalRatings : 0,
-        totalFAQMatches,
-        totalAIFallbacks,
-        averageFAQMatchRate: totalQueries > 0 ? (totalFAQMatches / totalQueries) * 100 : 0,
-        averageAIFallbackRate: totalQueries > 0 ? (totalAIFallbacks / totalQueries) * 100 : 0
+        totalContentMatches,
+        totalTrueAIFallbacks,
+        averageContentMatchRate: totalQueries > 0 ? (totalContentMatches / totalQueries) * 100 : 0,
+        averageTrueAIFallbackRate: totalQueries > 0 ? (totalTrueAIFallbacks / totalQueries) * 100 : 0
       })
+
     } catch (error) {
       console.error('Failed to calculate system analytics:', error)
     }
@@ -675,18 +676,18 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             color={systemAnalytics.averageRating >= 4 ? 'success' : systemAnalytics.averageRating >= 3 ? 'warning' : 'danger'}
           />
           <FAQMatchStatCard
-            title="Avg FAQ Match Rate"
-            value={systemAnalytics.averageFAQMatchRate}
-            faqMatches={systemAnalytics.totalFAQMatches}
-            totalQueries={systemAnalytics.totalFAQMatches + systemAnalytics.totalAIFallbacks}
-            color={systemAnalytics.averageFAQMatchRate >= 70 ? 'success' : systemAnalytics.averageFAQMatchRate >= 50 ? 'warning' : 'danger'}
+            title="Avg Content Match Rate"
+            value={systemAnalytics.averageContentMatchRate}
+            faqMatches={systemAnalytics.totalContentMatches}
+            totalQueries={systemAnalytics.totalContentMatches + systemAnalytics.totalTrueAIFallbacks}
+            color={systemAnalytics.averageContentMatchRate >= 70 ? 'success' : systemAnalytics.averageContentMatchRate >= 50 ? 'warning' : 'danger'}
           />
           <AIFallbackStatCard
-            title="Avg AI Fallback Rate"
-            value={systemAnalytics.averageAIFallbackRate}
-            aiFallbacks={systemAnalytics.totalAIFallbacks}
-            totalQueries={systemAnalytics.totalFAQMatches + systemAnalytics.totalAIFallbacks}
-            color={systemAnalytics.averageAIFallbackRate <= 30 ? 'success' : systemAnalytics.averageAIFallbackRate <= 50 ? 'warning' : 'danger'}
+            title="Avg True AI Fallback Rate"
+            value={systemAnalytics.averageTrueAIFallbackRate}
+            aiFallbacks={systemAnalytics.totalTrueAIFallbacks}
+            totalQueries={systemAnalytics.totalContentMatches + systemAnalytics.totalTrueAIFallbacks}
+            color={systemAnalytics.averageTrueAIFallbackRate <= 30 ? 'success' : systemAnalytics.averageTrueAIFallbackRate <= 50 ? 'warning' : 'danger'}
           />
           <StatCard
             title="Total Ratings"
@@ -881,7 +882,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       )}
 
       {/* Notification Banner */}
-      {showNotificationBanner && unreadCount > 0 && (
+      {/* {showNotificationBanner && unreadCount > 0 && (
         <NotificationBanner
           message={`You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
           actionLabel="View All"
@@ -890,7 +891,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           type="info"
           autoDismiss={false}
         />
-      )}
+      )} */}
 
       {/* FAQ Preview Modal for Notifications */}
       {showFAQPreview && selectedSessionId && (

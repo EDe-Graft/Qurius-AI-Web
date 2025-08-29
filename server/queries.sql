@@ -194,6 +194,14 @@ CREATE TABLE IF NOT EXISTS public.widget_analytics (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns to widget_analytics table for new analytics tracking
+-- Note: We can use existing columns instead of adding new ones
+-- content_type and confidence_level are not needed - we use ai_fallback_reason for this info
+
+-- Add indexes for better performance
+-- CREATE INDEX IF NOT EXISTS idx_widget_analytics_content_type ON public.widget_analytics(content_type);
+-- CREATE INDEX IF NOT EXISTS idx_widget_analytics_confidence_level ON public.widget_analytics(confidence_level);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON public.widget_analytics(company_id);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON public.widget_analytics(event_type);
@@ -432,8 +440,9 @@ CREATE OR REPLACE FUNCTION get_analytics_summary(
     positive_ratings INTEGER,
     negative_ratings INTEGER,
     avg_rating DOUBLE PRECISION,
-    faq_match_rate DOUBLE PRECISION,
-    ai_fallback_rate DOUBLE PRECISION,
+    content_match_rate DOUBLE PRECISION,
+    true_ai_fallback_rate DOUBLE PRECISION,
+    avg_confidence_score DOUBLE PRECISION,
     language_changes INTEGER,
     theme_changes INTEGER,
     last_activity TIMESTAMP WITH TIME ZONE
@@ -456,14 +465,19 @@ BEGIN
         END as avg_rating,
         CASE 
             WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
-            THEN (COUNT(CASE WHEN wa.event_type = 'message_received' AND wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            THEN (COUNT(CASE WHEN wa.event_type = 'content_matched' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
             ELSE 0 
-        END as faq_match_rate,
+        END as content_match_rate,
         CASE 
             WHEN COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END) > 0 
-            THEN 100 - (COUNT(CASE WHEN wa.event_type = 'message_received' AND wa.response_source = 'faq' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
+            THEN (COUNT(CASE WHEN wa.event_type = 'true_ai_fallback' THEN 1 END)::DOUBLE PRECISION / COUNT(CASE WHEN wa.event_type = 'message_received' THEN 1 END)::DOUBLE PRECISION) * 100
             ELSE 0 
-        END as ai_fallback_rate,
+        END as true_ai_fallback_rate,
+        CASE 
+            WHEN COUNT(CASE WHEN wa.confidence_score IS NOT NULL THEN 1 END) > 0 
+            THEN AVG(wa.confidence_score)
+            ELSE 0 
+        END as avg_confidence_score,
         COUNT(CASE WHEN wa.event_type = 'language_changed' THEN 1 END)::INTEGER as language_changes,
         COUNT(CASE WHEN wa.event_type = 'theme_changed' THEN 1 END)::INTEGER as theme_changes,
         MAX(wa.timestamp) as last_activity

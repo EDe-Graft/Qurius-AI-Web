@@ -10,8 +10,9 @@ export interface WidgetAnalytics {
   positiveRatings: number
   negativeRatings: number
   averageRating: number
-  faqMatchRate: number
-  aiFallbackRate: number
+  contentMatchRate: number
+  trueAIFallbackRate: number
+  avgConfidenceScore: number
   languageChanges: number
   themeChanges: number
   dailyStats: DailyStat[]
@@ -29,8 +30,8 @@ export interface DailyStat {
 
 export interface FAQPerformance {
   totalQueries: number
-  faqMatches: number
-  aiFallbacks: number
+  contentMatches: number
+  trueAIFallbacks: number
   matchRate: number
   averageConfidence: number
   topFallbackReasons: Record<string, number>
@@ -68,7 +69,7 @@ export class AnalyticsService {
   static async trackWidgetInteraction(
     companyName: string, 
     companyId: string,
-    eventType: 'message_sent' | 'message_received' | 'widget_opened' | 'widget_closed' | 'rating_given' | 'language_changed' | 'theme_changed' | 'faq_matched' | 'ai_fallback',
+    eventType: 'message_sent' | 'message_received' | 'widget_opened' | 'widget_closed' | 'rating_given' | 'language_changed' | 'theme_changed' | 'faq_matched' | 'ai_fallback' | 'content_matched' | 'true_ai_fallback',
     message?: string,
     response?: string,
     additionalData?: {
@@ -78,7 +79,7 @@ export class AnalyticsService {
       themeMode?: string
       faqId?: string
       aiFallbackReason?: string
-      responseSource?: 'faq' | 'ai' | 'limit_reached'
+      responseSource?: 'faq' | 'ai' | 'limit_reached' | 'ai_with_context'
       confidenceScore?: number
     }
   ) {
@@ -103,10 +104,9 @@ export class AnalyticsService {
 
 
   // Get analytics for a company
-  static async getCompanyAnalytics(companyName: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
+  static async getCompanyAnalytics(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<WidgetAnalytics> {
     try {
-      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/company/${companyName}?period=${period}`)
-      // console.log('Analytics data:', response.data)
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/company/${companyId}?period=${period}`)
       return response.data
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
@@ -117,10 +117,9 @@ export class AnalyticsService {
 
 
   // Get FAQ performance analytics
-  static async getFAQPerformance(companyName: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
+  static async getFAQPerformance(companyId: string, period: '7d' | '30d' | '90d' = '7d'): Promise<FAQPerformance> {
     try {
-      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/faq-performance/${companyName}?period=${period}`)
-      // console.log('FAQ performance for company:', companyId, response.data)
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/faq-performance/${companyId}?period=${period}`)
       return response.data
     } catch (error) {
       console.error('Failed to fetch FAQ performance:', error)
@@ -158,7 +157,7 @@ export class AnalyticsService {
     companyName: string, 
     companyId: string,
     response: string, 
-    responseSource: 'faq' | 'ai' | 'limit_reached',
+    responseSource: 'faq' | 'ai' | 'limit_reached' | 'ai_with_context',
     faqId?: string,
     confidenceScore?: number,
     aiFallbackReason?: string
@@ -197,7 +196,36 @@ export class AnalyticsService {
     })
   }
 
-  // Track FAQ match
+  // Track content match (new approach - when content is found)
+  static async trackContentMatch(
+    companyName: string, 
+    companyId: string,
+    faqId: string, 
+    confidenceScore: number,
+    contentType: 'faq' | 'content' | 'mixed' = 'mixed'
+  ) {
+    await this.trackWidgetInteraction(companyName, companyId, 'content_matched', undefined, undefined, {
+      faqId,
+      confidenceScore,
+      responseSource: 'ai_with_context',
+      aiFallbackReason: `high_confidence_${contentType}`
+    })
+  }
+
+  // Track true AI fallback (new approach - when no content is found)
+  static async trackTrueAIFallback(
+    companyName: string, 
+    companyId: string,
+    reason: string
+  ) {
+    await this.trackWidgetInteraction(companyName, companyId, 'true_ai_fallback', undefined, undefined, {
+      aiFallbackReason: reason,
+      confidenceScore: 0,
+      responseSource: 'ai'
+    })
+  }
+
+  // Track FAQ match (legacy - keeping for backward compatibility)
   static async trackFAQMatch(
     companyName: string, 
     companyId: string,
@@ -211,7 +239,7 @@ export class AnalyticsService {
     })
   }
 
-  // Track AI fallback
+  // Track AI fallback (legacy - keeping for backward compatibility)
   static async trackAIFallback(
     companyName: string, 
     companyId: string,
@@ -231,7 +259,7 @@ export class AnalyticsService {
     companyId: string,
     rating: number,
     responseText: string,
-    responseSource: 'faq' | 'ai' | 'limit_reached',
+    responseSource: 'faq' | 'ai' | 'limit_reached' | 'ai_with_context',
     feedbackText?: string,
     faqId?: string,
     confidenceScore?: number

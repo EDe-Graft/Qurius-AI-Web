@@ -75,6 +75,9 @@ export function NotificationCenter() {
   };
 
   const handleNotificationClick = (notification: any) => {
+    console.log('🔍 Notification object:', notification);
+    console.log('🔍 Notification ID:', notification.id, 'Type:', typeof notification.id);
+    
     if (!isNotificationRead(notification)) {
       markAsRead(notification.id);
     }

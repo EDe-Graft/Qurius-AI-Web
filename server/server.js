@@ -9,7 +9,7 @@ import cors from 'cors';
 import axios from 'axios';
 import crypto from 'crypto';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
@@ -865,6 +865,7 @@ app.post('/api/faqs/search', async (req, res) => {
           let aiResponse;
           let responseSource = 'ai_with_context';
           let fallbackReason = 'high_confidence';
+          let contentMatchType = bestMatch.type; // 'faq' or 'content'
           
           if (bestMatch.type === 'faq') {
             // High confidence FAQ match - use AI with FAQ context
@@ -899,8 +900,8 @@ app.post('/api/faqs/search', async (req, res) => {
               console.warn('⚠️ Failed to increment FAQ popularity (function may not exist):', popularityError.message);
             }
             
-            // Track FAQ match for analytics
-            await trackFAQMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'ai_with_faq_context');
+            // Track content match (not FAQ match since AI is always used)
+            await trackContentMatch(companyId, sessionId, bestMatch.faq_id, bestMatch.similarity, 'faq', 'high_confidence');
             
           } else {
             // High confidence content match - use AI with context
@@ -915,6 +916,9 @@ app.post('/api/faqs/search', async (req, res) => {
             
             responseSource = 'ai_with_context';
             fallbackReason = 'high_confidence_content';
+            
+            // Track content match
+            await trackContentMatch(companyId, sessionId, null, bestMatch.similarity, 'content', 'high_confidence');
           }
           
           console.log('AI Response with context:', aiResponse);
@@ -928,6 +932,7 @@ app.post('/api/faqs/search', async (req, res) => {
             source: responseSource,
             faqId: bestMatch.faq_id || null,
             confidence: bestMatch.similarity,
+            contentMatchType: contentMatchType,
             messagesLeft: messageLimitCheck.messagesLeft
           }]);
         } else {
@@ -945,8 +950,8 @@ app.post('/api/faqs/search', async (req, res) => {
           // Record AI usage
           await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, bestMatch.similarity, 'ai', 'low_confidence');
           
-          // Track AI fallback
-          await trackAIFallback(companyId, sessionId, 'low_confidence', bestMatch.similarity);
+          // Track content match with low confidence
+          await trackContentMatch(companyId, sessionId, null, bestMatch.similarity, 'mixed', 'low_confidence');
           
           res.json([{ 
             question: question, 
@@ -954,6 +959,7 @@ app.post('/api/faqs/search', async (req, res) => {
             source: 'ai',
             fallbackReason: 'low_confidence',
             confidence: bestMatch.similarity,
+            contentMatchType: 'mixed',
             messagesLeft: messageLimitCheck.messagesLeft
           }]);
         }
@@ -966,14 +972,15 @@ app.post('/api/faqs/search', async (req, res) => {
         // Record AI usage
         await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'no_rag_results');
         
-        // Track AI fallback
-        await trackAIFallback(companyId, sessionId, 'no_rag_results');
+        // Track true AI fallback (no content found)
+        await trackTrueAIFallback(companyId, sessionId, 'no_rag_results');
         
         res.json([{ 
           question: question, 
           answer: aiResponse, 
           source: 'ai',
           fallbackReason: 'no_rag_results',
+          contentMatchType: 'none',
           messagesLeft: messageLimitCheck.messagesLeft
         }]);
       }
@@ -987,14 +994,15 @@ app.post('/api/faqs/search', async (req, res) => {
       // Record AI usage
       await recordMessageUsage(companyId, companyName, 'ai', sessionId, question, aiResponse, null, null, 'ai', 'rag_error');
       
-      // Track AI fallback
-      await trackAIFallback(companyId, sessionId, 'rag_error');
+      // Track true AI fallback (RAG error)
+      await trackTrueAIFallback(companyId, sessionId, 'rag_error');
       
       res.json([{ 
         question: question, 
         answer: aiResponse, 
         source: 'ai',
         fallbackReason: 'rag_error',
+        contentMatchType: 'none',
         messagesLeft: messageLimitCheck.messagesLeft
       }]);
     }
@@ -1466,6 +1474,7 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
     );
 
     const summary = summaryResponse.data?.[0] || {};
+    console.log('Summary:', summary);
 
     // Get daily stats for chart
     const analyticsResponse = await axios.get(
@@ -1492,8 +1501,9 @@ app.get('/api/analytics/company/:companyId', async (req, res) => {
       positiveRatings: summary.positive_ratings || 0,
       negativeRatings: summary.negative_ratings || 0,
       averageRating: summary.avg_rating || 0,
-      faqMatchRate: summary.faq_match_rate || 0,
-      aiFallbackRate: summary.ai_fallback_rate || 0,
+      contentMatchRate: summary.content_match_rate || 0,
+      trueAIFallbackRate: summary.true_ai_fallback_rate || 0,
+      avgConfidenceScore: summary.avg_confidence_score || 0,
       languageChanges: summary.language_changes || 0,
       themeChanges: summary.theme_changes || 0,
       dailyStats: getDailyStats(analytics, periodDays),
@@ -1529,9 +1539,9 @@ app.get('/api/analytics/faq-performance/:companyId', async (req, res) => {
     const startDate = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
     const startDateStr = startDate.toISOString().replace('T', ' ').replace('Z', '+00');
 
-    // Get FAQ performance data
+    // Get FAQ performance data using NEW event types
     const analyticsResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&event_type=in.(faq_matched,ai_fallback)&timestamp=gte.${encodeURIComponent(startDateStr)}&order=timestamp.desc`,
+      `${supabaseUrl}/rest/v1/widget_analytics?company_id=eq.${companyId}&event_type=in.(content_matched,true_ai_fallback)&timestamp=gte.${encodeURIComponent(startDateStr)}&order=timestamp.desc`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -1557,15 +1567,15 @@ app.get('/api/analytics/faq-performance/:companyId', async (req, res) => {
 
     const faqs = faqsResponse.data || [];
 
-    // Process FAQ performance data
+    // Process FAQ performance data with NEW event types
     const faqStats = {
       totalQueries: analytics.length,
-      faqMatches: analytics.filter(a => a.event_type === 'faq_matched').length,
-      aiFallbacks: analytics.filter(a => a.event_type === 'ai_fallback').length,
-      matchRate: analytics.length > 0 ? (analytics.filter(a => a.event_type === 'faq_matched').length / analytics.length) * 100 : 0,
+      contentMatches: analytics.filter(a => a.event_type === 'content_matched').length,
+      trueAIFallbacks: analytics.filter(a => a.event_type === 'true_ai_fallback').length,
+      matchRate: analytics.length > 0 ? (analytics.filter(a => a.event_type === 'content_matched').length / analytics.length) * 100 : 0,
       averageConfidence: analytics.filter(a => a.confidence_score).reduce((sum, a) => sum + a.confidence_score, 0) / analytics.filter(a => a.confidence_score).length || 0,
       topFallbackReasons: analytics
-        .filter(a => a.event_type === 'ai_fallback' && a.ai_fallback_reason)
+        .filter(a => a.event_type === 'true_ai_fallback' && a.ai_fallback_reason)
         .reduce((acc, a) => {
           acc[a.ai_fallback_reason] = (acc[a.ai_fallback_reason] || 0) + 1;
           return acc;
@@ -2790,6 +2800,15 @@ app.get('/api/notifications/all', async (req, res) => {
     );
 
     console.log('✅ All notifications fetched successfully:', response.data?.length || 0, 'items');
+    
+    // Log the first few notifications to debug ID issues
+    if (response.data && response.data.length > 0) {
+      console.log('🔍 Sample notification data:', response.data.slice(0, 3).map(n => ({
+        id: n.id,
+        idType: typeof n.id,
+        title: n.title
+      })));
+    }
 
     res.json(response.data || []);
 
@@ -2874,6 +2893,15 @@ app.get('/api/notifications/:companyId', async (req, res) => {
     );
 
     console.log('✅ Notifications fetched successfully:', response.data?.length || 0, 'items');
+    
+    // Log the first few notifications to debug ID issues
+    if (response.data && response.data.length > 0) {
+      console.log('🔍 Sample notification data:', response.data.slice(0, 3).map(n => ({
+        id: n.id,
+        idType: typeof n.id,
+        title: n.title
+      })));
+    }
 
     res.json(response.data || []);
 

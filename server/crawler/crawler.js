@@ -1270,6 +1270,7 @@ class QuriusCrawler {
                 // Include section information if available
                 const chunkDataItem = {
                   company_id: crawlData.companyId,
+                  company_name: crawlData.companyName,
                   content: chunk,
                   crawl_session_id: crawlData.sessionId,
                   embedding: questionEmbedding,
@@ -1298,6 +1299,7 @@ class QuriusCrawler {
                 // Still save chunk without embedding
                 const chunkDataItem = {
                   company_id: crawlData.companyId,
+                  company_name: crawlData.companyName,
                   content: chunk,
                   crawl_session_id: crawlData.sessionId,
                   source: 'web_scraped',

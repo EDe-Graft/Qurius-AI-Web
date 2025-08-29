@@ -227,7 +227,7 @@ export function FAQMatchStatCard({
             <div className="flex items-center mt-2 space-x-2">
               <Target className="h-3 w-3 text-green-600 dark:text-green-400" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {faqMatches || 0} of {totalQueries} queries matched
+                {faqMatches || 0} of {totalQueries} queries found content
               </span>
             </div>
           )}
@@ -266,7 +266,7 @@ export function AIFallbackStatCard({
             <div className="flex items-center mt-2 space-x-2">
               <Brain className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {aiFallbacks || 0} of {totalQueries} queries used AI
+                {aiFallbacks || 0} of {totalQueries} queries had no content
               </span>
             </div>
           )}

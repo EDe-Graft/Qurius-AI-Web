@@ -22,7 +22,7 @@ import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
-import { NotificationBanner } from "@/components/admin/NotificationBanner"
+// import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
@@ -45,7 +45,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const { signOut } = useAuth()
   const { 
     loadNotifications, 
-    unreadCount, 
+    // unreadCount, 
     showFAQPreview, 
     selectedSessionId, 
     closeFAQPreview 
@@ -61,7 +61,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   
   // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
-  const [showNotificationBanner, setShowNotificationBanner] = useState(false)
+  // const [showNotificationBanner, setShowNotificationBanner] = useState(false)
 
   // FAQ Edit modal state
   const [showFAQEdit, setShowFAQEdit] = useState(false)
@@ -166,9 +166,9 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         await loadNotifications(companyId)
         
         // Show notification banner if there are unread notifications
-        if (unreadCount > 0) {
-          setShowNotificationBanner(true)
-        }
+        // if (unreadCount > 0) {
+        //   setShowNotificationBanner(true)
+        // }
         
         // console.log("company data", companyData)
       } catch (err: any) {
@@ -419,18 +419,18 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               color={analytics.averageRating >= 4 ? 'success' : analytics.averageRating >= 3 ? 'warning' : 'danger'}
             />
             <FAQMatchStatCard
-              title="FAQ Match Rate"
-              value={analytics.faqMatchRate || 0}
-              faqMatches={faqPerformance?.faqMatches}
+              title="Content Match Rate"
+              value={analytics.contentMatchRate || 0}
+              faqMatches={faqPerformance?.contentMatches}
               totalQueries={faqPerformance?.totalQueries}
-              color={analytics.faqMatchRate >= 70 ? 'success' : analytics.faqMatchRate >= 50 ? 'warning' : 'danger'}
+              color={analytics.contentMatchRate >= 70 ? 'success' : analytics.contentMatchRate >= 50 ? 'warning' : 'danger'}
             />
             <AIFallbackStatCard
-              title="AI Fallback Rate"
-              value={analytics.aiFallbackRate || 0}
-              aiFallbacks={faqPerformance?.aiFallbacks}
+              title="True AI Fallback Rate"
+              value={analytics.trueAIFallbackRate || 0}
+              aiFallbacks={faqPerformance?.trueAIFallbacks}
               totalQueries={faqPerformance?.totalQueries}
-              color={analytics.aiFallbackRate <= 30 ? 'success' : analytics.aiFallbackRate <= 50 ? 'warning' : 'danger'}
+              color={analytics.trueAIFallbackRate <= 30 ? 'success' : analytics.trueAIFallbackRate <= 50 ? 'warning' : 'danger'}
             />
             <StatCard
               title="Language Changes"
@@ -718,7 +718,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         onFAQsUpdated={handleFAQsUpdated}
       />
 
-      {/* Notification Banner */}
+      {/* Notification Banner
       {showNotificationBanner && unreadCount > 0 && (
         <NotificationBanner
           message={`You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
@@ -728,7 +728,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           type="info"
           autoDismiss={false}
         />
-      )}
+      )} */}
 
       {/* FAQ Preview Modal for Notifications */}
       {showFAQPreview && selectedSessionId && (

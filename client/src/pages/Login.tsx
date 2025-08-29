@@ -79,9 +79,8 @@ export default function Login() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-200 ${
-      defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"
-    } animate-fade-in-up animation-delay-2000`}>
-      <div className="max-w-md w-full space-y-6 md:space-y-8 px-4 md:px-0">
+      defaultTheme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}>
+      <div className="max-w-md w-full space-y-6 md:space-y-8 px-4 md:px-0 animate-fade-in-up animation-delay-2000">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 md:h-12 md:w-12 bg-purple-600 rounded-xl flex items-center justify-center">
             <Lock className="h-5 w-5 md:h-6 md:w-6 text-white" />

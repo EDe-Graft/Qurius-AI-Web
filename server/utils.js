@@ -639,7 +639,7 @@ If you don't find the information on the website, suggest they contact customer 
       }
     );
 
-    // Validate and process the response
+    // Process the response to remove duplicate links
     const aiResponse = response.data.choices[0].message.content;
     const deduplicatedResponse = removeDuplicateLinks(aiResponse);
 
@@ -1287,6 +1287,71 @@ export async function trackAIFallback(companyId, sessionId, fallbackReason, conf
     );
   } catch (error) {
     console.error('Failed to track AI fallback:', error);
+  }
+}
+
+// Helper function to track content matches (new approach)
+export async function trackContentMatch(companyId, sessionId, faqId, confidenceScore, contentType, confidenceLevel) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'content_matched',
+      session_id: sessionId,
+      faq_id: faqId,
+      confidence_score: confidenceScore,
+      ai_fallback_reason: `${confidenceLevel}_${contentType}`, // Use existing column
+      response_source: 'ai_with_context',
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track content match:', error);
+  }
+}
+
+// Helper function to track true AI fallbacks (no content found)
+export async function trackTrueAIFallback(companyId, sessionId, fallbackReason) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const analyticsData = {
+      company_id: companyId,
+      event_type: 'true_ai_fallback',
+      session_id: sessionId,
+      ai_fallback_reason: fallbackReason,
+      confidence_score: 0, // No confidence since no content was found
+      response_source: 'ai',
+      timestamp: new Date().toISOString()
+    };
+
+    await axios.post(
+      `${supabaseUrl}/rest/v1/widget_analytics`,
+      analyticsData,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track true AI fallback:', error);
   }
 }
 

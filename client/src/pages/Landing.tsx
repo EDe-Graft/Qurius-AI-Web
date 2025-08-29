@@ -455,7 +455,7 @@ export function Landing() {
           <div className="text-center mt-8">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
               <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base">
-                💡 <strong>This chatbot is powered by Qurius AI!</strong> It's the same intelligent knowledge management and analytics technology we provide to our customers. 
+                💡 <strong>This AI Assistant is powered by Qurius AI!</strong> It's the same intelligent knowledge management and analytics technology we provide to our customers. 
                 Try asking any question to see our AI in action.
               </p>
             </div>
