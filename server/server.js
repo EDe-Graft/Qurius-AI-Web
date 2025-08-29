@@ -3638,6 +3638,140 @@ app.get('/api/subscriptions', async (req, res) => {
   }
 });
 
+// Get content quality insights for a company
+app.get('/api/companies/:companyId/content-quality', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    console.log('📊 Getting content quality insights for company:', companyId);
+    
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get company data
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const company = companyResponse.data[0];
+
+    // Get content chunks count
+    const contentResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/company_content_chunks?company_id=eq.${companyId}&select=id`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Get FAQs count
+    const faqResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}&select=id`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const contentCount = contentResponse.data?.length || 0;
+    const faqCount = faqResponse.data?.length || 0;
+
+    // Calculate quality score
+    let score = 0;
+    if (contentCount > 0) score += 20;
+    if (faqCount > 0) score += 30;
+    if (contentCount > 5) score += 20;
+    if (faqCount > 3) score += 20;
+    score = Math.min(100, score);
+
+    // Determine quality level
+    let quality = 'unknown';
+    if (score >= 80) quality = 'excellent';
+    else if (score >= 60) quality = 'good';
+    else if (score >= 40) quality = 'fair';
+    else if (score >= 20) quality = 'poor';
+    else quality = 'very_low';
+
+    // Generate recommendations
+    let recommendations = [];
+    if (quality === 'very_low' || quality === 'poor') {
+      recommendations = [
+        'Add FAQ content through the admin interface',
+        'Use the website crawler to extract content from your site',
+        'Upload documents (PDFs, Word docs) for content processing',
+        'Add contact information and basic company details'
+      ];
+    } else if (quality === 'fair') {
+      recommendations = [
+        'Add more FAQ content for common customer questions',
+        'Crawl additional pages from your website',
+        'Consider adding content about contact, support, and policies'
+      ];
+    } else if (quality === 'good') {
+      recommendations = [
+        'Add content about missing topics',
+        'Consider adding more specific product/service information'
+      ];
+    } else {
+      recommendations = [
+        'Your content is excellent! Consider adding seasonal or promotional content',
+        'Keep content updated as your business evolves'
+      ];
+    }
+
+    const insights = {
+      quality,
+      score,
+      contentCount,
+      faqCount,
+      recommendations,
+      lastUpdated: new Date().toISOString(),
+      company: {
+        name: company.name,
+        website: company.website,
+        contact_email: company.contact_email
+      }
+    };
+
+    console.log('✅ Content quality insights generated:', {
+      quality,
+      score,
+      contentCount,
+      faqCount
+    });
+
+    res.json(insights);
+
+  } catch (error) {
+    console.error('❌ Content quality insights error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to get content quality insights',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
 
 // ========================================
 // START SERVER
@@ -3657,3 +3791,6 @@ app.listen(PORT, async () => {
   //   console.error('❌ Failed to start crawl scheduler:', error);
   // }
 }); 
+
+
+

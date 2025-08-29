@@ -63,22 +63,446 @@ function ensureCompleteSentences(text, maxLength = 500) {
   return truncated;
 }
 
+// Helper function to generate intelligent fallback responses for small sites
+function generateFallbackResponse(userQuestion, companyData, contentQuality) {
+  const question = userQuestion.toLowerCase();
+  const companyName = companyData?.name || 'our company';
+  const website = companyData?.website || '';
+  const contactEmail = companyData?.contact_email || 'support@company.com';
+
+  // Add content improvement suggestion for very low quality
+  const improvementNote = contentQuality.quality === 'very_low' ? 
+    `\n\n💡 **Tip**: To improve my ability to help you, consider adding more content about your services, policies, and frequently asked questions through the admin dashboard.` : '';
+
+  // Common question patterns and their fallback responses
+  const fallbackPatterns = [
+    {
+      patterns: ['contact', 'email', 'phone', 'call', 'reach', 'get in touch'],
+      response: `I'd be happy to help you get in touch with ${companyName}! You can:
+
+• [Contact Us](mailto:${contactEmail}) for immediate assistance
+• [Visit Our Contact Page](${website}/contact) for more options
+• [Check Our Support Page](${website}/support) for additional help
+
+What specific information are you looking for? I can direct you to the right person or resource.
+
+Is there anything specific about ${companyName} you'd like to learn more about?${improvementNote}`
+    },
+    {
+      patterns: ['return', 'refund', 'exchange', 'policy'],
+      response: `I don't have specific return policy information yet, but I can help you get the details you need:
+
+• [Contact Support](mailto:${contactEmail}) for immediate assistance with returns
+• [Visit Our FAQ Page](${website}/faq) for general information
+• [Check Our Policies Page](${website}/policies) for detailed terms
+
+Would you like me to help you with anything else, or would you prefer to speak with our support team?
+
+What other questions do you have about our services?${improvementNote}`
+    },
+    {
+      patterns: ['price', 'cost', 'fee', 'charge', 'pricing'],
+      response: `I don't have specific pricing information available yet, but I can help you get the details:
+
+• [Contact Sales](mailto:${contactEmail}) for pricing information
+• [Visit Our Pricing Page](${website}/pricing) for current rates
+• [Request a Quote](${website}/quote) for custom pricing
+
+What specific service or product are you interested in? I can direct you to the right person.
+
+Have you explored our services page to see what we offer?${improvementNote}`
+    },
+    {
+      patterns: ['shipping', 'delivery', 'shipping policy', 'delivery time'],
+      response: `I don't have specific shipping information yet, but I can help you get the details:
+
+• [Contact Support](mailto:${contactEmail}) for shipping questions
+• [Visit Our Shipping Page](${website}/shipping) for policies
+• [Check Our FAQ Page](${website}/faq) for general information
+
+Would you like me to help you with anything else?
+
+What products or services are you most interested in learning about?${improvementNote}`
+    },
+    {
+      patterns: ['about', 'company', 'who', 'what', 'business'],
+      response: `I'm here to help with ${companyName}! While I'm still learning about our specific services, I can:
+
+• [Visit Our About Page](${website}/about) to learn more about us
+• [Contact Us](mailto:${contactEmail}) for specific questions
+• [Check Our Services Page](${website}/services) for what we offer
+
+What would you like to know about ${companyName}?
+
+Is there a particular aspect of our business that interests you most?${improvementNote}`
+    },
+    {
+      patterns: ['help', 'support', 'assistance', 'problem', 'issue'],
+      response: `I'm here to help! While I'm still learning about ${companyName}'s specific information, I can:
+
+• [Contact Support](mailto:${contactEmail}) for immediate assistance
+• [Visit Our Support Page](${website}/support) for help resources
+• [Check Our FAQ Page](${website}/faq) for common questions
+
+What specific help do you need? I'll do my best to assist or connect you with the right person.
+
+What brought you to ${companyName} today?${improvementNote}`
+    }
+  ];
+
+  // Find matching pattern
+  for (const pattern of fallbackPatterns) {
+    if (pattern.patterns.some(p => question.includes(p))) {
+      return pattern.response;
+    }
+  }
+
+  // Default fallback response
+  return `I don't have specific information about that yet, but I'm here to help! You can:
+
+• [Contact Support](mailto:${contactEmail}) for immediate assistance
+• [Visit Our Website](${website}) for more information
+• [Check Our FAQ Page](${website}/faq) for common questions
+
+What specific information are you looking for? I can help direct you to the right resource or person.
+
+What interests you most about ${companyName}?${improvementNote}`;
+}
+
+// Helper function to assess content quality and provide recommendations
+function assessContentQuality(retrievedContext, companyData) {
+  const assessment = {
+    quality: 'unknown',
+    score: 0,
+    contentCount: 0,
+    faqCount: 0,
+    contentTypes: [],
+    missingTopics: [],
+    recommendations: []
+  };
+
+  if (!retrievedContext || retrievedContext.length === 0) {
+    assessment.quality = 'very_low';
+    assessment.score = 0;
+    assessment.recommendations = [
+      'Add FAQ content through the admin interface',
+      'Use the website crawler to extract content from your site',
+      'Upload documents (PDFs, Word docs) for content processing',
+      'Add contact information and basic company details'
+    ];
+    return assessment;
+  }
+
+  // Count content types
+  const contentItems = retrievedContext.filter(ctx => ctx.type === 'content');
+  const faqItems = retrievedContext.filter(ctx => ctx.type === 'faq');
+  
+  assessment.contentCount = contentItems.length;
+  assessment.faqCount = faqItems.length;
+  assessment.contentTypes = [...new Set(contentItems.map(ctx => ctx.content_type))];
+
+  // Calculate quality score (0-100)
+  let score = 0;
+  
+  // Base score from content quantity
+  if (assessment.contentCount > 0) score += 20;
+  if (assessment.faqCount > 0) score += 30;
+  if (assessment.contentCount > 5) score += 20;
+  if (assessment.faqCount > 3) score += 20;
+  if (assessment.contentTypes.length > 2) score += 10;
+
+  assessment.score = Math.min(100, score);
+
+  // Determine quality level
+  if (assessment.score >= 80) assessment.quality = 'excellent';
+  else if (assessment.score >= 60) assessment.quality = 'good';
+  else if (assessment.score >= 40) assessment.quality = 'fair';
+  else if (assessment.score >= 20) assessment.quality = 'poor';
+  else assessment.quality = 'very_low';
+
+  // Identify missing topics
+  const commonTopics = [
+    'contact', 'support', 'help', 'about', 'services', 'products', 
+    'pricing', 'faq', 'returns', 'shipping', 'privacy', 'terms'
+  ];
+
+  const contentText = retrievedContext
+    .map(ctx => ctx.type === 'faq' ? `${ctx.question} ${ctx.answer}` : ctx.content)
+    .join(' ')
+    .toLowerCase();
+
+  assessment.missingTopics = commonTopics.filter(topic => 
+    !contentText.includes(topic)
+  );
+
+  // Generate recommendations based on quality
+  if (assessment.quality === 'very_low' || assessment.quality === 'poor') {
+    assessment.recommendations = [
+      'Add FAQ content through the admin interface',
+      'Use the website crawler to extract content from your site',
+      'Upload documents (PDFs, Word docs) for content processing',
+      'Add contact information and basic company details'
+    ];
+  } else if (assessment.quality === 'fair') {
+    assessment.recommendations = [
+      'Add more FAQ content for common customer questions',
+      'Crawl additional pages from your website',
+      'Consider adding content about: ' + assessment.missingTopics.slice(0, 3).join(', ')
+    ];
+  } else if (assessment.quality === 'good') {
+    assessment.recommendations = [
+      'Add content about: ' + assessment.missingTopics.slice(0, 2).join(', '),
+      'Consider adding more specific product/service information'
+    ];
+  } else {
+    assessment.recommendations = [
+      'Your content is excellent! Consider adding seasonal or promotional content',
+      'Keep content updated as your business evolves'
+    ];
+  }
+
+  return assessment;
+}
+
+// Helper function to remove duplicate links from AI responses
+function removeDuplicateLinks(response) {
+  if (!response || typeof response !== 'string') {
+    return response;
+  }
+
+  console.log('🔍 Starting duplicate link removal for response:', response.substring(0, 200) + '...');
+
+  // Find all markdown links in the response
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const links = [];
+  const seenUrls = new Set();
+  let match;
+  
+  // Collect all links
+  while ((match = linkRegex.exec(response)) !== null) {
+    links.push({
+      fullMatch: match[0],
+      text: match[1],
+      url: match[2],
+      index: match.index
+    });
+  }
+
+  console.log('🔗 Found links:', links.map(l => ({ text: l.text, url: l.url })));
+
+  // If no duplicates found, return original response
+  if (links.length <= 1) {
+    console.log('✅ No duplicates found, returning original response');
+    return response;
+  }
+
+  // Remove duplicate URLs, keeping the first occurrence
+  let processedResponse = response;
+  const duplicatesToRemove = [];
+
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+    if (seenUrls.has(link.url)) {
+      duplicatesToRemove.push(link);
+      console.log('🚫 Marking duplicate for removal:', link.url);
+    } else {
+      seenUrls.add(link.url);
+      console.log('✅ Keeping first occurrence:', link.url);
+    }
+  }
+
+  console.log('🗑️ Duplicates to remove:', duplicatesToRemove.length);
+
+  // Remove duplicates from the response (in reverse order to maintain indices)
+  duplicatesToRemove.reverse().forEach(link => {
+    processedResponse = processedResponse.substring(0, link.index) + 
+                       processedResponse.substring(link.index + link.fullMatch.length);
+  });
+
+  console.log('✅ Duplicate removal complete. Original length:', response.length, 'New length:', processedResponse.length);
+  return processedResponse;
+}
+
+// Helper function to enhance AI responses with better link formatting
+function enhanceResponseWithLinks(response, retrievedContext) {
+  if (!response || !retrievedContext || retrievedContext.length === 0) {
+    return response;
+  }
+
+  console.log('🔧 Starting link enhancement for response:', response.substring(0, 200) + '...');
+
+  // Check if response mentions information but doesn't include links
+  const hasContentReferences = retrievedContext.some(context => 
+    context.type === 'content' && context.source_url
+  );
+
+  if (hasContentReferences) {
+    // Look for content that was referenced but not linked
+    const contentWithUrls = retrievedContext.filter(context => 
+      context.type === 'content' && context.source_url
+    );
+
+    console.log('📄 Content with URLs found:', contentWithUrls.map(c => c.source_url));
+
+    // If response doesn't contain any links but we have content with URLs, add a helpful note
+    if (!response.includes('[') && !response.includes('http')) {
+      // Deduplicate URLs from retrievedContext before processing
+      const uniqueUrls = [];
+      const seenUrls = new Set();
+      
+      contentWithUrls.forEach(context => {
+        if (!seenUrls.has(context.source_url)) {
+          seenUrls.add(context.source_url);
+          uniqueUrls.push(context);
+        }
+      });
+
+      console.log('🆔 Unique URLs after deduplication:', uniqueUrls.map(u => u.source_url));
+
+      const relevantUrls = uniqueUrls.slice(0, 2); // Limit to 2 most relevant
+      if (relevantUrls.length > 0) {
+        // Check for existing links to avoid duplicates
+        const existingUrls = new Set();
+        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+        let match;
+        while ((match = linkRegex.exec(response)) !== null) {
+          existingUrls.add(match[2]);
+        }
+
+        console.log('🔗 Existing URLs in response:', Array.from(existingUrls));
+
+        // Only add links that aren't already present
+        const newUrls = relevantUrls.filter(context => !existingUrls.has(context.source_url));
+        
+        console.log('🆕 New URLs to add:', newUrls.map(u => u.source_url));
+
+        if (newUrls.length > 0) {
+          const linkSection = '\n\n**Related Pages:**\n' + 
+            newUrls.map(context => {
+              const pageName = context.source_url.split('/').pop() || 'Learn More';
+              return `- [${pageName}](${context.source_url})`;
+            }).join('\n');
+          
+          console.log('📝 Adding link section:', linkSection);
+          return response + linkSection;
+        }
+      }
+    }
+  }
+
+  console.log('✅ No link enhancement needed');
+  return response;
+}
+
+// Helper function to validate and truncate AI responses
+// function validateAIResponse(response, maxLength = 800) {
+//   if (!response || typeof response !== 'string') {
+//     return 'I apologize, but I encountered an issue. Please contact our support team for assistance.';
+//   }
+  
+//   // Only truncate if response is extremely long (over 800 characters)
+//   if (response.length > maxLength) {
+//     const truncated = response.substring(0, maxLength);
+//     // Find the last complete sentence
+//     const lastPeriod = truncated.lastIndexOf('.');
+//     const lastExclamation = truncated.lastIndexOf('!');
+//     const lastQuestion = truncated.lastIndexOf('?');
+    
+//     const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
+    
+//     if (lastSentenceEnd > maxLength * 0.7) { // If we can find a good sentence break
+//       return truncated.substring(0, lastSentenceEnd + 1);
+//     } else {
+//       return truncated + '...';
+//     }
+//   }
+  
+//   return response;
+// }
+
 // Get AI response using OpenAI
 export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = []}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-4o-mini';
   
+  // Assess content quality
+  const companyData = { name: companyName, website: companyWebsite, contact_email: customerSupportEmail };
+  const contentQuality = assessContentQuality(retrievedContext, companyData);
+  
+  console.log('📊 Content quality assessment:', {
+    quality: contentQuality.quality,
+    score: contentQuality.score,
+    contentCount: contentQuality.contentCount,
+    faqCount: contentQuality.faqCount,
+    missingTopics: contentQuality.missingTopics.length
+  });
+
+  // If content quality is very low and no context, use fallback response
+  if (contentQuality.quality === 'very_low' && retrievedContext.length === 0) {
+    const lastMessage = messageHistory[messageHistory.length - 1];
+    if (lastMessage && lastMessage.role === 'user') {
+      const fallbackResponse = generateFallbackResponse(lastMessage.content, companyData, contentQuality);
+      console.log('🔄 Using fallback response for very low content quality');
+      return fallbackResponse;
+    }
+  }
+  
   // Build context-aware system prompt with lead generation
   let systemPrompt = `You are a helpful customer service assistant for ${companyName}. Provide accurate, helpful, and professional responses to customer questions. Keep responses concise and friendly.
+
+IMPORTANT CAPABILITY CONSTRAINTS:
+- You CANNOT send emails, make phone calls, or perform actions outside this chat
+- You CAN provide information, answer questions, and suggest next steps
+- You CAN direct users to contact support or visit specific pages
+- If asked to perform an action you cannot do, politely explain your limitations and suggest alternatives
+- Never claim you can send emails, make calls, or perform external actions
+
+RESPONSE GUIDELINES:
+- Keep responses natural and engaging
+- Be direct and actionable
+- Always include relevant links when available
+- If you don't know something, say so and suggest contacting support
+- CRITICAL: ALWAYS end with a relevant follow-up question to engage the customer further and convert them into a lead
+
+LINK REQUIREMENTS:
+- When referencing information from the company website, ALWAYS include the source URL
+- Format links as: [Page Name](URL)
+- For contact info: [Contact Us](https://company.com/contact)
+- For support: [Support](https://company.com/support)
+- If no specific page exists, suggest contacting support at ${customerSupportEmail}
+- CRITICAL: Do NOT include duplicate links - if a link is already mentioned, don't repeat it
+- Each unique page should only be linked once per response
+- If you've already linked a page, do NOT link it again anywhere else in your response
+- Check your entire response before adding any new links to ensure no duplicates
+
+CONTENT QUALITY CONTEXT:
+- Current content quality: ${contentQuality.quality} (score: ${contentQuality.score}/100)
+- Content items available: ${contentQuality.contentCount}
+- FAQ items available: ${contentQuality.faqCount}
+- Missing topics: ${contentQuality.missingTopics.slice(0, 3).join(', ')}
+
+SMALL SITE GUIDELINES:
+- If content is limited, be honest about limitations
+- Always provide contact information as an alternative
+- Suggest relevant pages even if specific content isn't available
+- Be helpful and professional even with minimal information
 
 IMPORTANT LEAD GENERATION GUIDELINES:
 - After answering the customer's question, suggest a relevant follow-up question or next step
 - Focus on converting the conversation into a lead or sale when appropriate
-- Suggest product/service exploration, consultations, demos, or trials
+- Suggest product/service exploration, consultations, demos, or trials depending on the type of company
 - Be persuasive but not pushy - maintain helpful and genuine tone
 - Tailor suggestions based on the customer's question and context
 - Include specific calls-to-action when relevant
+- CRITICAL: ALWAYS end with a follow-up question to engage the customer further and convert them into a lead
+- Do NOT include duplicate links - each page should only be linked once
+- If you've already provided relevant links, focus on the follow-up question for conversion
+
+RESPONSE STRUCTURE:
+1. Answer the customer's question clearly and concisely
+2. Provide relevant links and information
+3. ALWAYS end with a follow-up question designed to convert the customer into a lead
 
 EXAMPLES OF GOOD FOLLOW-UPS:
 - "Would you like to schedule a consultation to discuss this further?"
@@ -86,7 +510,13 @@ EXAMPLES OF GOOD FOLLOW-UPS:
 - "Would you like me to send you more information about [relevant topic]?"
 - "Are you interested in learning about our pricing options?"
 - "Would you like to book a demo to see how this works?"
-- "Have you considered our [upgrade/premium] options?"`;
+- "Have you considered our [upgrade/premium] options?"
+- "What specific aspect of [topic] would you like to explore further?"
+- "Are you looking to get started with [service] right away?"
+- "Would you like to compare our different [product/service] options?"
+- "Have you thought about what [specific feature] could do for your business?"
+- "What's your timeline for implementing [solution]?"
+- "Would you like to speak with our [sales/support] team about [specific need]?"`;
   
   // Add retrieved context if available
   if (retrievedContext && retrievedContext.length > 0) {
@@ -96,7 +526,9 @@ EXAMPLES OF GOOD FOLLOW-UPS:
       if (context.type === 'faq') {
         systemPrompt += `\n- FAQ: ${context.question} - ${context.answer}`;
       } else if (context.type === 'content') {
-        systemPrompt += `\n- Company Information: ${context.content}`;
+        // Include source URL if available
+        const sourceUrl = context.source_url ? ` (Source: ${context.source_url})` : '';
+        systemPrompt += `\n- Company Information: ${context.content}${sourceUrl}`;
       }
     });
     
@@ -108,12 +540,27 @@ IMPORTANT:
 - Do not leave sentences incomplete or cut off mid-thought
 - Keep responses concise but comprehensive
 - After answering, suggest a relevant follow-up question or next step to engage the customer further
+- When referencing information from the company website, ALWAYS include the source URL in your response
+
+LINK FORMATTING REQUIREMENTS:
+- When referencing content with a source URL, format as: [Page Name](URL)
+- For contact pages: [Contact Us](URL)
+- For support pages: [Support](URL)
+- For product pages: [Product Name](URL)
+- For service pages: [Service Name](URL)
+- If no specific page name is obvious, use: [Learn More](URL)
+- CRITICAL: Do NOT include duplicate links - each page should only be linked once per response
+- If you've already linked a page, do NOT link it again in the same response
+- Before adding any link, check if that URL already exists in your response
+- Each unique URL should appear only once, regardless of the link text
+- If creating a "Related Pages" section, ensure each URL appears only once
+- Do NOT list the same URL multiple times in Related Pages or any other section
 
 When providing contact information, always format it as clickable markdown links:
-- Email addresses: support@company.com
-- Phone numbers: Call us at (555) 123-4567
-- Website links: Visit our website at https://company.com (make sure to include the https://)
-- Physical addresses: 123 Main St, City, State (make sure to include the city and state)
+- Email addresses: [support@company.com](mailto:support@company.com)
+- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
+- Website links: [Visit our website](https://company.com)
+- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
 
 If the information above doesn't answer the question, suggest they contact customer support at [${customerSupportEmail}].`;
   } else {
@@ -121,18 +568,18 @@ If the information above doesn't answer the question, suggest they contact custo
     systemPrompt += ` If you don't know something specific about the company look it up on the company website [${companyWebsite}] if available and relevant. 
 
 IMPORTANT: When providing contact information, always format it as clickable markdown links:
-- Email addresses: support@company.com
-- Phone numbers: Call us at (555) 123-4567
-- Website links: Visit our website at https://company.com (make sure to include the https://)
-- Physical addresses: 123 Main St, City, State (make sure to include the city and state)
+- Email addresses: [support@company.com](mailto:support@company.com)
+- Phone numbers: [Call us at (555) 123-4567](tel:+15551234567)
+- Website links: [Visit our website](https://company.com)
+- Physical addresses: [123 Main St, City, State](https://maps.google.com/?q=123+Main+St+City+State)
 
-After answering the customer's question, suggest a relevant follow-up question or next step to engage them further.
+IMPORTANT: After answering the customer's question, suggest a relevant follow-up question or next step to engage them further. The goal is to convert the customer into a lead or sale.
 
 If you don't find the information on the website, suggest they contact customer support at [${customerSupportEmail}].`;
   }
   
-  const maxTokens = 500; // Increased for more detailed responses with context
-  const temperature = 0.7;
+  const maxTokens = 700; // Increased to allow for comprehensive answers with follow-up questions
+  const temperature = 0.5; // Balanced for creativity while maintaining consistency
 
   try {
     console.log('🤖 Calling OpenRouter API with:', {
@@ -164,20 +611,27 @@ If you don't find the information on the website, suggest they contact customer 
           'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': process.env.SOURCE_URL
-        },
-        timeout: 30000 // 30 second timeout
+        }
       }
     );
 
-    console.log('✅ OpenRouter API response received');
+    // Validate and process the response
     const aiResponse = response.data.choices[0].message.content;
-    console.log('🤖 AI Response length:', aiResponse?.length || 0);
-    
-    // Ensure response ends with complete sentences
-    const completeResponse = ensureCompleteSentences(aiResponse, maxTokens * 4); // Approximate character limit
-    console.log('🤖 Complete response length:', completeResponse?.length || 0);
-    
-    return completeResponse;
+    // const validatedResponse = validateAIResponse(aiResponse);
+    const deduplicatedResponse = removeDuplicateLinks(aiResponse);
+    const enhancedResponse = enhanceResponseWithLinks(deduplicatedResponse, retrievedContext);
+
+    console.log('✅ AI response received and processed:', {
+      originalLength: aiResponse.length,
+      validatedLength: validatedResponse.length,
+      deduplicatedLength: deduplicatedResponse.length,
+      enhancedLength: enhancedResponse.length,
+      wasTruncated: aiResponse.length !== validatedResponse.length,
+      wasDeduplicated: validatedResponse.length !== deduplicatedResponse.length,
+      wasEnhanced: deduplicatedResponse.length !== enhancedResponse.length
+    });
+
+    return enhancedResponse;
   } catch (error) {
     console.error('❌ OpenRouter API error details:', {
       status: error.response?.status,
@@ -195,19 +649,19 @@ If you don't find the information on the website, suggest they contact customer 
     // Check for specific error types
     if (error.response?.status === 401) {
       console.error('❌ OpenRouter API key is invalid or missing');
-      return `I apologize, but there's a configuration issue with our AI service. Please contact our support team at ${customerSupportEmail} for assistance.`;
+      return `I apologize, but there's a configuration issue with our AI service. Please contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}) for assistance.`;
     } else if (error.response?.status === 429) {
       console.error('❌ OpenRouter API rate limit exceeded');
-      return `I apologize, but our AI service is currently experiencing high demand. Please try again in a few moments or contact our support team at ${customerSupportEmail}.`;
+      return `I apologize, but our AI service is currently experiencing high demand. Please try again in a few moments or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
     } else if (error.code === 'ECONNABORTED') {
       console.error('❌ OpenRouter API request timed out');
-      return `I apologize, but our AI service is taking longer than expected to respond. Please try again or contact our support team at ${customerSupportEmail}.`;
+      return `I apologize, but our AI service is taking longer than expected to respond. Please try again or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
     } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
       console.error('❌ OpenRouter API connection failed');
-      return `I apologize, but we're unable to connect to our AI service at the moment. Please try again later or contact our support team at ${customerSupportEmail}.`;
+      return `I apologize, but we're unable to connect to our AI service at the moment. Please try again later or contact our support team at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
     }
     
-    return `I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance at ${customerSupportEmail}.`;
+    return `I apologize, but I'm unable to provide a specific answer to your question. Please contact our customer support team for assistance at [${customerSupportEmail}](mailto:${customerSupportEmail}).`;
   }
 }
 
@@ -1403,6 +1857,7 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
         ...result,
         type: 'content',
         source: 'company_content',
+        source_url: result.source_url, // Include source URL for content chunks
         priority: result.priority || 'medium'
       }))
     ].sort((a, b) => {
@@ -1415,23 +1870,15 @@ export async function searchWithRAG(userQuestion, companyId, topK = 5) {
         if (b.priority === 'high' && a.priority !== 'high') return 1;
       }
       return b.similarity - a.similarity;
-    })
-    .slice(0, topK); // Get top K most relevant overall
-    
-    console.log(`🎯 RAG search completed. Top ${allResults.length} results found.`);
-    
-    // Log top results for debugging
-    if (allResults.length > 0) {
-      console.log('🏆 Top result:', {
-        type: allResults[0].type,
-        similarity: allResults[0].similarity,
-        priority: allResults[0].priority,
-        content: allResults[0].type === 'faq' ? 
-          allResults[0].question.substring(0, 100) + '...' : 
-          allResults[0].content.substring(0, 100) + '...'
-      });
-    }
-    
+    }).slice(0, topK);
+
+    console.log(`🎯 RAG search completed: ${allResults.length} results found`);
+    console.log(`📊 Result breakdown:`, {
+      faqs: allResults.filter(r => r.type === 'faq').length,
+      content: allResults.filter(r => r.type === 'content').length,
+      withUrls: allResults.filter(r => r.source_url).length
+    });
+
     return allResults;
     
   } catch (error) {
@@ -1561,4 +2008,100 @@ function calculateFAQQuality(faq) {
   if (answerLength < 20) quality -= 5;
   
   return Math.max(0, quality);
+}
+
+// Export content quality assessment for admin dashboard
+export async function getContentQualityInsights(companyId) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    // Get company data
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      throw new Error('Company not found');
+    }
+
+    const company = companyResponse.data[0];
+
+    // Get recent content chunks
+    const contentResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/company_content_chunks?company_id=eq.${companyId}&order=created_at.desc&limit=100`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Get recent FAQs
+    const faqResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/faqs?company_id=eq.${companyId}&order=created_at.desc&limit=100`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Create mock context for assessment
+    const mockContext = [
+      ...(contentResponse.data || []).map(chunk => ({
+        type: 'content',
+        content: chunk.content,
+        content_type: chunk.content_type,
+        source_url: chunk.source_url
+      })),
+      ...(faqResponse.data || []).map(faq => ({
+        type: 'faq',
+        question: faq.question,
+        answer: faq.answer
+      }))
+    ];
+
+    // Assess content quality
+    const quality = assessContentQuality(mockContext, company);
+
+    return {
+      quality: quality.quality,
+      score: quality.score,
+      contentCount: quality.contentCount,
+      faqCount: quality.faqCount,
+      contentTypes: quality.contentTypes,
+      missingTopics: quality.missingTopics,
+      recommendations: quality.recommendations,
+      lastUpdated: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error('Error getting content quality insights:', error);
+    return {
+      quality: 'unknown',
+      score: 0,
+      contentCount: 0,
+      faqCount: 0,
+      contentTypes: [],
+      missingTopics: [],
+      recommendations: ['Unable to assess content quality at this time'],
+      lastUpdated: new Date().toISOString()
+    };
+  }
 }
