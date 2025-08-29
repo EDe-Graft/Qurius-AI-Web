@@ -15,7 +15,7 @@
       scrollDelay: 100,        // Delay before scrolling (ms)
       scrollBehavior: 'smooth', // 'smooth' or 'auto'
       scrollOffset: 80,        // Offset from top (for fixed headers)
-      retryAttempts: 3,        // Number of retry attempts if element not found
+      retryAttempts: 5,        // Number of retry attempts if element not found
       retryDelay: 1000         // Delay between retries (ms)
     };
   
