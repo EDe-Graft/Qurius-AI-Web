@@ -24,6 +24,7 @@ export function ChatInterface({
   isMinimized,
   onToggleMinimize,
   isThemeChanging,
+  resetKey = 0, // Add resetKey prop with default value
   companyData,
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -159,6 +160,22 @@ export function ChatInterface({
         AnalyticsService.trackLanguageChange(companyName, companyId || '', currentLanguage)
       }
   }, [currentLanguage]) // Reset when language changes
+
+  // Reset conversation when resetKey changes (for company changes in live test)
+  useEffect(() => {      
+      const welcomeMessage = {
+        content: getWelcomeMessage(),
+        isUser: false,
+        liked: null,
+        isMessageStreamed: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      
+      // Reset to only the welcome message when company changes
+      setMessages([welcomeMessage])
+      
+      console.log('🔄 Chat reset due to company change, resetKey:', resetKey)
+  }, [resetKey]) // Reset when resetKey changes
 
   // Get company theme
   useEffect(() => {

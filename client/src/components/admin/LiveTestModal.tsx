@@ -30,6 +30,7 @@ interface LiveTestModalProps {
 export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }: LiveTestModalProps) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [isChatMinimized, setIsChatMinimized] = useState(true)
+  const [resetKey, setResetKey] = useState(0) // Add reset key for chat re-initialization
   const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
 
   useEffect(() => {
@@ -57,6 +58,8 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
   const handleCompanyChange = (companyId: string) => {
     const company = companies.find(c => c.id === companyId)
     setSelectedCompany(company || null)
+    // Increment reset key to force chat re-initialization
+    setResetKey(prev => prev + 1)
   }
 
   if (!isOpen) return null
@@ -196,6 +199,7 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
               status: selectedCompany.status || 'active'
             }}
             isThemeChanging={isThemeChanging}
+            resetKey={resetKey} // Pass resetKey to ChatInterface
           />
         )}
       </div>

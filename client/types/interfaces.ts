@@ -58,6 +58,7 @@ export interface ChatInterfaceProps {
     isMinimized?: boolean
     onToggleMinimize?: () => void
     isThemeChanging?: boolean
+    resetKey?: number // Add reset key to force re-initialization
     companyData?: {
         id?: string
         name: string

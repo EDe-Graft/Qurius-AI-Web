@@ -302,6 +302,13 @@ function removeDuplicateLinks(response) {
 
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
+    
+    // Don't treat mailto: links as duplicates since they can have different link text
+    if (link.url.startsWith('mailto:') || link.url.startsWith('tel:')) {
+      console.log('✅ Keeping mailto/tel link:', link.url);
+      continue;
+    }
+    
     if (seenUrls.has(link.url)) {
       duplicatesToRemove.push(link);
       console.log('🚫 Marking duplicate for removal:', link.url);
@@ -493,6 +500,14 @@ LINK REQUIREMENTS:
 - Each unique page should only be linked once per response
 - If you've already linked a page, do NOT link it again anywhere else in your response
 - Check your entire response before adding any new links to ensure no duplicates
+
+EMAIL AND CONTACT LINK FORMATTING:
+- ALWAYS format email addresses as clickable mailto links: [support@company.com](mailto:support@company.com)
+- ALWAYS format phone numbers as clickable tel links: [Call us at (555) 123-4567](tel:+15551234567)
+- When suggesting contact, use: [Contact Support](mailto:${customerSupportEmail})
+- When suggesting email, use: [Email Us](mailto:${customerSupportEmail})
+- Never show plain email addresses without mailto: formatting
+- Always make contact information clickable and actionable
 
 SECTION-SPECIFIC LINKING:
 - When you have section information available (section_id, section_text, anchor_link), use it to create precise links
@@ -2259,7 +2274,20 @@ function formatAIResponse(response) {
   // 11. Clean up any remaining excessive whitespace
   formatted = formatted.replace(/\s{3,}/g, ' ');
 
-  // 12. Ensure the response ends with proper spacing
+  // 12. Ensure email addresses are properly formatted as mailto links
+  // Find email addresses that aren't already in markdown links and convert them
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  formatted = formatted.replace(emailRegex, (email) => {
+    // Check if this email is already in a markdown link
+    const linkRegex = new RegExp(`\\[([^\\]]*)\\]\\(mailto:${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+    if (linkRegex.test(formatted)) {
+      return email; // Already formatted as a link
+    }
+    // Convert to mailto link
+    return `[${email}](mailto:${email})`;
+  });
+
+  // 13. Ensure the response ends with proper spacing
   formatted = formatted.trim();
 
   console.log('✅ Response formatting complete. Original length:', response.length, 'Formatted length:', formatted.length);
