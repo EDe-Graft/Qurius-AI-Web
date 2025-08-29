@@ -479,6 +479,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               createWidgetSettingsAction(
                 () => setShowWidgetConfig(true),
                 company?.name
+              ),
+              createLiveTestAction(
+                () => setShowLiveTest(true),
+                company?.name
               )
             ] : []),
             ...(company?.plan === 'pro' ? [
@@ -486,11 +490,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                 () => setShowCrawler(true),
                 company?.name
               )
-            ] : []),
-            createLiveTestAction(
-              () => setShowLiveTest(true),
-              company?.name
-            )
+            ] : [])
           ]}
           gridCols="3"
         />
