@@ -22,8 +22,9 @@ import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
+import { LiveTestModal } from "@/components/admin/LiveTestModal"
 // import { NotificationBanner } from "@/components/admin/NotificationBanner"
-import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction } from "@/components/admin/QuickActions"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -58,6 +59,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showIntegrationCode, setShowIntegrationCode] = useState(false)
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
+  const [showLiveTest, setShowLiveTest] = useState(false)
   
   // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
@@ -484,7 +486,11 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                 () => setShowCrawler(true),
                 company?.name
               )
-            ] : [])
+            ] : []),
+            createLiveTestAction(
+              () => setShowLiveTest(true),
+              company?.name
+            )
           ]}
           gridCols="3"
         />
@@ -743,6 +749,14 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           }}
         />
       )}
+
+      {/* Live Test Modal */}
+      <LiveTestModal
+        isOpen={showLiveTest}
+        onClose={() => setShowLiveTest(false)}
+        companies={company ? [company] : []}
+        selectedCompanyId={company?.id || undefined}
+      />
     </div>
   )
 } 

@@ -4,7 +4,8 @@ import {
   FileText,
   Settings,
   Search,
-  Activity
+  Activity,
+  Play
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -163,6 +164,25 @@ export const createContentProcessorAction = (
   disabled,
   disabledMessage: 'Select a company from the dropdown above to process their content',
   showForPlan: 'pro'
+})
+
+export const createLiveTestAction = (
+  onClick: () => void,
+  companyName?: string,
+  disabled = false
+): QuickAction => ({
+  id: 'live-test',
+  title: 'Live Test',
+  description: companyName 
+    ? `Test ${companyName}'s AI assistant in a realistic environment`
+    : 'Test your AI assistant in a realistic environment',
+  icon: <Play className="h-5 w-5" />,
+  iconBgColor: 'bg-green-100 dark:bg-green-900',
+  iconColor: 'text-green-600 dark:text-green-400',
+  onClick,
+  disabled,
+  disabledMessage: 'Select a company from the dropdown above to test their AI assistant',
+  showForPlan: 'all'
 })
 
 export const createAutomationManagementAction = (

@@ -70,10 +70,11 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.website')}
+            {t('onboarding.website')} *
           </label>
           <input
             type="url"
+            required
             value={companyData.website}
             onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"

@@ -24,9 +24,10 @@ import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
+import { LiveTestModal } from "@/components/admin/LiveTestModal"
 // import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import AutomationManager from "@/components/admin/AutomationManager"
-import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction } from "@/components/admin/QuickActions"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction, createLiveTestAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -61,6 +62,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
   // const [showNotificationBanner, setShowNotificationBanner] = useState(false)
   const [showAutomationManager, setShowAutomationManager] = useState(false)
+  const [showLiveTest, setShowLiveTest] = useState(false)
 
   // Enhanced analytics state
   const [systemAnalytics, setSystemAnalytics] = useState<{
@@ -759,6 +761,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             ),
             createAutomationManagementAction(
               () => setShowAutomationManager(true)
+            ),
+            createLiveTestAction(
+              () => setShowLiveTest(true)
             )
           ]}
           gridCols="4"
@@ -932,6 +937,14 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           </div>
         </div>
       )}
+
+      {/* Live Test Modal */}
+      <LiveTestModal
+        isOpen={showLiveTest}
+        onClose={() => setShowLiveTest(false)}
+        companies={companies}
+        selectedCompanyId={selectedCompanyId || undefined}
+      />
     </div>
   )
 } 
