@@ -106,6 +106,7 @@ export interface MessageBubbleProps {
     companyId?: string // For analytics tracking
     onRatingChange?: (rating: 'like' | 'dislike' | null) => void // Add callback for rating changes
     isMessageStreamed?: boolean // Track if this message has been streamed
+    logoUrl?: string // Add this prop
   }
   
 

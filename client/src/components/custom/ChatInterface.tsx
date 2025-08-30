@@ -682,6 +682,7 @@ export function ChatInterface({
                 isLastAiMessage={isLastAiMessage} // Stream last AI messages
                 companyName={companyName} // Pass company name for analytics
                 companyId={companyId || ''} // Pass company ID for analytics
+                logoUrl={logoUrl || undefined} // Pass logo URL to MessageBubble
                 companyTheme={companyTheme || undefined} // Pass this prop to MessageBubble
                 onRatingChange={(rating) => handleRatingChange(index, rating)} // Pass the new handler with message index
                 onStreamingComplete={handleStreamingComplete} // Pass the new handler

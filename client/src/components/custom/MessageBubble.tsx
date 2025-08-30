@@ -53,6 +53,7 @@ function AIMessageBubble({
   isLastAiMessage, 
   companyName, 
   companyId,
+  logoUrl,
   onRatingChange, 
   onStreamingComplete
 }: {
@@ -66,6 +67,7 @@ function AIMessageBubble({
   isLastAiMessage?: boolean
   companyName?: string
   companyId?: string
+  logoUrl?: string
   onRatingChange?: (rating: 'like' | 'dislike' | null) => void
   onStreamingComplete?: (messageIndex: number) => void
 }) {
@@ -190,7 +192,11 @@ function AIMessageBubble({
           className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400"
           style={{ backgroundColor: companyTheme?.backgroundColor }}
         >
-          <Bot className="w-4 h-4" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="Company Logo" className="w-full h-full rounded-full" />
+          ) : (
+            <Bot className="w-4 h-4" />
+          )}
         </div>
 
         {/* Message Content */}
@@ -324,7 +330,7 @@ function AIMessageBubble({
 }
 
 // Main MessageBubble Component - now acts as a router
-export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, companyId, onRatingChange, onStreamingComplete }: MessageBubbleProps) {
+export function MessageBubble({ message, messageIndex, liked, isUser, timestamp, onStreamingChange, skipStreaming, companyTheme, isLastAiMessage, companyName, companyId, logoUrl, onRatingChange, onStreamingComplete }: MessageBubbleProps) {
   if (isUser) {
     return (
       <UserMessageBubble 
@@ -346,6 +352,7 @@ export function MessageBubble({ message, messageIndex, liked, isUser, timestamp,
         isLastAiMessage={isLastAiMessage}
         companyName={companyName}
         companyId={companyId}
+        logoUrl={logoUrl}
         onRatingChange={onRatingChange}
         onStreamingComplete={onStreamingComplete}
       />
