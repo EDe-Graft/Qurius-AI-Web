@@ -7,7 +7,14 @@ import { cn, darkenColor } from "@/lib/utils"
 import type { ChatInputProps } from "types/interfaces"
 
 // Chat Input
-export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Type your message...", companyTheme, verifiedPlan }: ChatInputProps) {
+export function ChatInput({ 
+  onSendMessage, 
+  isLoading = false, 
+  placeholder = "Type your message...", 
+  companyTheme,
+  verifiedPlan,
+  isLeadCollection = false,
+}: ChatInputProps) {
   const [message, setMessage] = useState("")
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,6 +35,11 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
   // Generate hover color from primary color
   const hoverColor = companyTheme?.primaryColor ? darkenColor(companyTheme.primaryColor, 20) : undefined;
 
+  // Update placeholder based on lead collection state
+  const inputPlaceholder = isLeadCollection 
+    ? "Please provide your contact information (name, email, phone)..."
+    : placeholder;
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
       <div className="max-w-4xl mx-auto p-4">
@@ -36,7 +48,7 @@ export function ChatInput({ onSendMessage, isLoading = false, placeholder = "Typ
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={inputPlaceholder}
             disabled={isLoading}
             className={cn(
               "min-h-[60px] max-h-[200px] resize-none pr-12 py-3",

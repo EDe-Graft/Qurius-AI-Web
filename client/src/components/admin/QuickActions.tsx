@@ -5,7 +5,8 @@ import {
   Settings,
   Search,
   Activity,
-  Play
+  Play,
+  MessageSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -173,15 +174,12 @@ export const createLiveTestAction = (
 ): QuickAction => ({
   id: 'live-test',
   title: 'Live Test',
-  description: companyName 
-    ? `Test ${companyName}'s AI assistant in a realistic environment`
-    : 'Test your AI assistant in a realistic environment',
+  description: companyName ? `Test the AI assistant for ${companyName}` : 'Test the AI assistant on a sample website',
   icon: <Play className="h-5 w-5" />,
-  iconBgColor: 'bg-green-100 dark:bg-green-900',
-  iconColor: 'text-green-600 dark:text-green-400',
   onClick,
   disabled,
-  disabledMessage: 'Select a company from the dropdown above to test their AI assistant',
+  iconBgColor: 'bg-purple-100 dark:bg-purple-900',
+  iconColor: 'text-purple-600 dark:text-purple-400',
   showForPlan: 'all'
 })
 
@@ -195,5 +193,22 @@ export const createAutomationManagementAction = (
   iconBgColor: 'bg-orange-100 dark:bg-orange-900',
   iconColor: 'text-orange-600 dark:text-orange-400',
   onClick,
+  showForPlan: 'all'
+}) 
+
+export const createLeadManagementAction = (
+  onClick: () => void,
+  companyName?: string,
+  disabled = false
+): QuickAction => ({
+  id: 'lead-management',
+  title: 'Manage Leads',
+  description: companyName ? `View and manage leads for ${companyName}` : 'View and manage company leads',
+  icon: <MessageSquare className="h-5 w-5" />,
+  iconBgColor: 'bg-green-100 dark:bg-green-900',
+  iconColor: 'text-green-600 dark:text-green-400',
+  onClick,
+  disabled,
+  disabledMessage: 'Select a company from the dropdown above to manage their leads',
   showForPlan: 'all'
 }) 

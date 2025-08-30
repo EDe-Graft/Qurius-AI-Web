@@ -354,6 +354,49 @@ CREATE POLICY "Service role can delete content chunks" ON public.company_content
   FOR DELETE USING (true);
 
 
+-- Leads table for capturing potential customer information
+CREATE TABLE IF NOT EXISTS public.leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    company_name TEXT NOT NULL,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    conversation_context TEXT, -- Store the conversation that led to this lead
+    lead_status TEXT DEFAULT 'new' CHECK (lead_status IN ('new', 'contacted', 'converted', 'lost')),
+    source_session_id TEXT, -- Track which conversation session generated this lead
+    user_question TEXT, -- The question that triggered lead collection
+    ai_response TEXT, -- The AI response that preceded lead collection
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for leads table
+CREATE INDEX IF NOT EXISTS idx_leads_company_id ON public.leads(company_id);
+CREATE INDEX IF NOT EXISTS idx_leads_created_at ON public.leads(created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_status ON public.leads(lead_status);
+CREATE INDEX IF NOT EXISTS idx_leads_email ON public.leads(email);
+CREATE INDEX IF NOT EXISTS idx_leads_phone ON public.leads(phone);
+
+-- Enable RLS
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for leads
+CREATE POLICY "Companies can view their own leads" ON public.leads
+  FOR SELECT USING (company_id IN (
+    SELECT id FROM public.companies WHERE id = company_id
+  ));
+
+CREATE POLICY "Service role can insert leads" ON public.leads
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service role can update leads" ON public.leads
+  FOR UPDATE USING (true);
+
+-- Allow service role to read all leads (for admin dashboard)
+CREATE POLICY "Service role can read all leads" ON public.leads
+  FOR SELECT USING (true);
+
 -- ========================================
 -- FUNCTIONS
 -- ========================================
@@ -1327,3 +1370,4 @@ BEGIN
   WHERE company_id = p_company_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+

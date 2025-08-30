@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import axios from 'axios'
-import scheduler from './services/schedulerService.js'
-import { ChangeDetectionService } from './services/changeDetectionService.js'
+import scheduler from '../services/schedulerService.js'
+import { ChangeDetectionService } from '../services/changeDetectionService.js'
 import dotenv from 'dotenv'
 
 dotenv.config({ path: './.env' })

@@ -49,6 +49,22 @@ export interface FAQResponse {
     fallbackReason?: string;
     limitReached?: boolean;
     messagesLeft?: number;
+    shouldRequestLead?: boolean; // New field for lead generation
+}
+
+// Lead Collection interfaces
+export interface LeadInfo {
+    name?: string;
+    email?: string;
+    phone?: string;
+}
+
+export interface LeadCollectionState {
+    isCollecting: boolean;
+    leadInfo: LeadInfo;
+    isSubmitting: boolean;
+    error?: string;
+    shouldRequestAfterStreaming?: boolean;
 }
 
 //Chat Interface
@@ -87,6 +103,7 @@ export interface ChatInputProps {
     defaultTheme?: "light" | "dark"
     companyTheme?: CompanyTheme
     verifiedPlan?: string
+    isLeadCollection?: boolean
 }
 
 // Message Bubble

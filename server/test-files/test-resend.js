@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { Resend } from 'resend';
-import { WelcomeEmailTemplate } from './emailTemplates.js';
+import { WelcomeEmailTemplate } from '../emailTemplates.js';
 
 // Load environment variables
 dotenv.config({ path: './.env' });

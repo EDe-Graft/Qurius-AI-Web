@@ -1,4 +1,4 @@
-import QuriusCrawler from './crawler/crawler.js'
+import QuriusCrawler from '../crawler/crawler.js'
 
 async function testPuppeteerCrawler() {
   console.log('🧪 Testing Puppeteer-enabled crawler...')

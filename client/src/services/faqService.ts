@@ -57,7 +57,8 @@ class FAQService {
             confidence: firstResult.confidence,
             fallbackReason: firstResult.fallbackReason,
             limitReached: firstResult.limitReached || false,
-            messagesLeft: firstResult.messagesLeft
+            messagesLeft: firstResult.messagesLeft,
+            shouldRequestLead: firstResult.shouldRequestLead || false
           };
         }
       }
@@ -83,7 +84,8 @@ class FAQService {
           confidence: response.data.confidence,
           fallbackReason: response.data.fallbackReason,
           limitReached: response.data.limitReached || false,
-          messagesLeft: response.data.messagesLeft
+          messagesLeft: response.data.messagesLeft,
+          shouldRequestLead: response.data.shouldRequestLead || false
         };
       }
       

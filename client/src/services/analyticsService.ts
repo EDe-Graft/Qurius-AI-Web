@@ -273,4 +273,59 @@ export class AnalyticsService {
       confidenceScore
     })
   }
+
+  // Track lead generation
+  static async trackLeadGenerated(companyName: string, companyId: string, leadData: {
+    name?: string
+    email?: string
+    phone?: string
+    sessionId?: string
+    userQuestion?: string
+    aiResponse?: string
+  }) {
+    try {
+      await axios.post(`${this.BACKEND_URL}/api/analytics/lead-generated`, {
+        companyName,
+        companyId,
+        ...leadData,
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error('Failed to track lead generation:', error)
+    }
+  }
+
+  // Get lead analytics
+  static async getLeadAnalytics(companyId: string): Promise<{
+    totalLeads: number
+    newLeads: number
+    contactedLeads: number
+    convertedLeads: number
+    lostLeads: number
+    conversionRate: number
+    averageResponseTime: number
+    leadSources: Record<string, number>
+    monthlyLeads: Array<{
+      month: string
+      count: number
+    }>
+  }> {
+    try {
+      const response = await axios.get(`${this.BACKEND_URL}/api/analytics/leads/${companyId}`)
+      return response.data
+    } catch (error) {
+      console.error('Failed to get lead analytics:', error)
+      return {
+        totalLeads: 0,
+        newLeads: 0,
+        contactedLeads: 0,
+        convertedLeads: 0,
+        lostLeads: 0,
+        conversionRate: 0,
+        averageResponseTime: 0,
+        leadSources: {},
+        monthlyLeads: []
+      }
+    }
+  }
 } 

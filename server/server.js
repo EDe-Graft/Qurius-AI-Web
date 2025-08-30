@@ -15,6 +15,7 @@ import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
 import automationRoutes from './crawler/automation-api.js';
 import scheduler from './services/schedulerService.js';
+import { storeLead, shouldRequestLeadInfo, checkExistingLead, generateLeadCollectionPrompt, extractContactInfoFromResponse } from './services/leadService.js';
 
 const app = express();;
 const PORT = process.env.PORT || 3001;
@@ -816,12 +817,15 @@ app.delete('/api/companies/:id', async (req, res) => {
   }
 });
 
-// Search FAQs with enhanced analytics tracking
+// Search FAQs with enhanced analytics tracking and lead generation
 app.post('/api/faqs/search', async (req, res) => {
   try {
     const { question, companyData, messages } = req.body;
     const {id: companyId, name: companyName, website, contact_email } = companyData;
     let sessionId = 'qurius-ai-session';
+    
+    // Calculate message count for lead generation (excluding welcome message)
+    const messageCount = messages ? messages.length - 1 : 0;
 
     console.log('Question:', question);
     console.log('Searching FAQs for company ID:', companyId);
@@ -867,6 +871,9 @@ app.post('/api/faqs/search', async (req, res) => {
           let fallbackReason = 'high_confidence';
           let contentMatchType = bestMatch.type; // 'faq' or 'content'
           
+          // Check if we should request lead information (do this before AI response)
+          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+          
           if (bestMatch.type === 'faq') {
             // High confidence FAQ match - use AI with FAQ context
             console.log('Using FAQ as context with confidence:', bestMatch.similarity);
@@ -876,7 +883,8 @@ app.post('/api/faqs/search', async (req, res) => {
               companyWebsite: website, 
               customerSupportEmail: contact_email, 
               messageHistory: messages,
-              retrievedContext: searchResults
+              retrievedContext: searchResults,
+              shouldRequestLead: shouldRequestLead
             });
             
             responseSource = 'ai_with_faq_context';
@@ -911,7 +919,8 @@ app.post('/api/faqs/search', async (req, res) => {
               companyWebsite: website, 
               customerSupportEmail: contact_email, 
               messageHistory: messages,
-              retrievedContext: searchResults
+              retrievedContext: searchResults,
+              shouldRequestLead: shouldRequestLead
             });
             
             responseSource = 'ai_with_context';
@@ -933,17 +942,23 @@ app.post('/api/faqs/search', async (req, res) => {
             faqId: bestMatch.faq_id || null,
             confidence: bestMatch.similarity,
             contentMatchType: contentMatchType,
-            messagesLeft: messageLimitCheck.messagesLeft
+            messagesLeft: messageLimitCheck.messagesLeft,
+            shouldRequestLead: shouldRequestLead
           }]);
         } else {
           // Low confidence - use RAG with multiple sources
           console.log('Low confidence matches, using RAG with multiple sources');
+          
+          // Check if we should request lead information (do this before AI response)
+          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+          
           const aiResponse = await getAIResponse({
             companyName, 
             companyWebsite: website, 
             customerSupportEmail: contact_email, 
             messageHistory: messages,
-            retrievedContext: searchResults // Top 5 relevant chunks
+            retrievedContext: searchResults, // Top 5 relevant chunks
+            shouldRequestLead: shouldRequestLead
           });
           console.log('AI Response with RAG context:', aiResponse);
 
@@ -960,13 +975,24 @@ app.post('/api/faqs/search', async (req, res) => {
             fallbackReason: 'low_confidence',
             confidence: bestMatch.similarity,
             contentMatchType: 'mixed',
-            messagesLeft: messageLimitCheck.messagesLeft
+            messagesLeft: messageLimitCheck.messagesLeft,
+            shouldRequestLead: shouldRequestLead
           }]);
         }
       } else {
         // No results found, fallback to AI
         console.log('No RAG results found, falling back to AI');
-        const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
+        
+        // Check if we should request lead information (do this before AI response)
+        const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+        
+        const aiResponse = await getAIResponse({
+          companyName, 
+          companyWebsite: website, 
+          customerSupportEmail: contact_email, 
+          messageHistory: messages,
+          shouldRequestLead: shouldRequestLead
+        });
         console.log('AI Response:', aiResponse);
 
         // Record AI usage
@@ -981,14 +1007,24 @@ app.post('/api/faqs/search', async (req, res) => {
           source: 'ai',
           fallbackReason: 'no_rag_results',
           contentMatchType: 'none',
-          messagesLeft: messageLimitCheck.messagesLeft
+          messagesLeft: messageLimitCheck.messagesLeft,
+          shouldRequestLead: shouldRequestLead
         }]);
       }
     } catch (ragError) {
       console.log('RAG search failed, falling back to AI:', ragError.message);
       
+      // Check if we should request lead information (do this before AI response)
+      const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+      
       // Fallback to AI when RAG search fails
-      const aiResponse = await getAIResponse({companyName, companyWebsite: website, customerSupportEmail: contact_email, messageHistory: messages });
+      const aiResponse = await getAIResponse({
+        companyName, 
+        companyWebsite: website, 
+        customerSupportEmail: contact_email, 
+        messageHistory: messages,
+        shouldRequestLead: shouldRequestLead
+      });
       console.log('AI Response:', aiResponse);
       
       // Record AI usage
@@ -1003,7 +1039,8 @@ app.post('/api/faqs/search', async (req, res) => {
         source: 'ai',
         fallbackReason: 'rag_error',
         contentMatchType: 'none',
-        messagesLeft: messageLimitCheck.messagesLeft
+        messagesLeft: messageLimitCheck.messagesLeft,
+        shouldRequestLead: shouldRequestLead
       }]);
     }
   } catch (error) {
@@ -3800,6 +3837,300 @@ app.get('/api/companies/:companyId/content-quality', async (req, res) => {
   }
 });
 
+
+// ========================================
+// LEAD MANAGEMENT ENDPOINTS
+// ========================================
+
+// Store lead information
+app.post('/api/leads/store', async (req, res) => {
+  try {
+    const { 
+      companyId, 
+      companyName, 
+      name, 
+      email, 
+      phone, 
+      conversationContext, 
+      sessionId, 
+      userQuestion, 
+      aiResponse 
+    } = req.body;
+
+    if (!companyId || !companyName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: companyId, companyName' 
+      });
+    }
+
+    console.log('📝 Storing lead for company:', companyName);
+
+    const leadData = {
+      companyId,
+      companyName,
+      name: name || null,
+      email: email || null,
+      phone: phone || null,
+      conversationContext: conversationContext || null,
+      sessionId: sessionId || null,
+      userQuestion: userQuestion || null,
+      aiResponse: aiResponse || null
+    };
+
+    const result = await storeLead(leadData);
+
+    if (result.success) {
+      console.log('✅ Lead stored successfully with ID:', result.leadId);
+      res.json({ 
+        success: true, 
+        leadId: result.leadId,
+        message: 'Lead information stored successfully'
+      });
+    } else {
+      console.error('❌ Failed to store lead:', result.error);
+      res.status(500).json({ 
+        success: false, 
+        error: result.error || 'Failed to store lead information' 
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Lead storage error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error while storing lead' 
+    });
+  }
+});
+
+// Get leads for a company
+app.get('/api/leads/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { status, limit = 50, offset = 0 } = req.query;
+
+    if (!companyId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing companyId parameter' 
+      });
+    }
+
+    console.log('📊 Fetching leads for company:', companyId);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Database configuration missing' 
+      });
+    }
+
+    // Build query parameters
+    let queryParams = `company_id=eq.${companyId}&select=*&order=created_at.desc`;
+    
+    if (status && status !== 'all') {
+      queryParams += `&lead_status=eq.${status}`;
+    }
+    
+    queryParams += `&limit=${limit}&offset=${offset}`;
+
+    const leadsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/leads?${queryParams}`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const leads = leadsResponse.data || [];
+
+    res.json({
+      success: true,
+      leads,
+      total: leads.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching leads:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch leads' 
+    });
+  }
+});
+
+// Update lead status
+app.patch('/api/leads/:leadId/status', async (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { status } = req.body;
+
+    if (!leadId || !status) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: leadId, status' 
+      });
+    }
+
+    console.log('📝 Updating lead status:', leadId, 'to', status);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Database configuration missing' 
+      });
+    }
+
+    const updateResponse = await axios.patch(
+      `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
+      { 
+        lead_status: status,
+        updated_at: new Date().toISOString()
+      },
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        }
+      }
+    );
+
+    // Check if lead was found and updated
+    if (updateResponse.status === 204) {
+      res.json({ 
+        success: true, 
+        message: 'Lead status updated successfully' 
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        error: 'Lead not found' 
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error updating lead status:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update lead status' 
+    });
+  }
+});
+
+// Lead analytics endpoint
+app.get('/api/analytics/leads/:companyId', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Database configuration missing' });
+    }
+
+    // Get leads for the company
+    const leadsResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/leads?company_id=eq.${companyId}&select=*`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const leads = leadsResponse.data || [];
+    
+    // Calculate lead statistics
+    const totalLeads = leads.length;
+    const newLeads = leads.filter(lead => lead.lead_status === 'new').length;
+    const contactedLeads = leads.filter(lead => lead.lead_status === 'contacted').length;
+    const convertedLeads = leads.filter(lead => lead.lead_status === 'converted').length;
+    const lostLeads = leads.filter(lead => lead.lead_status === 'lost').length;
+    
+    // Debug logging
+    console.log('🔍 Lead Analytics Debug:', {
+      companyId,
+      totalLeads,
+      newLeads,
+      contactedLeads,
+      convertedLeads,
+      lostLeads,
+      leadStatuses: leads.map(lead => ({ id: lead.id, status: lead.lead_status }))
+    });
+    
+    // Calculate conversion rate
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+    
+    console.log('📊 Conversion Rate Calculation:', {
+      convertedLeads,
+      totalLeads,
+      conversionRate: `${conversionRate}%`
+    });
+    
+    // Calculate average response time (placeholder - would need to track response times)
+    const averageResponseTime = 0; // TODO: Implement response time tracking
+    
+    // Group leads by source (session ID for now)
+    const leadSources = leads.reduce((acc, lead) => {
+      const source = lead.source_session_id || 'unknown';
+      acc[source] = (acc[source] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Group leads by month
+    const monthlyLeads = leads.reduce((acc, lead) => {
+      const month = new Date(lead.created_at).toISOString().slice(0, 7); // YYYY-MM format
+      acc[month] = (acc[month] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Convert to array format
+    const monthlyLeadsArray = Object.entries(monthlyLeads).map(([month, count]) => ({
+      month,
+      count
+    })).sort((a, b) => a.month.localeCompare(b.month));
+
+    res.json({
+      totalLeads,
+      newLeads,
+      contactedLeads,
+      convertedLeads,
+      lostLeads,
+      conversionRate,
+      averageResponseTime,
+      leadSources,
+      monthlyLeads: monthlyLeadsArray
+    });
+
+  } catch (error) {
+    console.error('Error fetching lead analytics:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch lead analytics',
+      details: error.message 
+    });
+  }
+});
 
 // ========================================
 // START SERVER

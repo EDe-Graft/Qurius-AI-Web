@@ -13,7 +13,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
+import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard, LeadStatCard } from "@/components/admin/StatCard"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
@@ -23,8 +23,9 @@ import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { LiveTestModal } from "@/components/admin/LiveTestModal"
+import { LeadsTable } from "@/components/admin/LeadsModal"
 // import { NotificationBanner } from "@/components/admin/NotificationBanner"
-import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction } from "@/components/admin/QuickActions"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction, createLeadManagementAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -60,6 +61,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
   const [showLiveTest, setShowLiveTest] = useState(false)
+  const [showLeadsManagement, setShowLeadsManagement] = useState(false)
   
   // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
@@ -106,9 +108,21 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
   // Enhanced analytics state
   const [analytics, setAnalytics] = useState<WidgetAnalytics | null>(null)
-
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [faqPerformance, setFaqPerformance] = useState<FAQPerformance | null>(null)
-  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+
+  // Lead analytics state
+  const [leadAnalytics, setLeadAnalytics] = useState<{
+    totalLeads: number
+    newLeads: number
+    contactedLeads: number
+    convertedLeads: number
+    lostLeads: number
+    conversionRate: number
+    averageResponseTime: number
+    leadSources: Record<string, number>
+    monthlyLeads: Array<{ month: string; count: number }>
+  } | null>(null)
 
   // Load FAQ data when modal opens from notification
   useEffect(() => {
@@ -193,14 +207,16 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         setAnalyticsLoading(true)
         
         // Load all analytics data in parallel
-        const [analyticsData, faqData] = await Promise.all([
+        const [analyticsData, faqData, leadData] = await Promise.all([
           AnalyticsService.getCompanyAnalytics(company.id, '7d'),
-          AnalyticsService.getFAQPerformance(company.id, '7d')
+          AnalyticsService.getFAQPerformance(company.id, '7d'),
+          AnalyticsService.getLeadAnalytics(company.id)
         ])
 
         setAnalytics(analyticsData)
         // Ratings data is now included in the main analytics
         setFaqPerformance(faqData)
+        setLeadAnalytics(leadData)
       } catch (error) {
         console.error('Failed to load analytics:', error)
       } finally {
@@ -434,13 +450,15 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               totalQueries={faqPerformance?.totalQueries}
               color={analytics.trueAIFallbackRate <= 30 ? 'success' : analytics.trueAIFallbackRate <= 50 ? 'warning' : 'danger'}
             />
-            <StatCard
-              title="Language Changes"
-              value={analytics.languageChanges || 0}
-              icon={Globe}
-              type="count"
-              color="info"
-            />
+            {company?.plan === 'pro' && (
+              <LeadStatCard
+                totalLeads={leadAnalytics?.totalLeads || 0}
+                newLeads={leadAnalytics?.newLeads || 0}
+                contactedLeads={leadAnalytics?.contactedLeads || 0}
+                convertedLeads={leadAnalytics?.convertedLeads || 0}
+                conversionRate={leadAnalytics?.conversionRate || 0}
+              />
+            )}
           </div>
         )}
 
@@ -475,6 +493,12 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               () => setShowFAQImport(true),
               company?.name
             ),
+            ...(company?.plan === 'pro' ? [
+              createLeadManagementAction(
+                () => setShowLeadsManagement(true),
+                company?.name
+              )
+            ] : []),
             ...(company?.plan !== 'free' ? [
               createWidgetSettingsAction(
                 () => setShowWidgetConfig(true),
@@ -494,6 +518,47 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           ]}
           gridCols="3"
         />
+
+        {/* Leads Management - Only for Pro Users */}
+        {company?.plan === 'pro' && (
+          <>
+            <div className="mb-8">
+              <LeadsTable 
+                companyId={company?.id || ''} 
+                companyName={company?.name || ''} 
+              />
+            </div>
+
+            {/* Leads Management Modal */}
+            {showLeadsManagement && (
+              <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-7xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        Lead Management - {company?.name}
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowLeadsManagement(false)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <LeadsTable 
+                      companyId={company?.id || ''} 
+                      companyName={company?.name || ''} 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Company Information */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -724,32 +789,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         onFAQsUpdated={handleFAQsUpdated}
       />
 
-      {/* Notification Banner
-      {showNotificationBanner && unreadCount > 0 && (
-        <NotificationBanner
-          message={`You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`}
-          actionLabel="View All"
-          onAction={() => setShowNotificationBanner(false)}
-          onDismiss={() => setShowNotificationBanner(false)}
-          type="info"
-          autoDismiss={false}
-        />
-      )} */}
-
-      {/* FAQ Preview Modal for Notifications */}
-      {showFAQPreview && selectedSessionId && (
-        <FAQPreviewModal
-          isOpen={showFAQPreview}
-          generatedFAQs={faqPreviewData?.faqs || []}
-          companyName={company?.name || ''}
-          onSaveApproved={handleSaveApprovedFAQs}
-          onClose={() => {
-            closeFAQPreview()
-            setFaqPreviewData(null)
-          }}
-        />
-      )}
-
       {/* Live Test Modal */}
       <LiveTestModal
         isOpen={showLiveTest}
@@ -757,6 +796,20 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         companies={company ? [company] : []}
         selectedCompanyId={company?.id || undefined}
       />
+
+      {/* FAQ Preview Modal for Notifications */}
+      {showFAQPreview && selectedSessionId && (
+        <FAQPreviewModal
+          isOpen={showFAQPreview}
+          generatedFAQs={faqPreviewData?.faqs || []}
+          companyName={faqPreviewData?.companyName || company?.name || 'Unknown Company'}
+          onSaveApproved={handleSaveApprovedFAQs}
+          onClose={() => {
+            closeFAQPreview()
+            setFaqPreviewData(null)
+          }}
+        />
+      )}
     </div>
   )
-} 
+}

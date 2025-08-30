@@ -278,3 +278,75 @@ export function AIFallbackStatCard({
     </div>
   )
 } 
+
+// Lead Statistics Card
+interface LeadStatCardProps {
+  totalLeads: number
+  newLeads: number
+  contactedLeads: number
+  convertedLeads: number
+  conversionRate: number
+  className?: string
+}
+
+export function LeadStatCard({ 
+  totalLeads, 
+  newLeads, 
+  contactedLeads, 
+  convertedLeads, 
+  conversionRate, 
+  className 
+}: LeadStatCardProps) {
+  return (
+    <div className={cn(
+      "bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6",
+      "transition-all duration-200 hover:shadow-md",
+      className
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Lead Generation
+          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+            {totalLeads}
+          </p>
+        </div>
+        <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+          <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
+        </div>
+      </div>
+      
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">New</span>
+          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            {newLeads}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Contacted</span>
+          <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+            {contactedLeads}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Converted</span>
+          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+            {convertedLeads}
+          </span>
+        </div>
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Conversion Rate
+            </span>
+            <span className="text-sm font-bold text-green-600 dark:text-green-400">
+              {conversionRate.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+} 

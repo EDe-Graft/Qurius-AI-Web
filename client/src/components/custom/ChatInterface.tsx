@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { MessageBubble } from "./MessageBubble"
 import TypingIndicator from "./TypingIndicator"
 import { ChatInput } from "./ChatInput"
+import { LeadCollectionForm } from "./LeadCollectionForm"
   // import { PopularQuestions } from "./PopularQuestions"
 import { useLanguage } from "@/context/LanguageContext"
 import { LanguageSelector } from "@/components/custom/LanguageSelector"
@@ -10,7 +11,8 @@ import { MessageCircle } from "lucide-react"
 import { AnalyticsService } from "@/services/analyticsService"
 import { ThemeService } from "@/services/themeService"
 import { TranslationService } from "@/services/translationService"
-import type { ChatInterfaceProps, Message, CompanyTheme } from "../../../types/interfaces"
+import { leadService } from "@/services/leadService"
+import type { ChatInterfaceProps, Message, CompanyTheme, LeadCollectionState, LeadInfo } from "../../../types/interfaces"
 import { faqService } from "@/services/faqService"
 import { cn, darkenColor } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -59,6 +61,14 @@ export function ChatInterface({
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0)
   // const [showQuickQuestions, setShowQuickQuestions] = useState(false)
+
+  // Lead collection state
+  const [leadCollectionState, setLeadCollectionState] = useState<LeadCollectionState>({
+    isCollecting: false,
+    leadInfo: {},
+    isSubmitting: false,
+    error: undefined
+  })
 
 
   // Add this function inside your ChatInterface component
@@ -293,6 +303,13 @@ export function ChatInterface({
   const handleSendMessage = async (content: string) => {
     console.log('🚀 Starting message processing:', content)
 
+    // Check if we're in lead collection mode
+    if (leadCollectionState.isCollecting) {
+      console.log('📝 Processing lead collection input');
+      handleLeadInput(content);
+      return;
+    }
+
     // Hide quick questions when a message is sent
     // setShowQuickQuestions(false)
 
@@ -401,6 +418,17 @@ export function ChatInterface({
         } else {
           // setRemainingMessages(null); // Removed as per edit hint
         }
+
+        // Check if we should request lead information
+        if (result.shouldRequestLead) {
+          console.log('🎯 Lead collection requested by AI - will show after streaming completes');
+          // Store the shouldRequestLead flag to trigger after streaming
+          setLeadCollectionState(prev => ({
+            ...prev,
+            shouldRequestAfterStreaming: true,
+            error: undefined
+          }));
+        }
       } else {
         console.log('⚠️ No response found from server')
         setMessages((prev) => [
@@ -463,7 +491,135 @@ export function ChatInterface({
         ? { ...message, isMessageStreamed: true }
         : message
     ))
+
+    // If lead collection was requested after streaming, show the form with delay
+    if (leadCollectionState.shouldRequestAfterStreaming) {
+      setTimeout(() => {
+        setLeadCollectionState(prev => ({
+          ...prev,
+          isCollecting: true,
+          shouldRequestAfterStreaming: false, // Reset the flag
+          error: undefined
+        }));
+      }, 1500); // 1.5 second delay after streaming completes
+    }
   }
+
+  // Lead collection handlers
+  const handleLeadSubmit = async (leadInfo: LeadInfo) => {
+    console.log('📝 Submitting lead information:', leadInfo);
+    
+    setLeadCollectionState(prev => ({
+      ...prev,
+      isSubmitting: true,
+      error: undefined
+    }));
+
+    try {
+      // Extract conversation context (last few messages)
+      const conversationContext = messages
+        .slice(-6) // Last 6 messages
+        .map(msg => `${msg.isUser ? 'User' : 'AI'}: ${msg.content}`)
+        .join('\n');
+
+      const result = await leadService.submitLead({
+        companyId: companyId || '',
+        companyName: companyName || '',
+        name: leadInfo.name,
+        email: leadInfo.email,
+        phone: leadInfo.phone,
+        conversationContext,
+        sessionId: 'qurius-ai-session', // Use consistent session ID
+        userQuestion: messages[messages.length - 2]?.content || '', // The question that triggered lead collection
+        aiResponse: messages[messages.length - 1]?.content || '' // The AI response that preceded lead collection
+      });
+
+      if (result.success) {
+        console.log('✅ Lead submitted successfully:', result.leadId);
+        
+        // Add a confirmation message
+        const confirmationMessage: Message = {
+          content: `Thank you for providing your contact information! I'll continue helping you with any questions you have.`,
+          isUser: false,
+          liked: null,
+          isMessageStreamed: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        
+        setMessages(prev => [...prev, confirmationMessage]);
+        
+        // Close lead collection
+        setLeadCollectionState(prev => ({
+          ...prev,
+          isCollecting: false,
+          isSubmitting: false,
+          leadInfo: {}
+        }));
+      } else {
+        throw new Error(result.error || 'Failed to submit lead');
+      }
+    } catch (error: any) {
+      console.error('❌ Error submitting lead:', error);
+      setLeadCollectionState(prev => ({
+        ...prev,
+        isSubmitting: false,
+        error: error.message || 'Failed to submit contact information. Please try again.'
+      }));
+    }
+  };
+
+  const handleLeadSkip = () => {
+    console.log('⏭️ User skipped lead collection');
+    
+    // Add a message acknowledging the skip
+    const skipMessage: Message = {
+      content: `No problem! I'll continue helping you with any questions you have.`,
+      isUser: false,
+      liked: null,
+      isMessageStreamed: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    
+    setMessages(prev => [...prev, skipMessage]);
+    
+    // Close lead collection
+    setLeadCollectionState(prev => ({
+      ...prev,
+      isCollecting: false,
+      leadInfo: {}
+    }));
+  };
+
+  const handleLeadInput = (content: string) => {
+    console.log('📝 Processing lead collection input:', content);
+    
+    // Extract contact information from user input
+    const extractedInfo = leadService.extractContactInfo(content);
+    
+    // Validate the extracted information
+    const validation = leadService.validateLeadInfo(extractedInfo);
+    
+    if (validation.isValid) {
+      // Auto-submit if we have valid contact info
+      handleLeadSubmit(extractedInfo);
+    } else {
+      // Show error and continue collecting
+      setLeadCollectionState(prev => ({
+        ...prev,
+        error: validation.errors.join(', ')
+      }));
+      
+      // Add the user's input as a message
+      const userMessage: Message = {
+        content,
+        isUser: true,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isMessageStreamed: true,
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+    }
+  };
 
   // Handle quick question click
   // const handlePopularQuestionClick = (question: string) => {
@@ -594,7 +750,7 @@ export function ChatInterface({
         <div className="flex items-center gap-3">
             {logoUrl ? (
               <div className={`w-8 h-8 rounded-full flex items-center justify-center`}>
-                <img src={logoUrl} alt="Company Logo" className="w-7 h-7" />
+                <img src={logoUrl} alt="Company Logo" className="w-full h-full rounded-full" />
               </div>
             ) : (
               // Default logo
@@ -689,7 +845,7 @@ export function ChatInterface({
               />
             );
           })}
-          {isTyping && <TypingIndicator companyTheme={companyTheme} />}
+          {isTyping && <TypingIndicator companyTheme={companyTheme} logoUrl={logoUrl || undefined} />}
         </div>
         <div ref={messagesEndRef} className="h-2" />
       </div>
@@ -743,6 +899,20 @@ export function ChatInterface({
         />
       </div> */}
 
+      {/* Lead Collection Form */}
+      {leadCollectionState.isCollecting && (
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <LeadCollectionForm
+            onSubmit={handleLeadSubmit}
+            onSkip={handleLeadSkip}
+            isSubmitting={leadCollectionState.isSubmitting}
+            error={leadCollectionState.error}
+            defaultTheme={defaultTheme}
+            companyTheme={companyTheme}
+          />
+        </div>
+      )}
+
       {/* Input */}
       <ChatInput
         onSendMessage={handleSendMessage}
@@ -751,6 +921,7 @@ export function ChatInterface({
         defaultTheme={defaultTheme}
         companyTheme={companyTheme || undefined}
         verifiedPlan={verifiedPlan}
+        isLeadCollection={leadCollectionState.isCollecting}
       />
     </div>
   )

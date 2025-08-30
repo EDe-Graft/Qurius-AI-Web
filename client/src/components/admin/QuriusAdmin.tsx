@@ -7,12 +7,10 @@ import {
   Moon,
   LogOut,
   Globe,
-  DollarSign,
-  ThumbsUp,
-
+  DollarSign
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard } from "@/components/admin/StatCard"
+import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard, LeadStatCard } from "@/components/admin/StatCard"
 import { CompanyTable } from "@/components/admin/CompanyTable"
 import { CompanyModal } from "@/components/admin/CompanyModal"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
@@ -27,7 +25,7 @@ import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { LiveTestModal } from "@/components/admin/LiveTestModal"
 // import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import AutomationManager from "@/components/admin/AutomationManager"
-import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction, createLiveTestAction } from "@/components/admin/QuickActions"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createAutomationManagementAction, createLiveTestAction, createLeadManagementAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
@@ -38,6 +36,7 @@ import { AnalyticsService } from "@/services/analyticsService"
 import { isSuperAdmin } from "@/lib/auth"
 import { config } from "@/lib/config"
 import axios from "axios"
+import { LeadsTable } from "@/components/admin/LeadsModal"
 
 interface QuriusAdminProps {
   user: any
@@ -63,6 +62,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
   // const [showNotificationBanner, setShowNotificationBanner] = useState(false)
   const [showAutomationManager, setShowAutomationManager] = useState(false)
   const [showLiveTest, setShowLiveTest] = useState(false)
+  const [showLeadsManagement, setShowLeadsManagement] = useState(false)
 
   // Enhanced analytics state
   const [systemAnalytics, setSystemAnalytics] = useState<{
@@ -77,6 +77,11 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     totalTrueAIFallbacks: number
     averageContentMatchRate: number
     averageTrueAIFallbackRate: number
+    totalLeads: number
+    newLeads: number
+    contactedLeads: number
+    convertedLeads: number
+    averageConversionRate: number
   }>({
     totalCompanies: 0,
     activeWidgets: 0,
@@ -88,7 +93,12 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     totalContentMatches: 0,
     totalTrueAIFallbacks: 0,
     averageContentMatchRate: 0,
-    averageTrueAIFallbackRate: 0
+    averageTrueAIFallbackRate: 0,
+    totalLeads: 0,
+    newLeads: 0,
+    contactedLeads: 0,
+    convertedLeads: 0,
+    averageConversionRate: 0
   })
 
   // Selected company for Quick Actions
@@ -269,14 +279,20 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       let totalContentMatches = 0
       let totalTrueAIFallbacks = 0
       let totalQueries = 0
+      let totalLeads = 0
+      let newLeads = 0
+      let contactedLeads = 0
+      let convertedLeads = 0
+      // Removed: let totalConversionSum = 0
 
       // Get analytics for each company
       for (const company of companies) {
         if (company.id) {
           try {
-            const [analytics, faqPerformance] = await Promise.all([
+            const [analytics, faqPerformance, leadAnalytics] = await Promise.all([
               AnalyticsService.getCompanyAnalytics(company.id, '7d'),
-              AnalyticsService.getFAQPerformance(company.id, '7d')
+              AnalyticsService.getFAQPerformance(company.id, '7d'),
+              AnalyticsService.getLeadAnalytics(company.id)
             ])
 
             totalRatings += analytics.totalRatings || 0
@@ -284,6 +300,13 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             totalContentMatches += analytics.contentMatchRate ? Math.round((analytics.contentMatchRate / 100) * (faqPerformance.totalQueries || 0)) : 0
             totalTrueAIFallbacks += analytics.trueAIFallbackRate ? Math.round((analytics.trueAIFallbackRate / 100) * (faqPerformance.totalQueries || 0)) : 0
             totalQueries += faqPerformance.totalQueries || 0
+
+            // Lead analytics
+            totalLeads += leadAnalytics.totalLeads || 0
+            newLeads += leadAnalytics.newLeads || 0
+            contactedLeads += leadAnalytics.contactedLeads || 0
+            convertedLeads += leadAnalytics.convertedLeads || 0
+            // Removed: totalConversionSum += leadAnalytics.conversionRate || 0
           } catch (error) {
             console.error(`Failed to load analytics for company ${company.id}:`, error)
           }
@@ -307,7 +330,12 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         totalContentMatches,
         totalTrueAIFallbacks,
         averageContentMatchRate: totalQueries > 0 ? (totalContentMatches / totalQueries) * 100 : 0,
-        averageTrueAIFallbackRate: totalQueries > 0 ? (totalTrueAIFallbacks / totalQueries) * 100 : 0
+        averageTrueAIFallbackRate: totalQueries > 0 ? (totalTrueAIFallbacks / totalQueries) * 100 : 0,
+        totalLeads,
+        newLeads,
+        contactedLeads,
+        convertedLeads,
+        averageConversionRate: totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0
       })
 
     } catch (error) {
@@ -691,12 +719,12 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             totalQueries={systemAnalytics.totalContentMatches + systemAnalytics.totalTrueAIFallbacks}
             color={systemAnalytics.averageTrueAIFallbackRate <= 30 ? 'success' : systemAnalytics.averageTrueAIFallbackRate <= 50 ? 'warning' : 'danger'}
           />
-          <StatCard
-            title="Total Ratings"
-            value={systemAnalytics.totalRatings}
-            icon={ThumbsUp}
-            type="count"
-            color="info"
+          <LeadStatCard
+            totalLeads={systemAnalytics.totalLeads}
+            newLeads={systemAnalytics.newLeads}
+            contactedLeads={systemAnalytics.contactedLeads}
+            convertedLeads={systemAnalytics.convertedLeads}
+            conversionRate={systemAnalytics.averageConversionRate}
           />
         </div>
 
@@ -746,6 +774,11 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
             ),
             createFAQManagementAction(
               handleQuickActionFAQ,
+              selectedCompany?.name,
+              !selectedCompany
+            ),
+            createLeadManagementAction(
+              () => setShowLeadsManagement(true),
               selectedCompany?.name,
               !selectedCompany
             ),
@@ -945,6 +978,35 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
         companies={companies}
         selectedCompanyId={selectedCompanyId || undefined}
       />
+
+      {/* Leads Management Modal */}
+      {showLeadsManagement && selectedCompany && (
+        <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-7xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Lead Management - {selectedCompany.name}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLeadsManagement(false)}
+                  className="text-gray-400 hover:text-red-500"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <LeadsTable 
+                companyId={selectedCompany.id || ''} 
+                companyName={selectedCompany.name || ''} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
