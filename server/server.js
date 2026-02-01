@@ -9,7 +9,7 @@ import cors from 'cors';
 import axios from 'axios';
 import crypto from 'crypto';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
@@ -132,6 +132,19 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
             console.log('💳 Sending welcome email for:', companyEmail);
             await sendWelcomeEmail(companyEmail, companyName, planId );
             console.log('✅ Welcome email sent successfully with widget key');
+
+            // Send admin notification email
+            console.log('📧 Sending admin notification email...');
+            await sendAdminCompanyNotification({
+              name: companyName,
+              email: companyEmail,
+              plan: planId,
+              location: location || '',
+              industry: industry || '',
+              website: website || '',
+              description: description || ''
+            });
+            console.log('✅ Admin notification email sent');
           } else {
             console.error('❌ Failed to create auth user for:', customerEmail);
           }
@@ -698,6 +711,11 @@ app.post('/api/companies', async (req, res) => {
 
     //Send Welcome Email
     await sendWelcomeEmail(companyEmail, companyName, plan)
+
+    // Send admin notification email
+    console.log('📧 Sending admin notification email...');
+    await sendAdminCompanyNotification(companyData);
+    console.log('✅ Admin notification email sent');
 
     res.json({
       success: true,
@@ -2607,6 +2625,11 @@ app.post('/api/test/create-company', async (req, res) => {
       // Send Welcome Email
       await sendWelcomeEmail(companyEmail, companyName, plan)
       console.log('✅ Welcome email sent successfully');
+
+      // Send admin notification email
+      console.log('📧 Sending admin notification email...');
+      await sendAdminCompanyNotification(companyData);
+      console.log('✅ Admin notification email sent');
 
       res.json({
         success: true,

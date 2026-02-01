@@ -2,7 +2,7 @@ import axios from 'axios';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { toTitleCase } from './helper.js';
-import { WelcomeEmailTemplate, MessageLimitReachedEmailTemplate } from './emailTemplates.js';
+import { WelcomeEmailTemplate, MessageLimitReachedEmailTemplate, AdminCompanyNotificationEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
 
 //getEmbedding from Jina AI
@@ -1680,6 +1680,57 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId) {
   } catch (error) {
     console.error('❌ Error sending welcome email:', error.response?.data || error.message);
     throw error;
+  }
+}
+
+// Send admin notification email when a new company joins
+export async function sendAdminCompanyNotification(companyData) {
+  try {
+    const { name, email, plan, location, industry, website, description } = companyData;
+    
+    // Get plan name for display
+    const planName = plan === 'pro' ? 'Pro' : plan === 'starter' ? 'Starter' : 'Free';
+    
+    // Format creation date
+    const createdAt = new Date().toLocaleString('en-US', { 
+      timeZone: 'UTC', 
+      dateStyle: 'full', 
+      timeStyle: 'short' 
+    });
+
+    // Generate email HTML from template
+    const emailHtml = AdminCompanyNotificationEmailTemplate({
+      companyName: name,
+      companyEmail: email,
+      planName,
+      location: location || '',
+      industry: industry || '',
+      website: website || '',
+      description: description || '',
+      createdAt
+    });
+
+    // Send notification email to admin
+    const emailResult = await sendEmail({
+      from: 'Qurius AI <notifications@qurius.app>',
+      replyTo: email, // Reply to the company email
+      to: 'qurius.ai@gmail.com',
+      subject: `🎉 New ${planName} Company Joined: ${name}`,
+      html: emailHtml
+    });
+
+    if (emailResult.success === false) {
+      console.log('⚠️ Admin notification email not sent (Resend not configured)');
+    } else {
+      console.log('✅ Admin notification email sent successfully');
+    }
+    console.log('📧 To: qurius.ai@gmail.com');
+    console.log('🏢 Company:', name);
+    console.log('📦 Plan:', planName);
+    
+  } catch (error) {
+    console.error('❌ Error sending admin notification email:', error.response?.data || error.message);
+    // Don't throw error - we don't want to fail company creation if admin notification fails
   }
 }
 

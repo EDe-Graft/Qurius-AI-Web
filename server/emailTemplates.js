@@ -452,4 +452,122 @@ export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faq
 </body>
 </html>
   `;
+}
+
+// Admin company notification email template
+export function AdminCompanyNotificationEmailTemplate({ companyName, companyEmail, planName, location, industry, website, description, createdAt }) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Company Joined - Qurius AI</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #1F2937;">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h1 style="color: #10B981; font-size: 28px; margin-bottom: 10px;">
+        🎉 New Company Joined Qurius AI!
+      </h1>
+      <p style="color: #D1D5DB; font-size: 16px;">
+        A new company has successfully registered on the platform
+      </p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="background-color: #064E3B; padding: 30px; border-radius: 10px; margin-bottom: 30px; border: 2px solid #10B981;">
+      <h2 style="color: #A7F3D0; font-size: 22px; margin-bottom: 20px;">
+        Company Details
+      </h2>
+      
+      <div style="background-color: #065F46; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <table style="width: 100%; color: #D1FAE5; font-size: 14px; line-height: 2;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 35%;">Company Name:</td>
+            <td style="padding: 8px 0;">${companyName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Email:</td>
+            <td style="padding: 8px 0;">${companyEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Plan:</td>
+            <td style="padding: 8px 0;"><span style="background-color: #10B981; color: white; padding: 4px 12px; border-radius: 4px; font-weight: bold;">${planName}</span></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Website:</td>
+            <td style="padding: 8px 0;">${website || 'Not provided'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Industry:</td>
+            <td style="padding: 8px 0;">${industry || 'Not provided'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Location:</td>
+            <td style="padding: 8px 0;">${location || 'Not provided'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Created:</td>
+            <td style="padding: 8px 0;">${createdAt}</td>
+          </tr>
+        </table>
+      </div>
+
+      ${description ? `
+      <div style="background-color: #065F46; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #A7F3D0; font-size: 16px; margin-bottom: 10px;">Description:</h3>
+        <p style="color: #D1FAE5; font-size: 14px; line-height: 1.6; margin: 0;">${description}</p>
+      </div>
+      ` : ''}
+    </div>
+
+    <!-- Stats Section -->
+    <div style="background-color: #0C4A6E; border: 1px solid #0369A1; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+      <h3 style="color: #BAE6FD; font-size: 18px; margin-bottom: 15px; text-align: center;">
+        📊 Plan Information
+      </h3>
+      <div style="text-align: center; color: #7DD3FC; font-size: 14px; line-height: 1.8;">
+        ${planName === 'Free' ? `
+          <p><strong>Message Limit:</strong> 500 messages/month</p>
+          <p><strong>Features:</strong> Basic AI assistance</p>
+        ` : planName === 'Starter' ? `
+          <p><strong>Message Limit:</strong> 10,000 messages/month</p>
+          <p><strong>Features:</strong> Advanced analytics, priority support</p>
+          <p><strong>Monthly Revenue:</strong> $29</p>
+        ` : `
+          <p><strong>Message Limit:</strong> Unlimited</p>
+          <p><strong>Features:</strong> All features, lead generation, premium support</p>
+          <p><strong>Monthly Revenue:</strong> $99</p>
+        `}
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="background-color: #92400E; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+      <h3 style="color: #FEF3C7; font-size: 18px; margin-bottom: 15px; text-align: center;">
+        🎯 Next Steps
+      </h3>
+      <ul style="color: #FDE68A; font-size: 14px; line-height: 1.8;">
+        <li>Welcome email has been sent to the company</li>
+        <li>Password reset link has been sent via Supabase</li>
+        <li>Monitor onboarding progress in admin dashboard</li>
+        <li>Check for any support requests from this company</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 20px; border-top: 1px solid #374151;">
+      <p style="color: #D1D5DB; font-size: 14px; margin-bottom: 10px;">
+        This is an automated notification from Qurius AI
+      </p>
+      <p style="color: #9CA3AF; font-size: 12px;">
+        ${new Date().toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'full', timeStyle: 'long' })}
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 } 
