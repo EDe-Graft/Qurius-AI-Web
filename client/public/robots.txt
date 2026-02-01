@@ -1,0 +1,29 @@
+# robots.txt for Qurius AI
+# https://qurius.app/robots.txt
+
+User-agent: *
+Allow: /
+Allow: /demo
+Allow: /docs
+Allow: /about
+Allow: /contact
+Allow: /onboarding
+
+# Disallow admin and auth routes
+Disallow: /admin
+Disallow: /login
+Disallow: /auth/
+Disallow: /reset-password
+
+# Allow all static assets
+Allow: /logo.png
+Allow: /logo.jpg
+Allow: /widget/
+Allow: /*.js
+Allow: /*.css
+
+# Sitemap location
+Sitemap: https://qurius.app/sitemap.xml
+
+# Crawl delay (optional, be respectful)
+Crawl-delay: 1
