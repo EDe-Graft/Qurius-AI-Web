@@ -360,7 +360,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                   {company?.name} Dashboard
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Manage your AI chat widget
+                  Manage your AI Assistant
                 </p>
               </div>
               
