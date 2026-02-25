@@ -22842,7 +22842,7 @@ const XE = {
   },
   landing: {
     heroTitle: "Your 24/7 AI-Powered Web Assistant & Customer Intelligence Platform",
-    heroSubtitle: "Transform your website into an intelligent, personalized experience with advanced analytics, multi-language support, and automated knowledge management that works around the clock.",
+    heroSubtitle: "Answer up to 80% of patient and customer questions automatically and reduce incoming calls and messages.",
     viewDemo: "View Demo",
     featuresTitle: "Why Choose Qurius AI?",
     featuresSubtitle: "Powerful features designed to enhance your customer support experience",

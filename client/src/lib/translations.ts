@@ -428,7 +428,7 @@ const en: TranslationKeys = {
   },
   landing: {
     heroTitle: 'Your 24/7 AI-Powered Web Assistant & Customer Intelligence Platform',
-    heroSubtitle: 'Transform your website into an intelligent, personalized experience with advanced analytics, multi-language support, and automated knowledge management that works around the clock.',
+    heroSubtitle: 'Answer up to 80% of patient and customer questions automatically and reduce incoming calls and messages.',
     viewDemo: 'View Demo',
     featuresTitle: 'Why Choose Qurius AI?',
     featuresSubtitle: 'Powerful features designed to enhance your customer support experience',
@@ -660,7 +660,7 @@ const es: TranslationKeys = {
   },
   landing: {
     heroTitle: 'Tu Asistente Web con IA 24/7 y Plataforma de Inteligencia de Clientes',
-    heroSubtitle: 'Transforma tu sitio web en una experiencia inteligente y personalizada con analíticas avanzadas, soporte multiidioma y gestión automatizada de conocimiento que funciona las 24 horas.',
+    heroSubtitle: 'Responde automáticamente hasta el 80 % de las preguntas de tus pacientes y clientes y reduce las llamadas y los mensajes entrantes.',
     viewDemo: 'Ver Demo',
     featuresTitle: '¿Por qué elegir Qurius AI?',
     featuresSubtitle: 'Características poderosas diseñadas para mejorar tu experiencia de soporte al cliente',
@@ -892,7 +892,7 @@ const fr: TranslationKeys = {
   },
   landing: {
     heroTitle: 'Transformez votre site web avec un support de chat IA',
-    heroSubtitle: 'Fournissez un support client instantané et intelligent avec notre widget de chat IA avancé.',
+    heroSubtitle: 'Répondez automatiquement à jusqu\'à 80 % des questions de vos patients et clients et réduisez les appels et messages entrants.',
     viewDemo: 'Voir la démo',
     featuresTitle: 'Pourquoi choisir Qurius AI?',
     featuresSubtitle: 'Fonctionnalités puissantes conçues pour améliorer votre expérience de support client',
@@ -1124,7 +1124,7 @@ const de: TranslationKeys = {
   },
   landing: {
     heroTitle: 'Transforma tu sitio web con soporte de chat con IA',
-    heroSubtitle: 'Proporciona soporte al cliente instantáneo e inteligente con nuestro widget de chat con IA avanzado. Mejora el compromiso y la satisfacción con asistencia automatizada 24/7.',
+    heroSubtitle: 'Responde automáticamente hasta el 80 % de las preguntas de tus pacientes y clientes y reduce las llamadas y los mensajes entrantes.',
     viewDemo: 'Ver Demo',
     featuresTitle: '¿Por qué elegir Qurius AI?',
     featuresSubtitle: 'Características poderosas diseñadas para mejorar tu experiencia de soporte al cliente',
@@ -2052,7 +2052,7 @@ const it: TranslationKeys = {
   },
   landing: {
     heroTitle: 'Transforma tu sitio web con soporte de chat con IA',
-    heroSubtitle: 'Proporciona soporte al cliente instantáneo e inteligente con nuestro widget de chat con IA avanzado. Mejora el compromiso y la satisfacción con asistencia automatizada 24/7.',
+    heroSubtitle: 'Responde automáticamente hasta el 80 % de las preguntas de tus pacientes y clientes y reduce las llamadas y los mensajes entrantes.',
     viewDemo: 'Ver Demo',
     featuresTitle: '¿Por qué elegir Qurius AI?',
     featuresSubtitle: 'Características poderosas diseñadas para mejorar tu experiencia de soporte al cliente',
