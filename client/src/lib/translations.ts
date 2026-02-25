@@ -464,7 +464,7 @@ const en: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Company Website Content',
-    companyWebsiteDescription: 'This is a demonstration of how the chat interface would appear when embedded in a professional company website (PurpleSoft Inc). The chat widget is positioned in the bottom-right corner and can be minimized when not in use.',
+    companyWebsiteDescription: 'This is a demonstration of how the chat interface would appear when embedded in a professional company website (Qurius AI). The chat widget is positioned in the bottom-right corner and can be minimized when not in use.',
     keyFeaturesTitle: 'Key features include:',
     feature1: 'Modern, professional design that matches company branding',
     feature2: 'Light and dark theme support with smooth transitions',
@@ -696,7 +696,7 @@ const es: TranslationKeys = {
   demo: {
     title: 'Demo de Interfaz de Chat Profesional',
     companyWebsiteTitle: 'Contenido del Sitio Web de la Empresa',
-    companyWebsiteDescription: 'Esta es una demostración de cómo aparecería la interfaz de chat cuando se integre en un sitio web profesional de una empresa (PurpleSoft Inc). El widget de chat está posicionado en la esquina inferior derecha y se puede minimizar cuando no se usa.',
+    companyWebsiteDescription: 'Esta es una demostración de cómo aparecería la interfaz de chat cuando se integre en un sitio web profesional de una empresa (Qurius AI). El widget de chat está posicionado en la esquina inferior derecha y se puede minimizar cuando no se usa.',
     keyFeaturesTitle: 'Características principales incluyen:',
     feature1: 'Diseño moderno y profesional que coincide con la marca de la empresa',
     feature2: 'Soporte para temas claros y oscuros con transiciones suaves',
@@ -928,7 +928,7 @@ const fr: TranslationKeys = {
   demo: {
     title: 'Démo',
     companyWebsiteTitle: 'Site web de l\'entreprise',
-    companyWebsiteDescription: 'Description pour le site web de l\'entreprise (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Description pour le site web de l\'entreprise (Qurius AI)',
     keyFeaturesTitle: 'Fonctionnalités clés',
     feature1: 'Fonctionnalité 1',
     feature2: 'Fonctionnalité 2',
@@ -1160,7 +1160,7 @@ const de: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sitio web de la empresa',
-    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (Qurius AI)',
     keyFeaturesTitle: 'Características clave',
     feature1: 'Característica 1',
     feature2: 'Característica 2',
@@ -1392,7 +1392,7 @@ const zh: TranslationKeys = {
   demo: {
     title: '演示',
     companyWebsiteTitle: '公司网站',
-    companyWebsiteDescription: '公司网站描述 (PurpleSoft Inc)',
+    companyWebsiteDescription: '公司网站描述 (Qurius AI)',
     keyFeaturesTitle: '关键功能',
     feature1: '功能1',
     feature2: '功能2',
@@ -1624,7 +1624,7 @@ const ja: TranslationKeys = {
   demo: {
     title: 'デモ',
     companyWebsiteTitle: '会社ウェブサイト',
-    companyWebsiteDescription: '会社ウェブサイトの説明 (PurpleSoft Inc)',
+    companyWebsiteDescription: '会社ウェブサイトの説明 (Qurius AI)',
     keyFeaturesTitle: '主要機能',
     feature1: '機能1',
     feature2: '機能2',
@@ -1856,7 +1856,7 @@ const pt: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Site da Empresa',
-    companyWebsiteDescription: 'Descrição para o site da empresa (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Descrição para o site da empresa (Qurius AI)',
     keyFeaturesTitle: 'Recursos Principais',
     feature1: 'Recursos 1',
     feature2: 'Recursos 2',
@@ -2088,7 +2088,7 @@ const it: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sito web dell\'azienda',
-    companyWebsiteDescription: 'Descrizione per il sito web dell\'azienda (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Descrizione per il sito web dell\'azienda (Qurius AI)',
     keyFeaturesTitle: 'Funzionalità principali',
     feature1: 'Funzionalità 1',
     feature2: 'Funzionalità 2',
@@ -2320,7 +2320,7 @@ const ru: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Сайт компании',
-    companyWebsiteDescription: 'Описание для сайта компании (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Описание для сайта компании (Qurius AI)',
     keyFeaturesTitle: 'Ключевые функции',
     feature1: 'Функция 1',
     feature2: 'Функция 2',
@@ -2552,7 +2552,7 @@ const ko: TranslationKeys = {
   demo: {
     title: 'Demo',
     companyWebsiteTitle: 'Sitio web de la empresa',
-    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (PurpleSoft Inc)',
+    companyWebsiteDescription: 'Descripción para el sitio web de la empresa (Qurius AI)',
     keyFeaturesTitle: 'Características clave',
     feature1: 'Característica 1',
     feature2: 'Característica 2',

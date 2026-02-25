@@ -9,7 +9,7 @@ import cors from 'cors';
 import axios from 'axios';
 import crypto from 'crypto';
 import Stripe from 'stripe';
-import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback } from './utils.js';
+import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback, ValidationError, validateAndNormalizeCompanyInput, checkAuthUserExists } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
 import crawlerRoutes from './crawler/crawler-api.js';
@@ -94,16 +94,32 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           break;
         }
 
+        let baseCompanyData;
+        try {
+          // Validate and normalize core company fields from Stripe metadata
+          baseCompanyData = validateAndNormalizeCompanyInput({
+            name: companyName,
+            email: customerEmail,
+            website,
+            description,
+            location,
+            industry,
+            plan: planId
+          });
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            console.error('❌ Invalid company data in checkout.session.completed:', error.message);
+            break;
+          }
+          throw error;
+        }
+
         // Create company with subscription info for starter and pro users
         const companyData = {
-          name: companyName,
-          email: customerEmail, // createCompany expects 'email' field
-          contact_email: customerEmail,
-          admin_email: customerEmail,
-          location: location || '',
-          industry: industry || '',
-          website: website || '',
-          description: description || '',
+          ...baseCompanyData,
+          email: baseCompanyData.email, // ensure email field exists
+          contact_email: baseCompanyData.email,
+          admin_email: baseCompanyData.email,
           plan: planId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
@@ -604,30 +620,27 @@ app.get('/api/companies/:id/widget-data', async (req, res) => {
   }
 });
 
-// Get demo company IDs (for frontend use)
+// Get Qurius AI company ID (for frontend use)
 app.get('/api/demo/company-ids', async (req, res) => {
   try {
     const quriusCompanyId = process.env.QURIUS_AI_COMPANY_ID;
-    const purpleSoftCompanyId = process.env.PURPLESOFT_INC_COMPANY_ID;
-    console.log('Qurius Company ID:', quriusCompanyId, 'PurpleSoft Company ID:', purpleSoftCompanyId);
-    
-    if (!quriusCompanyId || !purpleSoftCompanyId) {
-      console.error('❌ Demo company IDs not configured in environment variables');
+
+    if (!quriusCompanyId) {
+      console.error('❌ Qurius AI company ID not configured in environment variables');
       return res.status(500).json({ 
-        error: 'Demo company configuration missing',
-        message: 'Demo company IDs not configured in environment variables'
+        error: 'Qurius AI company configuration missing',
+        message: 'Qurius AI company configuration missing'
       });
     }
 
     res.json({
       quriusCompanyId,
-      purpleSoftCompanyId
     });
   } catch (error) {
-    console.error('❌ Error fetching demo company IDs:', error);
+    console.error('❌ Error fetching Qurius AI company ID:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch demo company IDs',
-      message: 'Unable to retrieve demo company configuration'
+      error: 'Failed to fetch Qurius AI company ID',
+      message: 'Unable to retrieve Qurius AI company ID'
     });
   }
 });
@@ -685,12 +698,55 @@ app.post('/api/companies/admin-check', async (req, res) => {
   }
 });
 
+// Validate onboarding data without creating records
+app.post('/api/companies/validate-onboarding', async (req, res) => {
+  try {
+    const rawCompanyData = req.body;
+    console.log('Validating onboarding company data (raw):', rawCompanyData);
+
+    const companyData = validateAndNormalizeCompanyInput(rawCompanyData);
+    console.log('Validating onboarding company data (normalized):', companyData);
+
+    // Check if auth user already exists for this email
+    const emailExists = await checkAuthUserExists(companyData.email);
+    if (emailExists) {
+      return res.status(400).json({
+        success: false,
+        error: 'An account with this email already exists. Please log in instead or use a different email.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      company: companyData
+    });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      console.error('Onboarding validation error:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    console.error('Validate onboarding error:', error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to validate company information'
+    });
+  }
+});
+
 // Create company and profile for free users
 app.post('/api/companies', async (req, res) => {
   try {
-    const companyData = req.body;
-    console.log('Creating company:', companyData);
-    const { name, email } = companyData;
+    const rawCompanyData = req.body;
+    console.log('Creating company (raw):', rawCompanyData);
+
+    // Validate and normalize core company fields
+    const companyData = validateAndNormalizeCompanyInput(rawCompanyData);
+    console.log('Creating company (validated):', companyData);
+    const { email } = companyData;
 
     //Create auth user first to avoid duplicate users
     const userId = await createAuthUser(email)
@@ -723,6 +779,13 @@ app.post('/api/companies', async (req, res) => {
       company: { ...companyData, id: companyId }
     });
   } catch (error) {
+    if (error instanceof ValidationError) {
+      console.error('Create company validation error:', error.message);
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
     console.error('Create company error:', error.response?.data || error.message);
     res.status(500).json({ 
       success: false,

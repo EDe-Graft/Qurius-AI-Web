@@ -11,7 +11,6 @@ interface CompanyData extends Omit<Company, 'plan' | 'status'> {
 // Company data context interface
 interface CompanyDataContextType {
   quriusData: CompanyData | null
-  purpleSoftData: CompanyData | null
   isDataLoading: boolean
   error: string | null
 }
@@ -27,7 +26,6 @@ interface CompanyDataProviderProps {
 // Company data provider component
 export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
   const [quriusData, setQuriusData] = useState<CompanyData | null>(null)
-  const [purpleSoftData, setPurpleSoftData] = useState<CompanyData | null>(null)
   const [isDataLoading, setIsDataLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,77 +41,14 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
         // First, get the demo company IDs from backend
         const backendUrl = window.location.hostname === 'qurius.app' ? 'https://qurius-ai.onrender.com' : 'http://localhost:3000'
         const companyIdsResponse = await axios.get(`${backendUrl}/api/demo/company-ids`)
-        const { quriusCompanyId, purpleSoftCompanyId } = companyIdsResponse.data
+        const { quriusCompanyId } = companyIdsResponse.data
 
         console.log('🔑 Retrieved company IDs from backend')
 
-        // Fetch both company datasets in parallel using the retrieved IDs
-        const [quriusResponse, purpleSoftResponse] = await Promise.allSettled([
-          CompanyService.getCompanyById(quriusCompanyId),
-          CompanyService.getCompanyById(purpleSoftCompanyId)
-        ])
-
-        // Handle Qurius AI data
-        if (quriusResponse.status === 'fulfilled') {
-          setQuriusData(quriusResponse.value as CompanyData)
-          console.log('✅ Qurius AI data fetched successfully:', quriusResponse.value.name)
-        } else {
-          console.error('❌ Failed to fetch Qurius AI data:', quriusResponse.reason)
-          // Set fallback data for Qurius AI
-          setQuriusData({
-            id: quriusCompanyId || '2bdad203-31da-403f-90d1-049a28d7adfc',
-            name: 'Qurius AI',
-            plan: 'pro',
-            status: 'active',
-            theme: {
-              primaryColor: "#3B82F6",
-              backgroundColor: "#FFFFFF",
-              textColor: "#1F2937"
-            },
-            contact_email: 'support@qurius.ai',
-            admin_email: 'admin@qurius.ai',
-            domain: 'qurius.app',
-            location: 'Tech Valley, CA',
-            description: 'AI-powered customer support platform that provides intelligent chatbots for businesses.',
-            industry: 'AI/Technology',
-            website: 'https://qurius.app',
-            logo_url: 'https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png',
-            enrollment_date: '2024-01-01',
-            subscription_status: 'active',
-            subscription_end_date: '2050-01-01',
-          })
-        }
-
-        // Handle PurpleSoft Inc data
-        if (purpleSoftResponse.status === 'fulfilled') {
-          setPurpleSoftData(purpleSoftResponse.value as CompanyData)
-          console.log('✅ PurpleSoft Inc data fetched successfully:', purpleSoftResponse.value.name)
-        } else {
-          console.error('❌ Failed to fetch PurpleSoft Inc data:', purpleSoftResponse.reason)
-          // Set fallback data for PurpleSoft Inc
-          setPurpleSoftData({
-            id: purpleSoftCompanyId || 'cf97eacc-8346-4f8b-ba8a-4c3e286030ab',
-            name: 'PurpleSoft Inc',
-            plan: 'pro',
-            status: 'active',
-            theme: {
-              primaryColor: "#8B5CF6",
-              backgroundColor: "#FFFFFF",
-              textColor: "#1F2937"
-            },
-            contact_email: 'contact@purplesoft.com',
-            admin_email: 'admin@purplesoft.com',
-            domain: 'purplesoft.com',
-            location: 'New York, NY',
-            description: 'PurpleSoft Inc is a software development company that specializes in building custom software solutions for businesses.',
-            industry: 'Software Development',
-            website: 'https://purplesoft.com',
-            logo_url: '',
-            enrollment_date: '2021-01-01',
-            subscription_status: 'active',
-            subscription_end_date: '2025-01-01',
-          })
-        }
+        // Fetch Qurius AI company data
+        const quriusResponse = await CompanyService.getCompanyById(quriusCompanyId)
+        setQuriusData(quriusResponse as CompanyData)
+        console.log('✅ Qurius AI data fetched successfully:', quriusResponse.name)
 
         console.log('✅ Company data initialization completed')
       } catch (error) {
@@ -122,7 +57,6 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
         
         // Set fallback data if API fails completely (using hardcoded IDs as last resort)
         const fallbackQuriusId = '2bdad203-31da-403f-90d1-049a28d7adfc'
-        const fallbackPurpleSoftId = 'cf97eacc-8346-4f8b-ba8a-4c3e286030ab'
         
         setQuriusData({
           id: fallbackQuriusId,
@@ -146,29 +80,6 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
           subscription_status: 'active',
           subscription_end_date: '2050-01-01',
         })
-        
-        setPurpleSoftData({
-          id: fallbackPurpleSoftId,
-          name: 'PurpleSoft Inc',
-          plan: 'pro',
-          status: 'active',
-          theme: {
-            primaryColor: "#8B5CF6",
-            backgroundColor: "#FFFFFF",
-            textColor: "#1F2937"
-          },
-          contact_email: 'contact@purplesoft.com',
-          admin_email: 'admin@purplesoft.com',
-          domain: 'purplesoft.com',
-          location: 'New York, NY',
-          description: 'PurpleSoft Inc is a software development company that specializes in building custom software solutions for businesses.',
-          industry: 'Software Development',
-          website: 'https://purplesoft.com',
-          logo_url: '',
-          enrollment_date: '2021-01-01',
-          subscription_status: 'active',
-          subscription_end_date: '2025-01-01',
-        })
       } finally {
         setIsDataLoading(false)
       }
@@ -180,7 +91,6 @@ export function CompanyDataProvider({ children }: CompanyDataProviderProps) {
   // Context value
   const contextValue: CompanyDataContextType = {
     quriusData,
-    purpleSoftData,
     isDataLoading,
     error
   }

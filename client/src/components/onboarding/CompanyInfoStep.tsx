@@ -1,5 +1,9 @@
 import { ArrowRight } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
+import { useEffect, useRef } from "react"
+
+// Google Maps JavaScript API global (provided by the loaded script)
+declare const google: any
 
 interface CompanyInfoStepProps {
   companyData: {
@@ -14,10 +18,74 @@ interface CompanyInfoStepProps {
   onSubmit: (e: React.FormEvent) => void
   loading: boolean
   error: string
+  onFieldChange?: () => void
 }
 
-export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error }: CompanyInfoStepProps) {
+export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading, error, onFieldChange }: CompanyInfoStepProps) {
   const { t } = useLanguage()
+  const locationInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    // Initialize Google Places Autocomplete on the location input
+    const initializeAutocomplete = () => {
+      if (!locationInputRef.current || typeof google === "undefined" || !google.maps?.places) {
+        return
+      }
+
+      const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
+        // You can tweak this: '(cities)', 'geocode', etc.
+        types: ["geocode"]
+      })
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace()
+        const formatted =
+          place.formatted_address ||
+          (Array.isArray(place.address_components)
+            ? place.address_components.map((c: any) => c.long_name).join(", ")
+            : place.name)
+
+        if (formatted) {
+          setCompanyData((prev: typeof companyData) => ({
+            ...prev,
+            location: formatted
+          }))
+        }
+      })
+    }
+
+    const existingScript = document.getElementById("google-maps-script") as HTMLScriptElement | null
+
+    if (existingScript) {
+      // Script already present; if Google is ready, init immediately, else wait for load
+      if (typeof google !== "undefined" && google.maps?.places) {
+        initializeAutocomplete()
+      } else {
+        existingScript.addEventListener("load", initializeAutocomplete)
+      }
+      return
+    }
+
+    // Load Google Maps JavaScript API with Places library
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      console.warn("[Qurius AI] Missing VITE_GOOGLE_MAPS_API_KEY; location autocomplete will be disabled.")
+      return
+    }
+
+    const script = document.createElement("script")
+    script.id = "google-maps-script"
+    script.async = true
+    script.defer = true
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`
+    script.onload = initializeAutocomplete
+    document.head.appendChild(script)
+
+    return () => {
+      script.onload = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   return (
     <div className="animate-fade-in-up animation-delay-2000">
@@ -35,13 +103,16 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('onboarding.companyName')} *
+              {t('onboarding.companyName')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
               value={companyData.name}
-              onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
+              onChange={(e) => {
+                setCompanyData({ ...companyData, name: e.target.value })
+                onFieldChange?.()
+              }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
               placeholder="Enter your company name"
             />
@@ -49,11 +120,15 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 pr-2">
-              {t('onboarding.industry')}
+              {t('onboarding.industry')} <span className="text-red-500">*</span>
             </label>
             <select
+              required
               value={companyData.industry}
-              onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
+              onChange={(e) => {
+                setCompanyData({ ...companyData, industry: e.target.value })
+                onFieldChange?.()
+              }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             >
               <option value="">Select industry</option>
@@ -70,27 +145,33 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.website')} *
+            {t('onboarding.website')} <span className="text-red-500">*</span>
           </label>
           <input
             type="url"
             required
             value={companyData.website}
-            onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })}
+            onChange={(e) => {
+              setCompanyData({ ...companyData, website: e.target.value })
+              onFieldChange?.()
+            }}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
-            placeholder="https://yourcompany.com"
+            placeholder="https://yourcompany.com or www.yourcompany.com"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.email')} *
+            {t('onboarding.email')} <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
             required
             value={companyData.email}
-            onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })}
+            onChange={(e) => {
+              setCompanyData({ ...companyData, email: e.target.value })
+              onFieldChange?.()
+            }}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             placeholder="contact@yourcompany.com"
           />
@@ -98,12 +179,17 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t('onboarding.location')}
+            {t('onboarding.location')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
+            required
+            ref={locationInputRef}
             value={companyData.location}
-            onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })}
+            onChange={(e) => {
+              setCompanyData({ ...companyData, location: e.target.value })
+              onFieldChange?.()
+            }}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base min-h-[44px] md:min-h-[40px]"
             placeholder="e.g., New York, NY"
           />
@@ -115,7 +201,10 @@ export function CompanyInfoStep({ companyData, setCompanyData, onSubmit, loading
           </label>
           <textarea
             value={companyData.description}
-            onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
+            onChange={(e) => {
+              setCompanyData({ ...companyData, description: e.target.value })
+              onFieldChange?.()
+            }}
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-sm md:text-base"
             placeholder="Tell us about your business..."

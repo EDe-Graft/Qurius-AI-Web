@@ -3,12 +3,11 @@ import { useCompanyData } from '@/context/CompanyDataContext'
 
 export function useRouteBasedCompany() {
 //   const location = useLocation()
-  const { quriusData, purpleSoftData, isDataLoading } = useCompanyData()
+  const { quriusData, isDataLoading } = useCompanyData()
 
-  // Return both datasets - pages can choose which one to use
+  // Return main Qurius company dataset
   return {
     quriusData,
-    purpleSoftData,
     isDataLoading
   }
 } 

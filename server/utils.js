@@ -1428,6 +1428,97 @@ export function getDailyStats(analytics, days) {
 }
 
 
+export class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+// Basic validation and normalization for incoming company data
+export function validateAndNormalizeCompanyInput(input) {
+  const errors = [];
+
+  const toSafeString = (val) =>
+    typeof val === 'string' ? val.trim() : '';
+
+  const name = toSafeString(input.name);
+  if (!name) {
+    errors.push('Company name is required.');
+  } else if (name.length > 200) {
+    errors.push('Company name is too long.');
+  }
+
+  const email = toSafeString(input.email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email) {
+    errors.push('Email is required.');
+  } else if (!emailRegex.test(email)) {
+    errors.push('Email is invalid.');
+  }
+
+  let website = toSafeString(input.website);
+  if (!website) {
+    errors.push('Website URL is required.');
+  } else {
+    // Ensure protocol
+    if (!/^https?:\/\//i.test(website)) {
+      website = `https://${website}`;
+    }
+    try {
+      const url = new URL(website);
+
+      // Disallow localhost and private IP ranges for production usage
+      const hostname = url.hostname.toLowerCase();
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isPrivateIp =
+        /^10\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+        /^127\./.test(hostname) ||
+        /^169\.254\./.test(hostname);
+
+      if (isLocalhost || isPrivateIp) {
+        errors.push('Website URL must be publicly accessible (no localhost or private IP addresses).');
+      } else {
+        website = url.toString();
+      }
+    } catch {
+      errors.push('Website URL is invalid.');
+    }
+  }
+
+  const industry = toSafeString(input.industry);
+  const location = toSafeString(input.location);
+  const description = toSafeString(input.description);
+
+  if (!industry) {
+    errors.push('Industry is required.');
+  }
+
+  if (!location) {
+    errors.push('Location is required.');
+  }
+
+  const MAX_TEXT_LENGTH = 500;
+  const trimToMax = (str) =>
+    str.length > MAX_TEXT_LENGTH ? str.slice(0, MAX_TEXT_LENGTH) : str;
+
+  if (errors.length > 0) {
+    throw new ValidationError(errors.join(' '));
+  }
+
+  return {
+    ...input,
+    name,
+    email,
+    website,
+    industry: trimToMax(industry),
+    location: trimToMax(location),
+    description: trimToMax(description)
+  };
+}
+
 //Create company and profile and auth user and send welcome email
 export async function createCompany(companyData, userId = null) {
   try {
@@ -1513,6 +1604,40 @@ export async function createCompany(companyData, userId = null) {
       throw new Error('Failed to create company');
     }
   }
+
+export async function checkAuthUserExists(email) {
+  try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    // Check if any company already uses this email as admin_email or contact_email
+    const response = await axios.get(
+      `${supabaseUrl}/rest/v1/companies`,
+      {
+        params: {
+          or: `(admin_email.eq.${email},contact_email.eq.${email})`,
+          select: 'id'
+        },
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const companies = response.data || [];
+    console.log('Auth user existence (companies) check response:', JSON.stringify(companies, null, 2));
+    return Array.isArray(companies) && companies.length > 0;
+  } catch (error) {
+    console.error('❌ Error checking auth user existence:', error.response?.data || error.message);
+    throw new Error('Failed to validate email uniqueness');
+  }
+}
 
 //Create auth user
 export async function createAuthUser(email) {

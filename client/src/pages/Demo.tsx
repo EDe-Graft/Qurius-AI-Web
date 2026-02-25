@@ -13,7 +13,7 @@ export function Demo() {
   const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
   const navigate = useNavigate()
-  const { purpleSoftData, isDataLoading } = useRouteBasedCompany()
+  const { quriusData, isDataLoading } = useRouteBasedCompany()
 
   useEffect(() => {
     // Simulate page loading time and wait for company data
@@ -100,13 +100,13 @@ export function Demo() {
       </div>
 
       {/* Chat Interface */}
-      {purpleSoftData && (
+      {quriusData && (
         <ChatInterface
           defaultTheme={defaultTheme}
           toggleTheme={toggleTheme}
           isMinimized={isChatMinimized}
           onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-          companyData={purpleSoftData}
+          companyData={quriusData}
           isThemeChanging={isThemeChanging}
         />
       )}

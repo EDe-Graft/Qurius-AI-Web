@@ -38,7 +38,7 @@ export function CompletionStep({ companyData, onNavigateToAdmin }: CompletionSte
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Access Your Admin Dashboard</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Manage your chat widget, view analytics, and customize settings</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Manage your AI assistant, view analytics, and customize settings</p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
@@ -46,8 +46,8 @@ export function CompletionStep({ companyData, onNavigateToAdmin }: CompletionSte
               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">2</span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Add Your FAQs</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Import or manually add frequently asked questions for your AI assistant</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Add Your Knowledge Base</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Import or manually add frequently asked questions or documents to familiarize your AI assistant with your business</p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
@@ -55,8 +55,8 @@ export function CompletionStep({ companyData, onNavigateToAdmin }: CompletionSte
               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">3</span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Integrate the Widget</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Get your integration code and add the chat widget to your website</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Integrate the AI Assistant</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Get your integration code and add your AI assistant to your website</p>
             </div>
           </div>
         </div>

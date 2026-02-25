@@ -407,10 +407,20 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         pollCrawlStatus()
         // Don't set isCrawling to false here - let polling handle it
       } else {
+        // Handle structured error reasons from backend
+        const reason = response.data.reason
+        if (reason === 'http_status' || reason === 'network_error') {
+          setError(response.data.error || 'Failed to reach your website. Please check the URL and try again.')
+        }
         setIsCrawling(false)
       }
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to start crawl')
+      const backendReason = error.response?.data?.reason
+      if (backendReason === 'http_status' || backendReason === 'network_error') {
+        setError(error.response?.data?.error || 'Failed to reach your website. Please check the URL and try again.')
+      } else {
+        setError(error.response?.data?.error || 'Failed to start crawl')
+      }
       setIsCrawling(false)
     }
   }

@@ -8,6 +8,7 @@ import { CompanyInfoStep } from "@/components/onboarding/CompanyInfoStep"
 import { CustomizationStep } from "@/components/onboarding/CustomizationStep"
 import { PaymentStep } from "@/components/onboarding/PaymentStep"
 import { CompletionStep } from "@/components/onboarding/CompletionStep"
+import axios from "axios"
 
 interface OnboardingStep {
   id: string
@@ -16,6 +17,8 @@ interface OnboardingStep {
   icon: React.ReactNode
   completed: boolean
 }
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 export function Onboarding() {
   const navigate = useNavigate()
@@ -40,6 +43,64 @@ export function Onboarding() {
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [isSetupLoading, setIsSetupLoading] = useState(false)
   const { t } = useLanguage()
+
+  const validateCompanyInfo = () => {
+    const errors: string[] = []
+
+    const trimmedName = companyData.name.trim()
+    const trimmedEmail = companyData.email.trim()
+    const trimmedIndustry = companyData.industry.trim()
+    const trimmedLocation = companyData.location.trim()
+    let trimmedWebsite = companyData.website.trim()
+
+    if (!trimmedName) {
+      errors.push('Company name is required.')
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!trimmedEmail) {
+      errors.push('Email is required.')
+    } else if (!emailRegex.test(trimmedEmail)) {
+      errors.push('Please enter a valid email address.')
+    }
+
+    if (!trimmedWebsite) {
+      errors.push('Website URL is required.')
+    } else {
+      if (!/^https?:\/\//i.test(trimmedWebsite)) {
+        trimmedWebsite = `https://${trimmedWebsite}`
+      }
+      try {
+        const url = new URL(trimmedWebsite)
+        trimmedWebsite = url.toString()
+      } catch {
+        errors.push('Please enter a valid website URL (e.g., https://example.com).')
+      }
+    }
+
+    if (!trimmedIndustry) {
+      errors.push('Industry is required.')
+    }
+
+    if (!trimmedLocation) {
+      errors.push('Location is required.')
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join(' '))
+      return null
+    }
+
+    // If valid, normalize the companyData copy we’ll store
+    return {
+      ...companyData,
+      name: trimmedName,
+      email: trimmedEmail,
+      website: trimmedWebsite,
+      industry: trimmedIndustry,
+      location: trimmedLocation
+    }
+  }
 
   useEffect(() => {
     // Simulate page loading time
@@ -87,11 +148,44 @@ export function Onboarding() {
     }
   ]
 
-  const handleCompanyInfoSubmit = (e: React.FormEvent) => {
+  const handleCompanyInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Store company name in sessionStorage for payment flow
-    sessionStorage.setItem('companyName', companyData.name)
-    setCurrentStep(1)
+    setError("")
+
+    const normalized = validateCompanyInfo()
+    if (!normalized) {
+      // Validation failed; error message already set
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const response = await axios.post(`${BACKEND_URL}/api/companies/validate-onboarding`, normalized, {
+        headers: { "Content-Type": "application/json" }
+      })
+
+      if (response.data?.success) {
+        const validatedCompany = response.data.company || normalized
+
+        // Persist normalized + backend-validated values
+        setCompanyData(validatedCompany)
+
+        // Store company name in sessionStorage for payment flow
+        sessionStorage.setItem('companyName', validatedCompany.name)
+        setCurrentStep(1)
+      } else {
+        setError(response.data?.error || "Failed to validate company information.")
+      }
+    } catch (err: any) {
+      const message =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to validate company information."
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCustomizationSubmit = (theme: any) => {
@@ -137,7 +231,16 @@ export function Onboarding() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
-        return <CompanyInfoStep companyData={companyData} setCompanyData={setCompanyData} onSubmit={handleCompanyInfoSubmit} loading={loading} error={error} />
+          return (
+            <CompanyInfoStep
+              companyData={companyData}
+              setCompanyData={setCompanyData}
+              onSubmit={handleCompanyInfoSubmit}
+              loading={loading}
+              error={error}
+              onFieldChange={() => setError("")}
+            />
+          )
       case 1:
         return <CustomizationStep onSubmit={handleCustomizationSubmit} loading={loading} initialTheme={themeData} />
       case 2:
@@ -178,7 +281,7 @@ export function Onboarding() {
             Setting up your AI assistant...
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-base mb-4">
-            We're configuring your personalized AI chat widget with your company information and preferences.
+            We're configuring your personalized AI Assistant with your company information and preferences.
           </p>
           <div className="flex justify-center space-x-2">
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
@@ -199,7 +302,7 @@ export function Onboarding() {
             {t('onboarding.welcome')}
           </h1>
           <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 px-4 md:px-0">
-            Set up your AI chat widget in just a few steps
+            Set up your Assistant in just a few steps
           </p>
         </div>
 

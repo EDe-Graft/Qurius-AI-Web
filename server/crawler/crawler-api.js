@@ -81,8 +81,9 @@ router.post('/start', async (req, res) => {
     }
 
     // Validate URL
+    let normalizedUrl
     try {
-      new URL(websiteUrl)
+      normalizedUrl = new URL(websiteUrl)
     } catch (error) {
       return res.status(400).json({
         error: 'Invalid website URL'
@@ -102,8 +103,36 @@ router.post('/start', async (req, res) => {
       })
     }
 
+    // Prefer the website stored for the company if present (already validated/normalized)
+    const targetUrl = company.website || normalizedUrl.toString()
+
+    // Quick reachability check before starting crawl
+    try {
+      const response = await axios.get(targetUrl, {
+        timeout: 5000,
+        maxRedirects: 3,
+        validateStatus: () => true // we'll inspect status manually
+      })
+
+      if (response.status < 200 || response.status >= 400) {
+        return res.status(400).json({
+          success: false,
+          reason: 'http_status',
+          error: `Website is not reachable or returned an unexpected status (${response.status}). Please verify the URL and try again.`,
+          statusCode: response.status
+        })
+      }
+    } catch (err) {
+      console.error('❌ Website reachability check failed:', err.message || err)
+      return res.status(400).json({
+        success: false,
+        reason: 'network_error',
+        error: 'We could not reach your website. Please ensure it is publicly accessible and try again.'
+      })
+    }
+
     // Start crawling in background
-    crawler.crawlCompanyWebsite(companyId, websiteUrl)
+    crawler.crawlCompanyWebsite(companyId, targetUrl)
       .then((result) => {
         console.log(`✅ Crawl completed for ${company.name}`)
       })
@@ -115,7 +144,7 @@ router.post('/start', async (req, res) => {
       success: true,
       message: `Crawling started for ${company.name}`,
       companyId,
-      websiteUrl
+      websiteUrl: targetUrl
     })
 
   } catch (error) {
