@@ -76,9 +76,10 @@ export function Docs() {
               Welcome to Qurius AI Documentation
             </h2>
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm sm:text-base">
-              Qurius AI is a powerful, AI-powered customer support chatbot platform that helps businesses 
-              provide instant, accurate responses to customer inquiries. Our platform combines advanced 
-              natural language processing with customizable FAQ management to deliver exceptional customer experiences.
+              Qurius AI is an AI website assistant for SaaS products that helps you provide instant, accurate answers 
+              to customer questions across your app and marketing site. The assistant connects to your docs, help center, 
+              and product pages and combines advanced natural language processing with powerful FAQ and knowledge management 
+              to deliver exceptional self‑serve experiences.
             </p>
           </div>
 
@@ -244,18 +245,25 @@ export function Docs() {
 
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                2. Widget Integration
+                2. Assistant Integration
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Add the Qurius AI widget to your website with a simple JavaScript snippet:
+                Add the Qurius AI assistant to your SaaS product or marketing site with a simple JavaScript snippet:
               </p>
               
               <CodeBlock 
                 code={`<!-- Add this script right before the closing </body> tag -->
 
-<script src="widget-source.js" data-company="your-company-name" data-id="your-company-id" data-key="your-api-key" data-theme="light/dark"></script>
+<script
+  src="https://qurius.app/iframe-embed.js"
+  data-company="Your SaaS Product"
+  data-id="your-company-id"
+  data-key="your-public-api-key"
+  data-plan="pro"
+  data-theme="light"
+></script>
 `}
-                title="Widget Integration Code"
+                title="Assistant Integration Code"
               />
             </div>
 
@@ -265,7 +273,7 @@ export function Docs() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Widget Positioning</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Assistant Positioning</h4>
                   <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <li>• bottom-right (default)</li>
                     <li>• bottom-left</li>
@@ -300,8 +308,9 @@ export function Docs() {
               API Documentation
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
-              Qurius AI will soon provide a comprehensive REST API for integrating chatbot functionality 
-              into your applications and managing your account programmatically (Pro access only).
+              Qurius AI currently exposes most functionality through the embedded AI assistant and admin dashboard. 
+              A comprehensive public REST API for deeper integrations (Pro access only) is planned; the draft design below 
+              is subject to change as the platform evolves.
             </p>
           </div>
 
@@ -321,17 +330,17 @@ export function Docs() {
 
             <div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-                Base URL
+                Base URL (Planned)
               </h3>
               <CodeBlock 
                 code={`https://qurius.app/api/v1`}
-                title="API Base URL"
+                title="API Base URL (Draft)"
               />
             </div>
 
             <div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-                Core Endpoints
+                Core Endpoints (Draft)
               </h3>
               
               <div className="space-y-3 sm:space-y-4">
@@ -380,7 +389,7 @@ export function Docs() {
 
             <div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-                Response Format
+                Response Format (Example)
               </h3>
               <CodeBlock 
                 code={`{
@@ -494,7 +503,7 @@ export function Docs() {
               Understanding Your Data
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Track performance, understand customer behavior, and optimize your chatbot with comprehensive analytics.
+              Track performance, understand customer behavior, and optimize your AI assistant with comprehensive analytics.
             </p>
           </div>
 
@@ -593,12 +602,12 @@ export function Docs() {
           <div className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Widget Issues
+                Assistant Embed Issues
               </h3>
               <div className="space-y-4">
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Widget not appearing
+                    Assistant not appearing
                   </h4>
                   <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <li>• Check if the script is loaded in the page head</li>
@@ -609,7 +618,7 @@ export function Docs() {
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Widget styling issues
+                    Assistant styling issues
                   </h4>
                   <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <li>• Check CSS conflicts with your website</li>
@@ -663,7 +672,7 @@ export function Docs() {
                   <li>• <strong>Regular FAQ updates:</strong> Keep content fresh and relevant</li>
                   <li>• <strong>Monitor analytics:</strong> Identify and address common issues</li>
                   <li>• <strong>Test responses:</strong> Regularly test with real customer questions</li>
-                  <li>• <strong>Optimize loading:</strong> Ensure widget loads quickly</li>
+                  <li>• <strong>Optimize loading:</strong> Ensure the assistant script loads quickly</li>
                   <li>• <strong>Mobile optimization:</strong> Test on mobile devices</li>
                   <li>• <strong>Language optimization:</strong> Optimize for your target languages</li>
                 </ul>
@@ -716,7 +725,7 @@ export function Docs() {
               Qurius AI Documentation
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto px-4">
-              Complete guide to setting up, configuring, and optimizing your Qurius AI chatbot for maximum customer satisfaction.
+              Complete guide to setting up, configuring, and optimizing your Qurius AI assistant for your SaaS product.
             </p>
           </div>
         </div>
