@@ -296,36 +296,26 @@ Qurius AI is an AI-powered website assistant designed for SaaS companies. It con
 
 ### API Examples
 
-```typescript
-// Search FAQs
-const results = await FAQService.searchFAQs(
-  "What are your business hours?", 
-  "Acme Corporation"
-);
+Most API access in Qurius AI is handled through the frontend service classes (for example `faqService`) which call the backend REST endpoints (e.g. `/api/faqs/search`, `/api/companies/:id/faqs`, `/api/companies/import-faqs`).
 
-// Add new FAQ
-const newFAQ = await FAQService.addFAQ({
-  company: "Acme Corporation",
-  question: "How do I contact support?",
-  answer: "You can reach us at support@acme.com"
-});
+```typescript
+import { faqService } from '@/services/faqService';
+
+// Get an answer for a user's question within a specific company context
+const answer = await faqService.getAnswer('How do I upgrade my plan?', messages, companyData);
+
+// Fetch all FAQs for a company
+const faqs = await faqService.getFAQs(companyId);
 ```
+
+For more detailed backend API behavior and endpoints, see the Express handlers in `server/server.js` and the client service implementations in `client/src/services`.
 
 ## 📚 API Documentation
 
-### FAQService Class
+The API surface is evolving alongside the product. For the most accurate and up‑to‑date information:
 
-#### `searchFAQs(userQuestion: string, companyName: string)`
-Searches for relevant FAQs using semantic similarity.
-
-#### `addFAQ(faq: FAQWithCompany)`
-Adds a new FAQ with automatic embedding generation.
-
-#### `getAnswer(userQuestion: string, confidenceThreshold?: number)`
-Gets the best answer, falling back to AI if no FAQ matches.
-
-#### `getOrCreateCompanyId(companyName: string)`
-Manages company records automatically.
+- Review the REST routes defined in the Express app (`/api/faqs/*`, `/api/companies/*`, `/api/crawler/*`, etc.) in `server/server.js`
+- Check the typed frontend service classes in `client/src/services` (`faqService`, `CompanyService`, analytics services, etc.)
 
 ## 🤝 Contributing
 
