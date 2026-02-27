@@ -177,6 +177,13 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
 
         const companyData = await CompanyService.getCompanyById(companyId)
         setCompany(companyData)
+
+        // Update last_active timestamp whenever the admin dashboard is accessed
+        try {
+          await axios.post(`${config.backendUrl}/api/companies/${companyId}/last-active`)
+        } catch (updateError) {
+          console.error('❌ Failed to update company last_active:', updateError)
+        }
         
         // Load notifications for this company
         await loadNotifications(companyId)

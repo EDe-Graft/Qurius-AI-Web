@@ -862,6 +862,49 @@ app.patch('/api/companies/:id', async (req, res) => {
   }
 });
 
+// Update company's last_active timestamp
+app.post('/api/companies/:id/last-active', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Updating company last_active:', id);
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const updateData = {
+      last_active: new Date().toISOString()
+    };
+
+    await axios.patch(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      updateData,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      id,
+      last_active: updateData.last_active
+    });
+  } catch (error) {
+    console.error('Update company last_active error:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update last_active'
+    });
+  }
+});
+
 // Delete company
 app.delete('/api/companies/:id', async (req, res) => {
   try {
