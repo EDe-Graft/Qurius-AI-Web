@@ -1,6 +1,6 @@
-# 🚀 Qurius-AI: Multi-Company FAQ Assistant
+# 🚀 Qurius AI: AI Website Assistant for SaaS
 
-> **Intelligent FAQ Management System with AI-Powered Semantic Search**
+> **AI website assistant for SaaS products – answer up to 85% of customer questions automatically, reduce support tickets and convert leads.**
 
 [![React](https://img.shields.io/badge/React-18.0.0-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
@@ -23,15 +23,15 @@
 
 ## 🎯 Overview
 
-Qurius-AI is a sophisticated multi-company FAQ management system that leverages AI-powered semantic search to provide instant, accurate answers to user queries. Built with modern web technologies, it offers a seamless experience for both companies managing their knowledge base and users seeking information.
+Qurius AI is an AI-powered website assistant designed for SaaS companies. It connects to your docs, help center, and product pages to provide instant, accurate answers to user questions, deflect repetitive support tickets, and guide new users through your product. Built with modern web technologies, it offers a seamless experience for both teams managing their knowledge base and SaaS users seeking in‑product help.
 
 ### Key Highlights
 
-- **🤖 AI-Powered Semantic Search**: Uses Jina embeddings for intelligent question matching
-- **🏢 Multi-Company Support**: Scalable architecture supporting multiple organizations
-- **⚡ Real-Time Responses**: Instant FAQ retrieval with confidence scoring
-- **🎨 Modern UI/UX**: Beautiful, responsive interface with dark/light themes
-- **🔒 Secure & Scalable**: Built with Supabase for enterprise-grade security
+- **🤖 AI-Powered Semantic Search**: Uses Jina embeddings for intelligent question matching across your SaaS docs and FAQs
+- **🏢 Multi-Tenant SaaS Support**: Scalable architecture supporting multiple products or workspaces
+- **⚡ Real-Time Responses**: Instant AI answers with confidence scoring
+- **🎨 Modern UI/UX**: Beautiful, responsive assistant interface with dark/light themes
+- **🔒 Secure & Scalable**: Built with Supabase for SaaS-grade security and multi-tenant isolation
 
 ## 📈 Project Progress
 
@@ -45,9 +45,9 @@ Qurius-AI is a sophisticated multi-company FAQ management system that leverages 
 
 #### **Phase 2: Frontend Development** ✅
 - **✅ React 18 + TypeScript**: Modern component architecture with full type safety
-- **✅ Responsive Chat Widget**: Minimizable, theme-aware interface
+- **✅ Responsive AI Assistant Interface**: Minimizable, theme-aware assistant embedded in your SaaS app or marketing site
 - **✅ Real-Time Features**: Typing indicators, streaming responses, auto-scroll
-- **✅ Admin Dashboard**: Comprehensive analytics and FAQ management interface
+- **✅ Admin Dashboard**: Comprehensive analytics and FAQ/knowledge management interface
 
 #### **Phase 3: AI Integration** ✅
 - **✅ Semantic Search**: Jina AI embeddings for intelligent FAQ matching
@@ -110,11 +110,11 @@ Qurius-AI is a sophisticated multi-company FAQ management system that leverages 
 ## ✨ Features
 
 ### Core Functionality
-- **🔍 Semantic FAQ Search**: AI-powered question matching using vector embeddings
-- **🏢 Multi-Company Architecture**: Support for multiple organizations with isolated data
-- **🎯 Confidence Scoring**: Intelligent ranking of FAQ matches
-- **🤖 AI Fallback**: Seamless transition to AI responses when FAQs don't match
-- **📥 Bulk Import**: Efficient FAQ management with JSON import capabilities
+- **🔍 Semantic FAQ & Docs Search**: AI-powered question matching using vector embeddings
+- **🏢 Multi-Tenant Architecture**: Support for multiple SaaS products/companies with isolated data
+- **🎯 Confidence Scoring**: Intelligent ranking of matches from your docs, FAQs, and content
+- **🤖 AI Fallback**: Seamless transition to AI-generated responses when FAQs don't match
+- **📥 Bulk Import**: Efficient FAQ and knowledge management with JSON import capabilities
 
 ### User Experience
 - **📱 Responsive Design**: Works perfectly on desktop, tablet, and mobile

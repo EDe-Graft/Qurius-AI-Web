@@ -90,7 +90,7 @@ export function Docs() {
               <ul className="text-blue-800 dark:text-blue-200 space-y-1 sm:space-y-2 text-xs sm:text-sm">
                 <li>• AI-powered intelligent responses</li>
                 <li>• Multi-language support (10+ languages and counting)</li>
-                <li>• Customizable chat widget</li>
+                <li>• Customizable AI assistant interface</li>
                 <li>• Advanced analytics dashboard</li>
                 <li>• Superior FAQ management system</li>
                 <li>• Web crawling & document processing</li>
@@ -106,9 +106,9 @@ export function Docs() {
               <ol className="text-green-800 dark:text-green-200 space-y-1 sm:space-y-2 text-xs sm:text-sm">
                 <li>1. Sign up for a free account</li>
                 <li>2. Complete the onboarding process</li>
-                <li>3. Add your FAQs or crawl your website</li>
-                <li>4. Customize your chat widget</li>
-                <li>5. Embed the widget on your website</li>
+                <li>3. Add your FAQs or crawl your docs and website</li>
+                <li>4. Customize your AI assistant</li>
+                <li>5. Embed the assistant in your product or on your website</li>
                 <li>6. Monitor performance via analytics</li>
               </ol>
             </div>
@@ -134,12 +134,12 @@ export function Docs() {
                 <div className="flex items-center mb-3 sm:mb-4">
                   <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mr-2 sm:mr-3 flex-shrink-0" />
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Intelligent Chat Widget
+                    Intelligent AI Assistant
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                  Customizable chat interface with AI-powered responses, typing indicators, 
-                  and seamless integration with your website design.
+                  Customizable AI assistant interface with AI-powered responses, typing indicators, 
+                  and seamless integration with your SaaS product and website design.
                 </p>
               </div>
 

@@ -128,7 +128,7 @@ export function Onboarding() {
     {
       id: "customization",
       title: t('onboarding.customization'),
-      description: "Customize your chat widget",
+      description: "Customize your AI assistant experience",
       icon: <Palette className="h-5 w-5 md:h-6 md:w-6" />,
       completed: false
     },

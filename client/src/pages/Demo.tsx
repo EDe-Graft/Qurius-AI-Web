@@ -48,13 +48,13 @@ export function Demo() {
           </h1>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 md:p-6 mb-6 md:mb-8 mx-2 md:mx-0">
             <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-              {t('demo.companyWebsiteTitle') || 'Company Website Content'}
+              {t('demo.companyWebsiteTitle') || 'SaaS Product Experience'}
             </h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4 leading-relaxed">
-              {t('demo.companyWebsiteDescription') || 'This is a demonstration of how the chat interface would appear when embedded in a professional company website. It is shown here with a fictional company called PurpleSoft Inc. The chat widget is positioned in the bottom-right corner and can be minimized when not in use.'}
+              {t('demo.companyWebsiteDescription') || 'This demo shows how the Qurius AI assistant appears when embedded in a SaaS product dashboard and on a marketing site. The AI assistant sits in the bottom-right corner and can be minimized when not in use.'}
             </p>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
-              {t('demo.keyFeaturesTitle') || 'Key features include:'}
+              {t('demo.keyFeaturesTitle') || 'Key capabilities for SaaS teams include:'}
             </p>
             <ul className="list-disc list-inside text-sm md:text-base text-gray-600 dark:text-gray-300 space-y-1 md:space-y-2 pl-2 md:pl-0">
               <li>{t('demo.feature1') || 'Modern, professional design that matches company branding'}</li>
@@ -68,10 +68,10 @@ export function Demo() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 md:p-6 mx-2 md:mx-0">
             <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-              {t('demo.tryChatTitle') || 'Try the Chat Interface'}
+              {t('demo.tryChatTitle') || 'Try the AI Assistant'}
             </h3>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-              {t('demo.tryChatDescription') || 'Click the chat button in the bottom-right corner to start a conversation. You can toggle between light and dark themes, minimize the chat, and experience the smooth, professional interface.'}
+              {t('demo.tryChatDescription') || 'Click the assistant in the bottom-right corner to start a conversation. Ask product questions, explore features, and experience how Qurius AI supports your SaaS users.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
               <Button

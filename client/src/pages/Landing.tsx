@@ -179,8 +179,8 @@ export function Landing() {
               See Qurius AI in Action
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-4 md:px-0 max-w-3xl mx-auto">
-              Watch our demo showing how easy it is to transform your website into an intelligent, personalized experience. 
-              See the installation process and discover how Qurius AI provides 24/7 customer intelligence and analytics.
+              Watch our demo showing how easy it is to add a personalized AI assistant to your SaaS product and marketing site. 
+              See the installation process and discover how Qurius AI provides 24/7 product guidance, customer intelligence, and analytics.
             </p>
           </div>
           
