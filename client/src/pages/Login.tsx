@@ -88,11 +88,22 @@ export default function Login() {
           <h2 className="mt-4 md:mt-6 text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
             {isForgotPassword ? "Reset Password" : "Welcome back"}
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 px-4 md:px-0">
-            {isForgotPassword 
-              ? "Enter your email to receive a password reset link"
-              : "Sign in to your Qurius-AI admin account"
-            }
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 px-4 md:px-0 space-y-1">
+            {isForgotPassword ? (
+              "Enter your email to receive a password reset link."
+            ) : (
+              <>
+                <span>Sign in to your Qurius AI admin account.</span>
+                <br />
+                <span className="block mt-1">
+                  <strong>First time logging in?</strong> Check your email for the welcome / verification message from Qurius AI,
+                  click the link to set your password, then return here to sign in.
+                </span>
+                <span className="block mt-1">
+                  <strong>Already set a password?</strong> Just enter your email and password below to continue.
+                </span>
+              </>
+            )}
           </p>
         </div>
 
