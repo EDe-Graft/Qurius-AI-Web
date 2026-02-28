@@ -84,7 +84,7 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
   }
 
   return (
-    <div className="animate-fade-in-up animation-delay-2000">
+    <div className="animate-fade-in-up animation-delay-2000 w-full overflow-hidden">
       <h2 className="text-xl md:text-2xl text-center font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">
         {t('onboarding.choosePlan')}
       </h2>
@@ -95,7 +95,7 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-full">
         {/* Free Plan */}
         <PricingCard
           plan="free"

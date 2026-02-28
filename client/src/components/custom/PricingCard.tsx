@@ -57,14 +57,14 @@ export function PricingCard({
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-700 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col justify-between h-[500px] ${isPopular ? 'ring-2 ring-blue-500' : ''} `}>      
+    <div className={`bg-white dark:bg-gray-700 rounded-xl ${isPopular ? 'p-[22px] scale-[0.99]' : 'p-6'} shadow-sm border border-gray-200 dark:border-gray-600 flex flex-col h-full ${isPopular ? 'ring-2 ring-blue-500' : ''}`}>      
       <div className="text-center mb-6">
         <div className="relative">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             {getPlanTitle()}
           </h3>
           {isPopular && (
-            <span className="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
+            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
               Most Popular
             </span>
           )}
@@ -77,10 +77,10 @@ export function PricingCard({
         </p>
       </div>
       
-      <ul className="space-y-3 mb-8 flex-grow">
+      <ul className="space-y-3 mb-6 flex-grow">
         {displayFeatures.map((feature, index) => (
           <li key={index} className="flex items-center text-gray-600 dark:text-gray-400">
-            <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
+            <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
             <span className="text-sm">{feature}</span>
           </li>
         ))}
@@ -88,7 +88,7 @@ export function PricingCard({
       
       <button
         onClick={() => onSelect(plan)}
-        className={getButtonClass()}
+        className={`${getButtonClass()} mt-auto`}
       >
         {buttonText || t('common.getStarted')}
       </button>

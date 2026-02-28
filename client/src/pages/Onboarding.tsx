@@ -252,6 +252,8 @@ export function Onboarding() {
     }
   }
 
+  const isPaymentStep = currentStep === 2
+
   const goToPreviousStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
@@ -295,7 +297,7 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-4 pt-15">
+      <div className={`${isPaymentStep ? 'max-w-7xl' : 'max-w-4xl'} mx-auto py-6 md:py-8 px-4 sm:px-6 lg:px-4 pt-15`}>
         {/* Header */}
         <div className="text-center mb-6 md:mb-8 mt-3">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -358,7 +360,7 @@ export function Onboarding() {
         </div>
 
         {/* Step Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-8">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 ${isPaymentStep ? 'p-6' : 'p-4 md:p-6 lg:p-8'} overflow-hidden`}>
           {renderStepContent()}
           
           {/* Navigation Buttons */}
