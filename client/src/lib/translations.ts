@@ -128,6 +128,7 @@ export interface TranslationKeys {
   plans?: {
     free: string
     starter: string
+    growth: string
     pro: string
     perMonth: string
     unlimitedMessages: string
