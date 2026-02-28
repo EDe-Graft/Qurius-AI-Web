@@ -80,10 +80,20 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const industry = session.metadata.industry;
         const website = session.metadata.website;
         const description = session.metadata.description;
+        const themeMetadata = session.metadata.theme;
+        
+        // Parse theme from metadata (it's stored as JSON string)
+        let theme;
+        try {
+          theme = themeMetadata ? JSON.parse(themeMetadata) : { primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" };
+        } catch (error) {
+          console.warn('⚠️ Failed to parse theme from metadata, using default:', error);
+          theme = { primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" };
+        }
         
         console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
         console.log('💳 Session metadata:', session.metadata);
-        console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description });
+        console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description, theme });
         
         // Create company after successful payment
         const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -121,6 +131,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           contact_email: baseCompanyData.email,
           admin_email: baseCompanyData.email,
           plan: planId,
+          theme: theme, // Include theme from metadata
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           subscription_status: 'active',
@@ -2393,6 +2404,19 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0];
+      // Update customer metadata to include latest theme
+      await stripe.customers.update(customer.id, {
+        metadata: {
+          ...customer.metadata,
+          company_name: companyName,
+          plan_id: planId,
+          location: location || '',
+          industry: industry || '',
+          website: website || '',
+          description: description || '',
+          theme: theme ? JSON.stringify(theme) : JSON.stringify({ primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" })
+        }
+      });
     } else {
       customer = await stripe.customers.create({
         email: customerEmail,
@@ -2403,7 +2427,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           location: location || '',
           industry: industry || '',
           website: website || '',
-          description: description || ''
+          description: description || '',
+          theme: theme ? JSON.stringify(theme) : JSON.stringify({ primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" })
         }
       });
     }
@@ -2444,7 +2469,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         location: location || '',
         industry: industry || '',
         website: website || '',
-        description: description || ''
+        description: description || '',
+        theme: theme ? JSON.stringify(theme) : JSON.stringify({ primaryColor: "#3B82F6", backgroundColor: "#FFFFFF", textColor: "#1F2937" })
       }
     });
 
