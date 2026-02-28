@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Palette, Save, ArrowLeft } from 'lucide-react';
 import { CompanyService } from '@/services/companyService';
-import { useAuth } from '@/context/AuthContext';
 
 interface WidgetTheme {
   primaryColor: string;
@@ -14,7 +13,6 @@ interface WidgetTheme {
 export function WidgetSettings() {
   const navigate = useNavigate();
   const { companyId } = useParams<{ companyId: string }>();
-  const { user } = useAuth();
   const [widgetTheme, setWidgetTheme] = useState<WidgetTheme>({
     primaryColor: '#3B82F6',
     backgroundColor: '#FFFFFF',
