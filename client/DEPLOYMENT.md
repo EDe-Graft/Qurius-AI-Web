@@ -29,8 +29,9 @@ ALLOWED_ORIGINS=https://your-frontend.vercel.app
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_... # Your Stripe secret key
 STRIPE_WEBHOOK_SECRET=whsec_... # Webhook endpoint secret
-STRIPE_STARTER_PRICE_ID=price_... # Starter plan price ID
-STRIPE_PRO_PRICE_ID=price_... # Pro plan price ID
+STRIPE_STARTER_PRICE_ID=price_... # Starter plan price ID ($29/month)
+STRIPE_GROWTH_PRICE_ID=price_... # Growth plan price ID ($59/month)
+STRIPE_PRO_PRICE_ID=price_... # Pro plan price ID ($99/month)
 FRONTEND_URL=https://your-frontend.vercel.app
 ```
 
@@ -50,6 +51,7 @@ FRONTEND_URL=https://your-frontend.vercel.app
 ```bash
 # In Stripe Dashboard or via API:
 # Starter Plan: $29/month
+# Growth Plan: $59/month
 # Pro Plan: $99/month
 ```
 

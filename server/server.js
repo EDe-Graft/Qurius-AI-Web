@@ -2414,6 +2414,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       console.error('🔧 Available plans:', Object.keys(PRICING_PLANS));
       console.error('🔧 Environment variables:');
       console.error('  STRIPE_STARTER_PRICE_ID:', process.env.STRIPE_STARTER_PRICE_ID);
+      console.error('  STRIPE_GROWTH_PRICE_ID:', process.env.STRIPE_GROWTH_PRICE_ID);
       console.error('  STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID);
       return res.status(500).json({ 
         error: 'Price configuration missing. Please contact support.' 

@@ -1758,7 +1758,7 @@ export async function sendWelcomeEmail(companyEmail, companyName, planId) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     // Get plan name for display
-    const planName = planId === 'pro' ? 'Pro' : planId === 'starter' ? 'Starter' : 'Free';
+    const planName = planId === 'pro' ? 'Pro' : planId === 'growth' ? 'Growth' : planId === 'starter' ? 'Starter' : 'Free';
 
     // Generate email HTML from template
     const emailHtml = WelcomeEmailTemplate({
@@ -1814,7 +1814,7 @@ export async function sendAdminCompanyNotification(companyData) {
     const { name, email, plan, location, industry, website, description } = companyData;
     
     // Get plan name for display
-    const planName = plan === 'pro' ? 'Pro' : plan === 'starter' ? 'Starter' : 'Free';
+    const planName = plan === 'pro' ? 'Pro' : plan === 'growth' ? 'Growth' : plan === 'starter' ? 'Starter' : 'Free';
     
     // Format creation date
     const createdAt = new Date().toLocaleString('en-US', { 
