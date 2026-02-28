@@ -375,7 +375,7 @@ export function Landing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             <div className="animate-fade-in-up animation-delay-100">
               <PricingCard
                 plan="free"
@@ -407,8 +407,24 @@ export function Landing() {
 
             <div className="animate-fade-in-up animation-delay-300">
               <PricingCard
-                plan="pro"
+                plan="growth"
                 price="$59"
+                features={[
+                  '50,000 messages/month',
+                  t('plans.analyticsDashboard'),
+                  t('plans.multiLanguageSupport'),
+                  t('plans.prioritySupport'),
+                  t('plans.customFaqImport'),
+                ]}
+                onSelect={handlePlanSelection}
+                isPopular={true}
+              />
+            </div>
+
+            <div className="animate-fade-in-up animation-delay-400">
+              <PricingCard
+                plan="pro"
+                price="$99"
                 features={[
                   t('plans.unlimitedMessages'),
                   t('plans.multiLanguageSupport'),
@@ -420,7 +436,6 @@ export function Landing() {
                   t('plans.phoneSupport'),
                 ]}
                 onSelect={handlePlanSelection}
-                isPopular={true}
               />
             </div>
           </div>

@@ -37,16 +37,28 @@ export const PRICING_PLANS = {
       price: 29,
       stripe_price_id: process.env.STRIPE_STARTER_PRICE_ID,
       features: [
-        '5,000 messages/month',
+        '10,000 messages/month',
         'Advanced customization',
         'Priority support',
         'Analytics dashboard',
         'Custom FAQ import'
       ]
     },
+    'growth': {
+      name: 'Growth Plan',
+      price: 59,
+      stripe_price_id: process.env.STRIPE_GROWTH_PRICE_ID,
+      features: [
+        '50,000 messages/month',
+        'Analytics dashboard',
+        'Multi-language support',
+        'Priority support',
+        'Custom FAQ import'
+      ]
+    },
     'pro': {
       name: 'Pro Plan',
-      price: 59,
+      price: 99,
       stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
       features: [
         'Unlimited messages',

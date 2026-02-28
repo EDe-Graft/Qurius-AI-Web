@@ -95,7 +95,7 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Free Plan */}
         <PricingCard
           plan="free"
@@ -122,6 +122,21 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
           onSelect={handlePlanSelection}
         />
 
+        {/* Growth Plan */}
+        <PricingCard
+          plan="growth"
+          price="$59"
+          features={[
+            "50,000 messages/month",
+            t('plans.analyticsDashboard'),
+            t('plans.multiLanguageSupport'),
+            t('plans.prioritySupport'),
+            t('plans.customFaqImport')
+          ]}
+          onSelect={handlePlanSelection}
+          isPopular={true}
+        />
+
         {/* Pro Plan */}
         <PricingCard
           plan="pro"
@@ -141,7 +156,6 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
             t('plans.customLanguageSupport')
           ]}
           onSelect={handlePlanSelection}
-          isPopular={true}
         />
       </div>
     </div>

@@ -315,7 +315,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
       const activeCompanies = companies.filter(c => c.status === 'active')
       const monthlyRevenue = companies.reduce((total, company) => {
-        const planRevenue = company.plan === 'pro' ? 99 : company.plan === 'starter' ? 29 : 0
+        const planRevenue = company.plan === 'pro' ? 99 : company.plan === 'growth' ? 59 : company.plan === 'starter' ? 29 : 0
         return total + planRevenue
       }, 0)
 

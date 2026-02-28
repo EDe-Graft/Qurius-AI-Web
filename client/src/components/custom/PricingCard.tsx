@@ -2,7 +2,7 @@ import { CheckCircle } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 
 interface PricingCardProps {
-  plan: 'free' | 'starter' | 'pro'
+  plan: 'free' | 'starter' | 'growth' | 'pro'
   price: string
   features: string[]
   buttonText?: string
@@ -32,6 +32,8 @@ export function PricingCard({
         return "w-full bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       case 'starter':
         return "w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+      case 'growth':
+        return "w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       case 'pro':
         return "w-full bg-green-600 dark:bg-green-600 text-gray-900 dark:text-gray-100 py-2 px-4 rounded-lg font-medium hover:bg-green-500 dark:hover:bg-green-500 hover:shadow-lg transform hover:scale-105 transition-all duration-200"
       default:
@@ -45,6 +47,8 @@ export function PricingCard({
         return t('plans.free')
       case 'starter':
         return t('plans.starter')
+      case 'growth':
+        return t('plans.growth')
       case 'pro':
         return t('plans.pro')
       default:

@@ -368,6 +368,7 @@ const en: TranslationKeys = {
   plans: {
     free: 'Free',
     starter: 'Starter',
+    growth: 'Growth',
     pro: 'Pro',
     perMonth: 'per month',
     unlimitedMessages: 'Unlimited messages',
@@ -600,6 +601,7 @@ const es: TranslationKeys = {
   plans: {
     free: 'Gratis',
     starter: 'Básico',
+    growth: 'Crecimiento',
     pro: 'Pro',
     perMonth: 'por mes',
     unlimitedMessages: 'Mensajes ilimitados',
@@ -832,6 +834,7 @@ const fr: TranslationKeys = {
   plans: {
     free: 'Gratuit',
     starter: 'Débutant',
+    growth: 'Croissance',
     pro: 'Pro',
     perMonth: 'par mois',
     unlimitedMessages: 'Messages illimités',
@@ -1064,6 +1067,7 @@ const de: TranslationKeys = {
   plans: {
     free: 'Kostenlos',
     starter: 'Starter',
+    growth: 'Wachstum',
     pro: 'Pro',
     perMonth: 'pro Monat',
     unlimitedMessages: 'Unbegrenzte Nachrichten',
@@ -1296,6 +1300,7 @@ const zh: TranslationKeys = {
   plans: {
     free: '免费',
     starter: '入门版',
+    growth: '成长版',
     pro: '专业版',
     perMonth: '每月',
     unlimitedMessages: '无限消息',
@@ -1528,6 +1533,7 @@ const ja: TranslationKeys = {
   plans: {
     free: '無料',
     starter: 'スターター',
+    growth: '成長',
     pro: 'プロ',
     perMonth: '月額',
     unlimitedMessages: '無制限メッセージ',
@@ -1760,6 +1766,7 @@ const pt: TranslationKeys = {
   plans: {
     free: 'Gratuito',
     starter: 'Iniciante',
+    growth: 'Crescimento',
     pro: 'Pro',
     perMonth: 'por mês',
     unlimitedMessages: 'Mensagens ilimitadas',
@@ -1992,6 +1999,7 @@ const it: TranslationKeys = {
   plans: {
     free: 'Gratuito',
     starter: 'Base',
+    growth: 'Crescita',
     pro: 'Pro',
     perMonth: 'al mese',
     unlimitedMessages: 'Messaggi illimitati',
@@ -2224,6 +2232,7 @@ const ru: TranslationKeys = {
   plans: {
     free: 'Бесплатно',
     starter: 'Стартовый',
+    growth: 'Рост',
     pro: 'Про',
     perMonth: 'в месяц',
     unlimitedMessages: 'Неограниченные сообщения',
@@ -2456,6 +2465,7 @@ const ko: TranslationKeys = {
   plans: {
     free: '무료',
     starter: '스타터',
+    growth: '성장',
     pro: '프로',
     perMonth: '월',
     unlimitedMessages: '무제한 메시지',

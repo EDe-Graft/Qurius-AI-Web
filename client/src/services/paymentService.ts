@@ -82,6 +82,19 @@ export class PaymentService {
           'Custom FAQ import'
         ]
       },
+      'growth': {
+        id: 'growth',
+        name: 'Growth Plan',
+        price: 59,
+        interval: 'month',
+        features: [
+          '50,000 messages/month',
+          'Analytics dashboard',
+          'Multi-language support',
+          'Priority support',
+          'Custom FAQ import'
+        ]
+      },
       'pro': {
         id: 'pro',
         name: 'Pro Plan',

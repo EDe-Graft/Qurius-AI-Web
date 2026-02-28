@@ -12,7 +12,7 @@
   {
     "company": "Qurius AI",
     "question": "What pricing plans do you offer?",
-    "answer": "We offer three transparent pricing plans: Free ($0/month with 500 messages), Starter ($29/month with 10,000 messages), and Pro ($99/month with unlimited messages). The Pro plan includes advanced features like web crawling, API access, multi-language support, white-label options, and 24/7 phone support. All plans include basic customization and email support."
+    "answer": "We offer four transparent pricing plans: Free ($0/month with 500 messages), Starter ($29/month with 10,000 messages), Growth ($59/month with 50,000 messages), and Pro ($99/month with unlimited messages). The Growth plan includes analytics dashboard, multi-language support, and priority support. The Pro plan includes advanced features like web crawling, API access, white-label options, and 24/7 phone support. All plans include basic customization and email support."
   },
   {
     "company": "Qurius AI",
@@ -207,7 +207,7 @@
   {
     "company": "Qurius AI",
     "question": "What is the difference between plans?",
-    "answer": "Free Plan ($0): 500 messages/month, basic customization, email support, standard FAQ templates. Starter Plan ($29): 10,000 messages/month, priority support, analytics dashboard, custom FAQ import. Pro Plan ($99): Unlimited messages, multi-language support, advanced analytics, API access, custom integrations, white-label options, 24/7 phone support, web crawling, and more."
+    "answer": "Free Plan ($0): 500 messages/month, basic customization, email support, standard FAQ templates. Starter Plan ($29): 10,000 messages/month, priority support, analytics dashboard, custom FAQ import. Growth Plan ($59): 50,000 messages/month, analytics dashboard, multi-language support, priority support, custom FAQ import. Pro Plan ($99): Unlimited messages, multi-language support, advanced analytics, API access, custom integrations, white-label options, 24/7 phone support, web crawling, and more."
   },
   {
     "company": "Qurius AI",
