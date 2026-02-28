@@ -10,13 +10,18 @@ export function WelcomeEmailTemplate({ companyName, planName, adminLink }) {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
-      <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
-        Welcome to your AI-powered customer service platform
-      </p>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
+            Welcome to your AI-powered customer service platform
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -116,10 +121,15 @@ export function NotificationEmailTemplate({ subject, message, actionText, action
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+        </div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -174,10 +184,15 @@ export function SupportEmailTemplate({ issue, description, priority = 'normal' }
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+        </div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -222,10 +237,15 @@ export function MessageLimitReachedEmailTemplate({ companyName, planName, adminL
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -336,10 +356,15 @@ export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faq
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -539,13 +564,18 @@ export function AdminCompanyNotificationEmailTemplate({ companyName, companyEmai
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
-      <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        Qurius AI
-      </h1>
-      <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
-        New Company Registration
-      </p>
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
+            New Company Registration
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
