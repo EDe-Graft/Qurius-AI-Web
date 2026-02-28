@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Zap, Shield, Globe, MessageCircle } from "lucide-react"
+import { Zap, MessageCircle, Brain, ChartColumnIncreasing, DollarSign, Clock, Languages } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import { TestimonialCarousel } from "@/components/custom/TestimonialCarousel"
 import { PricingCard } from "@/components/custom/PricingCard"
@@ -146,7 +146,7 @@ export function Landing() {
       />
 
       {/* Hero Section */}
-      <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <section className="py-12 md:py-20 bg-blue-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4 md:mb-6 px-2 md:px-0 animate-fade-in-up">
             {t('landing.heroTitle')}
@@ -227,19 +227,19 @@ export function Landing() {
               
               <div className="text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200">
                 <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transform transition-all duration-300 shadow-lg">
-                  <Shield className="h-6 w-6 text-green-600" />
+                  <DollarSign className="h-6 w-6 text-green-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Instant Benefits
+                  Instant Sales Insights
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  See immediate improvements in customer intelligence and analytics
+                  See immediate improvements in customer intelligence, sales and ROI
                 </p>
               </div>
               
               <div className="text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300">
                 <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transform transition-all duration-300 shadow-lg">
-                  <Globe className="h-6 w-6 text-purple-600" />
+                  <Languages className="h-6 w-6 text-purple-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Multi-Language
@@ -251,8 +251,8 @@ export function Landing() {
             </div>
             
             {/* CTA Below Video */}
-            <div className="text-center mt-8 md:mt-12">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
+            {/* <div className="text-center mt-5 md:mt-9">
+               <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg max-w-2xl mx-auto">
                 <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base mb-4">
                   💡 <strong>Ready to transform your customer experience? </strong> 
                   Get started with Qurius AI today and see the difference.
@@ -271,8 +271,8 @@ export function Landing() {
                     Try Live Demo
                   </button>
                 </div>
-              </div>
-            </div>
+              </div> 
+            </div> */}
           </div>
         </div>
       </section>
@@ -292,7 +292,7 @@ export function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-100">
               <div className="bg-blue-100 dark:bg-blue-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
-                <Zap className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
+                <Brain className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {t('landing.feature1Title')}
@@ -304,7 +304,7 @@ export function Landing() {
             
             <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200">
               <div className="bg-green-100 dark:bg-green-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
-                <Shield className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
+                <ChartColumnIncreasing className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {t('landing.feature2Title')}
@@ -316,7 +316,7 @@ export function Landing() {
             
             <div className="text-center px-4 md:px-0 hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300">
               <div className="bg-purple-100 dark:bg-purple-900/20 w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 hover:scale-110 transform transition-all duration-300 shadow-lg">
-                <Globe className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
+                <Clock className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
               </div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {t('landing.feature3Title')}
@@ -432,7 +432,7 @@ export function Landing() {
             </div>
             
             <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-200 hover:shadow-lg">
-              <Zap className="h-12 w-12 text-green-600 mx-auto mb-4 animate-pulse" />
+              <DollarSign className="h-12 w-12 text-green-600 mx-auto mb-4 animate-pulse" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Check Pricing
               </h3>
@@ -442,7 +442,7 @@ export function Landing() {
             </div>
             
             <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm text-center hover:scale-105 transform transition-all duration-300 animate-fade-in-up animation-delay-300 hover:shadow-lg">
-              <Shield className="h-12 w-12 text-purple-600 mx-auto mb-4 animate-pulse" />
+              <Brain className="h-12 w-12 text-purple-600 mx-auto mb-4 animate-pulse" />
               <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 Learn More
               </h3>
@@ -452,24 +452,24 @@ export function Landing() {
             </div>
           </div>
           
-          <div className="text-center mt-8">
+          {/* <div className="text-center mt-8">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg max-w-2xl mx-auto">
               <p className="text-gray-700 dark:text-gray-300 text-sm md:text-base">
-                💡 <strong>This AI Assistant is powered by Qurius AI!</strong> It's the same intelligent knowledge management and analytics technology we provide to our customers. 
-                Try asking any question to see our AI in action.
+                 <Lightbulb className="h-5 w-5 text-blue-600 inline-block mr-2" /> <strong>Our AI Assistant is powered by Qurius AI!</strong> It's the same intelligent knowledge management and analytics technology we provide to our customers. 
+                Try asking any question to see our Assistant in action.
               </p>
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-20 bg-blue-600 dark:bg-gray-800 animate-fade-in-up animation-delay-1800">
+      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800 animate-fade-in-up animation-delay-1800">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
             {t('landing.ctaTitle')}
           </h2>
-          <p className="text-lg md:text-xl text-blue-100 mb-6 md:mb-8 leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 mb-6 md:mb-8 leading-relaxed">
             {t('landing.ctaSubtitle')}
           </p>
           
@@ -504,7 +504,7 @@ export function Landing() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('landing.emailPlaceholder')}
-                className="px-4 py-3 rounded-lg border-2 border-white text-white placeholder-white focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 min-h-[48px] md:min-h-[44px] text-sm md:text-base bg-transparent"
+                className="px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-500 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px] md:min-h-[44px] text-sm md:text-base dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                 required
                 disabled={isSubscribing}
               />
@@ -513,8 +513,8 @@ export function Landing() {
                 disabled={isSubscribing}
                 className={`px-6 py-3 rounded-lg font-semibold min-h-[48px] md:min-h-[44px] text-sm md:text-base transform transition-all duration-200 ${
                   isSubscribing 
-                    ? 'bg-blue-500 text-white cursor-not-allowed' 
-                    : 'bg-blue-700 text-white hover:bg-blue-800 hover:scale-105'
+                    ? 'bg-blue-400 text-white cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
                 }`}
               >
                 {isSubscribing ? (
@@ -530,7 +530,7 @@ export function Landing() {
           </div>
           
           {/* Privacy Notice */}
-          <p className="text-blue-200 text-xs mt-4 max-w-2xl mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-4 max-w-2xl mx-auto">
             By subscribing, you agree to receive updates about Qurius AI. We respect your privacy and will never share your email with third parties. 
             You can unsubscribe at any time.
           </p>

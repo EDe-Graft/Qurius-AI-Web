@@ -22,7 +22,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
   // Simple footer for pages like Contact and About
   if (!showFullFooter) {
     return (
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="py-8 bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center mb-4 gap-1">
             <button
@@ -34,11 +34,11 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-12 md:w-12 text-blue-400" />
               <div className="ml-2 flex flex-col">
                 <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
-                <span className="text-xs italic leading-tight text-gray-400">Your Website. Smarter.</span>
+                <span className="text-xs italic leading-tight text-gray-500 dark:text-gray-400">Your Website. Smarter.</span>
               </div>
             </button>
           </div>
-          <p className="text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400">
             &copy; {new Date().getFullYear()} Qurius AI. All rights reserved.
           </p>
         </div>
@@ -48,7 +48,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
 
   // Full footer for Landing page
   return (
-    <footer className="bg-gray-900 text-white py-8 md:py-12">
+    <footer className="py-8 md:py-12 bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
           <div className="flex flex-col justify-between">
@@ -61,21 +61,21 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <img src={quriusLogo} alt="Qurius AI" className="h-6 w-6 md:h-12 md:w-12 text-blue-400" />
               <div className="flex flex-col gap-1 ml-2">
                 <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Qurius AI</span>
-                <span className="text-xs md:text-xs italic text-gray-400 leading-tight">Your Website. Smarter.</span>
+                <span className="text-xs md:text-xs italic text-gray-500 dark:text-gray-400 leading-tight">Your Website. Smarter.</span>
               </div>
             </button>
-            <p className="text-sm md:text-base text-gray-400 leading-relaxed">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
               {t('landing.footerDescription')}
             </p>
           </div>
           
           <div>
             <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t('landing.footerProduct')}</h3>
-            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-400">
+            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('features')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.features')}
                 </button>
@@ -83,7 +83,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('pricing')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.pricing')}
                 </button>
@@ -91,7 +91,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('installation')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.installation')}
                 </button>
@@ -101,11 +101,11 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
           
           <div>
             <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t('landing.footerCompany')}</h3>
-            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-400">
+            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('about')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.about')}
                 </button>
@@ -113,7 +113,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('blog')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.blog')}
                 </button>
@@ -121,7 +121,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('careers')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.careers')}
                 </button>
@@ -131,11 +131,11 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
           
           <div>
             <h3 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">{t('landing.footerSupport')}</h3>
-            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-400">
+            <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('help')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.helpCenter')}
                 </button>
@@ -143,7 +143,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('contact')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.contact')}
                 </button>
@@ -151,7 +151,7 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
               <li>
                 <button 
                   onClick={() => handleFooterLinkClick('status')}
-                  className="hover:text-white transition-colors text-left"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
                   {t('landing.status')}
                 </button>
@@ -160,8 +160,10 @@ export function Footer({ onFooterLinkClick, showFullFooter = true }: FooterProps
           </div>
         </div>
         
-        <div className="border-t border-gray-800 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-sm md:text-base text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Qurius AI. {t('landing.allRightsReserved')}</p>
+        <div className="border-t border-gray-200 dark:border-gray-800 mt-6 md:mt-8 pt-6 md:pt-8 text-center text-sm md:text-base text-gray-500 dark:text-gray-400">
+          <p>
+            &copy; {new Date().getFullYear()} Qurius AI. {t('landing.allRightsReserved')}
+          </p>
         </div>
       </div>
     </footer>
