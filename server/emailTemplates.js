@@ -410,6 +410,105 @@ export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faq
   `;
 }
 
+// Password reset email template
+export function PasswordResetEmailTemplate({ resetLink }) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password - Qurius AI</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
+    <!-- Header -->
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
+            Password Reset Request
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="background-color: #1F2937; padding: 32px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #374151; border-left: 3px solid #3B82F6;">
+      <h2 style="color: #F9FAFB; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; letter-spacing: -0.3px;">
+        Reset Your Password
+      </h2>
+      
+      <p style="color: #D1D5DB; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+        Hello! We received a request to reset your password for your Qurius AI admin account. 
+        If you didn't make this request, you can safely ignore this email.
+      </p>
+
+      <p style="color: #D1D5DB; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
+        To reset your password, click the button below. This link will expire in 24 hours for security.
+      </p>
+
+      <!-- Action Button -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <a href="${resetLink}" style="background-color: #3B82F6; color: #FFFFFF; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; transition: background-color 0.2s;">
+          Reset Password
+        </a>
+      </div>
+
+      <div style="background-color: #111827; padding: 20px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #374151;">
+        <p style="color: #9CA3AF; font-size: 14px; line-height: 1.5; margin: 0 0 12px 0; text-align: center;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="color: #3B82F6; font-size: 13px; line-height: 1.5; margin: 0; text-align: center; word-break: break-all; font-family: monospace; background-color: #1F2937; padding: 12px; border-radius: 6px; border: 1px solid #374151;">
+          ${resetLink}
+        </p>
+      </div>
+    </div>
+
+    <!-- Security Notice -->
+    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 24px; border-radius: 12px; margin-bottom: 32px; border-left: 3px solid #F59E0B;">
+      <h3 style="color: #F9FAFB; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+        Security Information
+      </h3>
+      <ul style="color: #D1D5DB; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">This link expires in 24 hours</li>
+        <li style="margin-bottom: 8px;">Only use this link if you requested a password reset</li>
+        <li>If you didn't request this, your account remains secure</li>
+      </ul>
+    </div>
+
+    <!-- Support Section -->
+    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 24px; border-radius: 12px; margin-bottom: 32px; text-align: center;">
+      <h3 style="color: #F9FAFB; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+        Need Help?
+      </h3>
+      <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+        Having trouble resetting your password? Our support team is here to help.
+      </p>
+      <a href="mailto:support@qurius.app" style="color: #3B82F6; text-decoration: none; font-size: 14px; font-weight: 500;">
+        Contact Support →
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding-top: 32px; border-top: 1px solid #374151;">
+      <p style="color: #6B7280; font-size: 12px; margin: 0 0 8px 0;">
+        © ${new Date().getFullYear()} Qurius AI. All rights reserved.
+      </p>
+      <p style="color: #6B7280; font-size: 12px; margin: 0;">
+        This email was sent because a password reset was requested for your account.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
 // Admin company notification email template
 export function AdminCompanyNotificationEmailTemplate({ companyName, companyEmail, planName, location, industry, website, description, createdAt }) {
   const getPlanInfo = (plan) => {

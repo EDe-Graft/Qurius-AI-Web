@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { 
   Building2, 
   Plus,
@@ -17,7 +18,6 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
-import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
@@ -43,6 +43,7 @@ interface QuriusAdminProps {
 }
 
 export function QuriusAdmin({ user }: QuriusAdminProps) {
+  const navigate = useNavigate()
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
   const { 
@@ -145,21 +146,6 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
     companyId: ''
   })
 
-  const [widgetSettingsModal, setWidgetSettingsModal] = useState<{
-    isOpen: boolean
-    companyId: string
-    companyName: string
-    initialTheme: any
-  }>({
-    isOpen: false,
-    companyId: '',
-    companyName: '',
-    initialTheme: {
-      primaryColor: '#9810fa',
-      backgroundColor: '#ffffff',
-      textColor: '#000000'
-    }
-  })
 
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
@@ -502,39 +488,9 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
 
   // Widget settings handlers
   const handleConfigureWidget = (company: Company) => {
-    setWidgetSettingsModal({
-      isOpen: true,
-      companyId: company.id || '',
-      companyName: company.name,
-      initialTheme: company.theme || {
-        primaryColor: '#9810fa',
-        backgroundColor: '#ffffff',
-        textColor: '#000000'
-      }
-    })
+    navigate(`/admin/widget-settings/${company.id}`)
   }
 
-  const handleThemeUpdate = (newTheme: any) => {
-    // Update the company's theme in the local state
-    setCompanies(prev => prev.map(company => 
-      company.id === widgetSettingsModal.companyId 
-        ? { ...company, theme: newTheme }
-        : company
-    ))
-  }
-
-  const closeWidgetSettingsModal = () => {
-    setWidgetSettingsModal({
-      isOpen: false,
-      companyId: '',
-      companyName: '',
-      initialTheme: {
-        primaryColor: '#9810fa',
-        backgroundColor: '#ffffff',
-        textColor: '#000000'
-      }
-    })
-  }
 
   // Quick Actions handlers for selected company
   const handleQuickActionFAQ = () => {
@@ -901,13 +857,6 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       />
 
       {/* Widget Settings Modal */}
-      <WidgetSettingsModal
-        isOpen={widgetSettingsModal.isOpen}
-        onClose={closeWidgetSettingsModal}
-        companyId={widgetSettingsModal.companyId}
-        initialTheme={widgetSettingsModal.initialTheme}
-        onThemeUpdate={handleThemeUpdate}
-      />
 
       {/* Crawler Modal */}
       {selectedCompany && (

@@ -5,7 +5,7 @@ import { Onboarding } from "@/pages/Onboarding"
 import { Landing } from "@/pages/Landing"
 import { Demo } from "@/pages/Demo"
 import { Docs } from "@/pages/Docs"
-
+import { WidgetSettings } from "@/pages/WidgetSettings"
 import { About } from "@/pages/About"
 import { Contact } from "@/pages/Contact"
 // import { TestPaymentBypass } from "@/pages/TestPaymentBypass"
@@ -47,6 +47,13 @@ export default function App() {
                 <ProtectedRoute>
                   <NotificationProvider>
                     <><AdminNavigation /><Admin /></>
+                  </NotificationProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/widget-settings/:companyId" element={
+                <ProtectedRoute>
+                  <NotificationProvider>
+                    <><AdminNavigation /><WidgetSettings /></>
                   </NotificationProvider>
                 </ProtectedRoute>
               } />

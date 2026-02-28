@@ -5,68 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reset Your Password - Qurius AI</title>
 </head>
-<body style="margin: 0; padding: 20px; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-    
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
-    <div style="background-color: #3B82F6; padding: 32px 24px; text-align: center;">
-      <div style="margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 120px; height: auto; border-radius: 8px;">
+    <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
+      <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="https://res.cloudinary.com/ds8yzpran/image/upload/v1754916422/logo_m5wdkj.png" alt="Qurius AI Logo" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+        <div>
+          <h1 style="color: #3B82F6; font-size: 28px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: -0.5px;">
+            Qurius AI
+          </h1>
+          <p style="color: #9CA3AF; font-size: 14px; margin: 0; font-weight: 400;">
+            Password Reset Request
+          </p>
+        </div>
       </div>
-      <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.025em;">
-        Reset Your Password
-      </h1>
-      <p style="color: #DBEAFE; font-size: 16px; margin: 8px 0 0; font-weight: 500;">
-        Qurius AI Admin
-      </p>
     </div>
 
-    <!-- Content -->
-    <div style="padding: 32px 24px; background-color: #ffffff;">
-      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+    <!-- Main Content -->
+    <div style="background-color: #1F2937; padding: 32px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #374151; border-left: 3px solid #3B82F6;">
+      <h2 style="color: #F9FAFB; font-size: 24px; font-weight: 600; margin: 0 0 16px 0; letter-spacing: -0.3px;">
+        Reset Your Password
+      </h2>
+      
+      <p style="color: #D1D5DB; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
         Hello! We received a request to reset your password for your Qurius AI admin account. 
         If you didn't make this request, you can safely ignore this email.
       </p>
 
-      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px;">
+      <p style="color: #D1D5DB; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
         To reset your password, click the button below. This link will expire in 24 hours for security.
       </p>
 
-      <!-- CTA Button -->
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="{{ .ConfirmationURL }}" style="background-color:#3B82F6; color: #ffffff; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);">
+      <!-- Action Button -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <a href="{{ .ConfirmationURL }}" style="background-color: #3B82F6; color: #FFFFFF; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; transition: background-color 0.2s;">
           Reset Password
         </a>
       </div>
 
-      <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 24px 0 0; text-align: center;">
-        If the button doesn't work, copy and paste this link into your browser:
+      <div style="background-color: #111827; padding: 20px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #374151;">
+        <p style="color: #9CA3AF; font-size: 14px; line-height: 1.5; margin: 0 0 12px 0; text-align: center;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="color: #3B82F6; font-size: 13px; line-height: 1.5; margin: 0; text-align: center; word-break: break-all; font-family: monospace; background-color: #1F2937; padding: 12px; border-radius: 6px; border: 1px solid #374151;">
+          {{ .ConfirmationURL }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Security Notice -->
+    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 24px; border-radius: 12px; margin-bottom: 32px; border-left: 3px solid #F59E0B;">
+      <h3 style="color: #F9FAFB; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+        Security Information
+      </h3>
+      <ul style="color: #D1D5DB; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">This link expires in 24 hours</li>
+        <li style="margin-bottom: 8px;">Only use this link if you requested a password reset</li>
+        <li>If you didn't request this, your account remains secure</li>
+      </ul>
+    </div>
+
+    <!-- Support Section -->
+    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 24px; border-radius: 12px; margin-bottom: 32px; text-align: center;">
+      <h3 style="color: #F9FAFB; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+        Need Help?
+      </h3>
+      <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+        Having trouble resetting your password? Our support team is here to help.
       </p>
-      
-      <p style="color: #3B82F6; font-size: 14px; line-height: 1.5; margin: 8px 0 0; text-align: center; word-break: break-all; font-family: monospace; background-color: #f3f4f6; padding: 12px; border-radius: 6px;">
-        {{ .ConfirmationURL }}
-      </p>
+      <a href="mailto:support@qurius.app" style="color: #3B82F6; text-decoration: none; font-size: 14px; font-weight: 500;">
+        Contact Support →
+      </a>
     </div>
 
     <!-- Footer -->
-    <div style="background-color: #f9fafb; padding: 24px; border-top: 1px solid #e5e7eb;">
-      <div style="text-align: center; margin-bottom: 16px;">
-        <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">
-          Need help? Contact our support team
-        </p>
-        <a href="mailto:support@qurius.app" style="color: #3B82F6; text-decoration: none; font-size: 14px; font-weight: 500;">
-          support@qurius.app
-        </a>
-      </div>
-
-      <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; text-align: center;">
-        <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.4;">
-          This email was sent to you because someone requested a password reset for your Qurius AI admin account. 
-          If you didn't request this, please ignore this email.
-        </p>
-      </div>
+    <div style="text-align: center; padding-top: 32px; border-top: 1px solid #374151;">
+      <p style="color: #6B7280; font-size: 12px; margin: 0 0 8px 0;">
+        © <script>document.write(new Date().getFullYear())</script> Qurius AI. All rights reserved.
+      </p>
+      <p style="color: #6B7280; font-size: 12px; margin: 0;">
+        This email was sent because a password reset was requested for your account.
+      </p>
     </div>
-
   </div>
 </body>
 </html> 

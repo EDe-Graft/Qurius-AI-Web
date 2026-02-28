@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Palette, Save, X } from 'lucide-react';
+import { Palette, Save, ArrowLeft } from 'lucide-react';
 import { CompanyService } from '@/services/companyService';
+import { useAuth } from '@/context/AuthContext';
 
 interface WidgetTheme {
   primaryColor: string;
@@ -9,25 +11,18 @@ interface WidgetTheme {
   textColor: string;
 }
 
-interface WidgetSettingsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  companyId: string;
-  initialTheme: WidgetTheme;
-  onThemeUpdate?: (theme: WidgetTheme) => void;
-}
-
-export function WidgetSettingsModal({ 
-  isOpen, 
-  onClose, 
-  companyId, 
-  initialTheme, 
-  onThemeUpdate 
-}: WidgetSettingsModalProps) {
-  const [widgetTheme, setWidgetTheme] = useState<WidgetTheme>(initialTheme);
+export function WidgetSettings() {
+  const navigate = useNavigate();
+  const { companyId } = useParams<{ companyId: string }>();
+  const { user } = useAuth();
+  const [widgetTheme, setWidgetTheme] = useState<WidgetTheme>({
+    primaryColor: '#3B82F6',
+    backgroundColor: '#FFFFFF',
+    textColor: '#1F2937'
+  });
   const [savingTheme, setSavingTheme] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Default theme options (same as onboarding)
   const defaultThemes = [
@@ -39,57 +34,41 @@ export function WidgetSettingsModal({
     { name: "Teal", primaryColor: "#14B8A6" }
   ];
 
-  // Handle click outside modal to close
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  // Handle escape key to close modal
+  // Load company theme
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
+    const loadCompanyTheme = async () => {
+      if (!companyId) {
+        navigate('/admin');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const company = await CompanyService.getCompanyById(companyId);
+        if (company?.theme) {
+          setWidgetTheme(company.theme);
+        }
+      } catch (error) {
+        console.error('Error loading company theme:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onClose]);
-
-  // Scroll to top when modal opens with loading screen
-  useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      // Hide loading screen after scroll animation completes
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 1000); // Adjust timing as needed
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+    loadCompanyTheme();
+  }, [companyId, navigate]);
 
   const handleSaveTheme = async () => {
+    if (!companyId) return;
+
     try {
       setSavingTheme(true);
-      // Update company theme
       await CompanyService.updateCompany(companyId, {
         theme: widgetTheme
       });
       
-      // Call parent callback if provided
-      if (onThemeUpdate) {
-        onThemeUpdate(widgetTheme);
-      }
-      
       alert('Widget theme updated successfully!');
-      onClose();
+      navigate('/admin');
     } catch (error) {
       console.error('Error saving theme:', error);
       alert(`Failed to save theme: ${error}`);
@@ -97,7 +76,6 @@ export function WidgetSettingsModal({
       setSavingTheme(false);
     }
   };
-
 
   const applyDefaultTheme = (defaultTheme: any) => {
     setWidgetTheme({
@@ -121,79 +99,41 @@ export function WidgetSettingsModal({
     });
   };
 
-  const PrimaryColorPicker = () => (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Primary Color
-      </label>
-      <div className="relative">
-        <input
-          type="color"
-          value={widgetTheme.primaryColor}
-          onChange={handleColorPickerChange}
-          onMouseDown={handleColorPickerMouseDown}
-          onMouseUp={handleColorPickerMouseUp}
-          onMouseLeave={handleColorPickerMouseUp}
-          className="w-full h-12 border border-gray-300 dark:border-gray-600 rounded-lg cursor-crosshair transition-all duration-200 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
-          style={{
-            cursor: isDragging ? 'grabbing' : 'grab'
-          }}
-        />
-        {isDragging && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded-lg pointer-events-none">
-            <span className="text-xs text-white font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
-              Drag to select color
-            </span>
-          </div>
-        )}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        Drag through the color spectrum to find your perfect shade
-      </p>
-    </div>
-  );
-
-  if (!isOpen) return null;
+    );
+  }
 
   return (
-    <>
-      
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-[60]">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-50 flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p className="text-gray-700 dark:text-gray-300 text-sm">Loading...</p>
-          </div>
-        </div>
-      )}
-      
-      <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto modal-overlay" onClick={handleBackdropClick}>
-      <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                <Palette className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Widget Theme Configuration
-              </h2>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/admin')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Admin
+          </Button>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+              <Palette className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-red-500"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Widget Theme Configuration
+            </h1>
           </div>
         </div>
-        <div className="p-6">
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="space-y-6">
             {/* Theme Preview */}
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
@@ -300,11 +240,40 @@ export function WidgetSettingsModal({
                 Color Settings
               </h3>
               
-              <PrimaryColorPicker />
+              {/* Primary Color Picker */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Primary Color
+                </label>
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={widgetTheme.primaryColor}
+                    onChange={handleColorPickerChange}
+                    onMouseDown={handleColorPickerMouseDown}
+                    onMouseUp={handleColorPickerMouseUp}
+                    onMouseLeave={handleColorPickerMouseUp}
+                    className="w-full h-12 border border-gray-300 dark:border-gray-600 rounded-lg cursor-crosshair transition-all duration-200 hover:border-purple-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+                    style={{
+                      cursor: isDragging ? 'grabbing' : 'grab'
+                    }}
+                  />
+                  {isDragging && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded-lg pointer-events-none">
+                      <span className="text-xs text-white font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
+                        Drag to select color
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Drag through the color spectrum to find your perfect shade
+                </p>
+              </div>
             </div>
 
             {/* Preset Themes */}
-            <div style={{ zIndex: 1, position: 'relative' }}>
+            <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
                 Quick Color Presets
               </h3>
@@ -315,7 +284,6 @@ export function WidgetSettingsModal({
                     type="button"
                     onClick={() => applyDefaultTheme(defaultTheme)}
                     className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 transition-colors min-h-[44px] md:min-h-[40px]"
-                    style={{ zIndex: 1 }}
                   >
                     <div className="flex items-center space-x-2">
                       <div 
@@ -335,7 +303,7 @@ export function WidgetSettingsModal({
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Button
                 variant="outline"
-                onClick={onClose}
+                onClick={() => navigate('/admin')}
               >
                 Cancel
               </Button>
@@ -361,6 +329,5 @@ export function WidgetSettingsModal({
         </div>
       </div>
     </div>
-    </>
   );
-} 
+}

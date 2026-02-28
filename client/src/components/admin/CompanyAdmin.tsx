@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { 
   Activity,
   Users,
@@ -17,14 +18,12 @@ import { StatCard, RatingStatCard, FAQMatchStatCard, AIFallbackStatCard, LeadSta
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import FAQImportModal from "@/components/admin/FAQImportModal"
 import { IntegrationCodeModal } from "@/components/admin/IntegrationCodeModal"
-import { WidgetSettingsModal } from "@/components/admin/WidgetSettingsModal"
 import { CrawlerModal } from "@/components/admin/CrawlerModal"
 import { FAQPreviewModal } from "@/components/admin/FAQPreviewModal"
 import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { LiveTestModal } from "@/components/admin/LiveTestModal"
 import { LeadsTable } from "@/components/admin/LeadsModal"
-// import { NotificationBanner } from "@/components/admin/NotificationBanner"
 import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction, createLeadManagementAction } from "@/components/admin/QuickActions"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
@@ -43,6 +42,7 @@ interface CompanyAdminProps {
 }
 
 export function CompanyAdmin({ user }: CompanyAdminProps) {
+  const navigate = useNavigate()
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
   const { 
@@ -56,7 +56,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showFAQImport, setShowFAQImport] = useState(false)
-  const [showWidgetConfig, setShowWidgetConfig] = useState(false)
   const [showIntegrationCode, setShowIntegrationCode] = useState(false)
   const [showCrawler, setShowCrawler] = useState(false)
   const [faqModalLoading, setFaqModalLoading] = useState(false)
@@ -298,10 +297,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     }
   }
 
-  const handleThemeUpdate = (newTheme: any) => {
-    setCompany(prev => prev ? { ...prev, theme: newTheme } : null)
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -508,7 +503,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             ] : []),
             ...(company?.plan !== 'free' ? [
               createWidgetSettingsAction(
-                () => setShowWidgetConfig(true),
+                () => navigate(`/admin/widget-settings/${company?.id}`),
                 company?.name
               ),
               createLiveTestAction(
@@ -766,18 +761,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         plan={company?.plan || ''}
       />
 
-      {/* Widget Settings Modal */}
-      <WidgetSettingsModal
-        isOpen={showWidgetConfig}
-        onClose={() => setShowWidgetConfig(false)}
-        companyId={company?.id || ''}
-        initialTheme={company?.theme || {
-          primaryColor: '#9810fa',
-          backgroundColor: '#ffffff',
-          textColor: '#000000'
-        }}
-        onThemeUpdate={handleThemeUpdate}
-      />
 
       {/* Crawler Modal */}
       <CrawlerModal
