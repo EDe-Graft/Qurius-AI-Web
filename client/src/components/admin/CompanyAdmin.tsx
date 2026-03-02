@@ -514,7 +514,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               totalQueries={faqPerformance?.totalQueries}
               color={analytics.trueAIFallbackRate <= 30 ? 'success' : analytics.trueAIFallbackRate <= 50 ? 'warning' : 'danger'}
             />
-            {company?.plan === 'pro' && (
+            {(company?.plan === 'growth' || company?.plan === 'pro') && (
               <LeadStatCard
                 totalLeads={leadAnalytics?.totalLeads || 0}
                 newLeads={leadAnalytics?.newLeads || 0}
@@ -557,13 +557,20 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               () => setShowFAQImport(true),
               company?.name
             ),
+            // Live testing is available for all plans
+            ...(company ? [
+              createLiveTestAction(
+                () => setShowLiveTest(true),
+                company?.name
+              )
+            ] : []),
             ...(company?.plan === 'free' ? [
               createBillingAction(
                 () => setShowUpgradeModal(true),
                 company?.plan
               )
             ] : []),
-            ...(company?.plan === 'pro' ? [
+            ...(company?.plan === 'growth' || company?.plan === 'pro' ? [
               createLeadManagementAction(
                 () => setShowLeadsManagement(true),
                 company?.name
@@ -574,16 +581,12 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                 () => navigate(`/admin/widget-settings/${company?.id}`),
                 company?.name
               ),
-              createLiveTestAction(
-                () => setShowLiveTest(true),
-                company?.name
-              ),
               createBillingAction(
                 () => company?.id && PaymentService.redirectToCustomerPortal(company.id),
                 company?.plan
               )
             ] : []),
-            ...(company?.plan === 'pro' ? [
+            ...(company?.plan === 'growth' || company?.plan === 'pro' ? [
               createContentProcessorAction(
                 () => setShowCrawler(true),
                 company?.name
@@ -593,8 +596,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
           gridCols="3"
         />
 
-        {/* Leads Management - Only for Pro Users */}
-        {company?.plan === 'pro' && (
+        {/* Leads Management - Only for Growth and Pro Users */}
+        {(company?.plan === 'growth' || company?.plan === 'pro') && (
           <>
             <div className="mb-8">
               <LeadsTable 

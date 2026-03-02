@@ -39,8 +39,8 @@ export const PRICING_PLANS = {
       features: [
         '10,000 messages/month',
         'Advanced customization',
-        'Priority support',
-        'Analytics dashboard',
+        'Live AI Testing',
+        'Core Analytics',
         'Custom FAQ import'
       ]
     },
@@ -50,10 +50,10 @@ export const PRICING_PLANS = {
       stripe_price_id: process.env.STRIPE_GROWTH_PRICE_ID,
       features: [
         '50,000 messages/month',
-        'Analytics dashboard',
+        'Advanced Analytics',
         'Multi-language support',
-        'Priority support',
-        'Custom FAQ import'
+        'Lead generation',
+        'Limited crawling up to 6 pages'
       ]
     },
     'pro': {
@@ -63,10 +63,11 @@ export const PRICING_PLANS = {
       features: [
         'Unlimited messages',
         'White-label options',
-        '24/7 phone support',
-        'Advanced analytics',
-        'API access',
-        'Custom integrations'
+        'Advanced Analytics',
+        'Live AI Testing',
+        'Custom integrations',
+        'Lead generation',
+        'Unlimited crawling'
       ]
     }
   };
