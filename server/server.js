@@ -72,6 +72,10 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
   console.log('📦 Webhook event:', event.type);
 
   try {
+    // Supabase config for webhook-related updates
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
@@ -97,11 +101,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
         console.log('💳 Session metadata:', session.metadata);
         console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description, theme, existingCompanyId });
-        
-        // Supabase config
-        const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        
+                
         if (!supabaseUrl || !supabaseKey) {
           console.error('❌ Supabase configuration missing');
           break;
@@ -241,6 +241,11 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const subscription = event.data.object;
         const customerId = subscription.customer;
         
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('❌ Supabase configuration missing for customer.subscription.updated');
+          break;
+        }
+
         // Find company by customer ID
         const companyResponse = await axios.get(
           `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${customerId}`,
@@ -255,13 +260,46 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
 
         if (companyResponse.data && companyResponse.data[0]) {
           const company = companyResponse.data[0];
+
+          // Map Stripe price ID to internal plan ID (starter, growth, pro, etc.)
+          let planFromPrice = null;
+          try {
+            const items = subscription.items?.data || [];
+            const priceId = items[0]?.price?.id || subscription.plan?.id || null;
+
+            if (priceId) {
+              for (const [planKey, planConfig] of Object.entries(PRICING_PLANS)) {
+                if (planConfig?.stripe_price_id === priceId) {
+                  planFromPrice = planKey;
+                  break;
+                }
+              }
+            }
+
+            console.log('🔄 subscription.updated mapped price to plan:', {
+              stripePriceId: priceId,
+              mappedPlanId: planFromPrice,
+              currentCompanyPlan: company.plan
+            });
+          } catch (mapError) {
+            console.warn('⚠️ Failed to map Stripe subscription to internal plan:', mapError);
+          }
+
+          const updatePayload = {
+            subscription_status: subscription.status,
+            subscription_end_date: subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000).toISOString()
+              : company.subscription_end_date || null
+          };
+
+          // Only update plan if we successfully mapped it and it's different
+          if (planFromPrice && planFromPrice !== company.plan) {
+            updatePayload.plan = planFromPrice;
+          }
           
           await axios.patch(
             `${supabaseUrl}/rest/v1/companies?id=eq.${company.id}`,
-            {
-              subscription_status: subscription.status,
-              subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString()
-            },
+            updatePayload,
             {
               headers: {
                 'apikey': supabaseKey,
@@ -277,6 +315,11 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const deletedSubscription = event.data.object;
         const deletedCustomerId = deletedSubscription.customer;
         
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('❌ Supabase configuration missing for customer.subscription.deleted');
+          break;
+        }
+
         // Find company by customer ID
         const deletedCompanyResponse = await axios.get(
           `${supabaseUrl}/rest/v1/companies?stripe_customer_id=eq.${deletedCustomerId}`,
