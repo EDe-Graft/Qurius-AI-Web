@@ -6,7 +6,8 @@ import {
   Search,
   Activity,
   Play,
-  MessageSquare
+  MessageSquare,
+  CreditCard
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -211,4 +212,20 @@ export const createLeadManagementAction = (
   disabled,
   disabledMessage: 'Select a company from the dropdown above to manage their leads',
   showForPlan: 'all'
-}) 
+})
+
+export const createBillingAction = (
+  onClick: () => void,
+  plan?: string
+): QuickAction => ({
+  id: 'billing-management',
+  title: 'Manage Billing',
+  description: plan && plan !== 'free'
+    ? `Upgrade, downgrade, or cancel your ${plan} plan.`
+    : 'Manage your subscription and billing details.',
+  icon: <CreditCard className="h-5 w-5" />,
+  iconBgColor: 'bg-amber-100 dark:bg-amber-900',
+  iconColor: 'text-amber-600 dark:text-amber-400',
+  onClick,
+  showForPlan: 'all'
+})

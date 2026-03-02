@@ -24,11 +24,14 @@ import { FAQEditModal } from "@/components/admin/FAQEditModal"
 import { NotificationCenter } from "@/components/admin/NotificationCenter"
 import { LiveTestModal } from "@/components/admin/LiveTestModal"
 import { LeadsTable } from "@/components/admin/LeadsModal"
-import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction, createLeadManagementAction } from "@/components/admin/QuickActions"
+import { QuickActions, createIntegrationAction, createFAQManagementAction, createWidgetSettingsAction, createContentProcessorAction, createLiveTestAction, createLeadManagementAction, createBillingAction } from "@/components/admin/QuickActions"
+import { PricingCard } from "@/components/custom/PricingCard"
+import { useLanguage } from "@/context/LanguageContext"
 import { useTheme } from "@/context/useThemeContext"
 import { useAuth } from "@/context/AuthContext"
 import { useNotifications } from "@/context/NotificationContext"
 import { CompanyService, type Company } from "@/services/companyService"
+import { PaymentService } from "@/services/paymentService"
 import { faqService } from "@/services/faqService"
 import { notificationService } from "@/services/notificationService"
 import { AnalyticsService, type WidgetAnalytics, type FAQPerformance } from "@/services/analyticsService"
@@ -43,6 +46,7 @@ interface CompanyAdminProps {
 
 export function CompanyAdmin({ user }: CompanyAdminProps) {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const { defaultTheme, toggleTheme } = useTheme()
   const { signOut } = useAuth()
   const { 
@@ -61,6 +65,9 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
   const [faqModalLoading, setFaqModalLoading] = useState(false)
   const [showLiveTest, setShowLiveTest] = useState(false)
   const [showLeadsManagement, setShowLeadsManagement] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeLoading, setUpgradeLoading] = useState(false)
+  const [upgradePlanId, setUpgradePlanId] = useState<string | null>(null)
   
   // FAQ preview data state
   const [faqPreviewData, setFaqPreviewData] = useState<any>(null)
@@ -305,6 +312,61 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
     })
   }
 
+  const handleUpgradePlanSelection = async (planId: string) => {
+    if (upgradeLoading) return
+    if (!company?.id) return
+
+    const adminEmail = company.admin_email || company.contact_email
+    if (!adminEmail) {
+      alert("We couldn't find an admin or contact email for this company. Please contact support to upgrade your plan.")
+      return
+    }
+
+    try {
+      setUpgradeLoading(true)
+      setUpgradePlanId(planId)
+      await PaymentService.redirectToCheckout({
+        companyId: company.id,
+        planId,
+        customerEmail: adminEmail,
+        companyName: company.name
+      })
+    } catch (error: any) {
+      console.error('❌ Failed to start upgrade checkout:', error)
+      alert(error?.message || 'Failed to start upgrade checkout. Please try again or contact support.')
+      setUpgradeLoading(false)
+      setUpgradePlanId(null)
+    }
+  }
+
+  const handleRequestDeletion = async () => {
+    if (!company?.id) return
+
+    const confirmed = window.confirm(
+      "Are you sure you want to request deletion of your Qurius AI account?\n\n" +
+      "This will permanently remove your assistant configuration, FAQs, messages, and analytics after manual review.\n\n" +
+      "Our team will review the request and follow up via email before anything is deleted."
+    )
+
+    if (!confirmed) return
+
+    try {
+      await axios.post(`${config.backendUrl}/api/companies/${company.id}/request-deletion`, {
+        requesterEmail: company.admin_email || company.contact_email || ''
+      })
+      alert(
+        "Your deletion request has been submitted.\n\n" +
+        "We will review it and reach out via email to confirm next steps."
+      )
+    } catch (error: any) {
+      console.error('❌ Failed to submit deletion request:', error)
+      alert(
+        error?.response?.data?.error ||
+        "Failed to submit deletion request. Please try again later or contact support at support@qurius.app."
+      )
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center animate-fade-in-up animation-delay-2000">
@@ -495,6 +557,12 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               () => setShowFAQImport(true),
               company?.name
             ),
+            ...(company?.plan === 'free' ? [
+              createBillingAction(
+                () => setShowUpgradeModal(true),
+                company?.plan
+              )
+            ] : []),
             ...(company?.plan === 'pro' ? [
               createLeadManagementAction(
                 () => setShowLeadsManagement(true),
@@ -509,6 +577,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               createLiveTestAction(
                 () => setShowLiveTest(true),
                 company?.name
+              ),
+              createBillingAction(
+                () => company?.id && PaymentService.redirectToCustomerPortal(company.id),
+                company?.plan
               )
             ] : []),
             ...(company?.plan === 'pro' ? [
@@ -707,6 +779,24 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
               </p>
             </div>
           </div>
+
+          {/* Account Management (Deletion Request) */}
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Account Management
+            </h3>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3 max-w-2xl">
+              Need to close your Qurius AI account? You can request a full account deletion, which will remove your
+              company data, assistant configuration, FAQs, messages, and analytics after a manual review by our team.
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleRequestDeletion}
+              className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20 text-xs md:text-sm"
+            >
+              Request account deletion
+            </Button>
+          </div>
         </div>
       </main>
 
@@ -799,6 +889,90 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
             setFaqPreviewData(null)
           }}
         />
+      )}
+
+      {/* Upgrade Plan Modal for Free Users */}
+      {showUpgradeModal && company && company.plan === 'free' && (
+        <div className="fixed inset-0 bg-gray-900/75 dark:bg-black/75 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-5xl w-full mx-4 my-15 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Upgrade Your Plan
+                </h2>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  {t('landing.pricingSubtitle') || "Choose the plan that fits your SaaS product stage."}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => !upgradeLoading && setShowUpgradeModal(false)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Your current plan: <span className="font-semibold capitalize">{company.plan}</span>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-full">
+                {/* Starter Plan */}
+                <PricingCard
+                  plan="starter"
+                  price="$29"
+                  features={[
+                    "10,000 messages/month",
+                    t('plans.prioritySupport'),
+                    t('plans.analyticsDashboard'),
+                    t('plans.customFaqImport')
+                  ]}
+                  buttonText={upgradeLoading && upgradePlanId === 'starter' ? 'Processing...' : 'Upgrade to Starter'}
+                  onSelect={handleUpgradePlanSelection}
+                />
+
+                {/* Growth Plan */}
+                <PricingCard
+                  plan="growth"
+                  price="$59"
+                  features={[
+                    "50,000 messages/month",
+                    t('plans.analyticsDashboard'),
+                    t('plans.multiLanguageSupport'),
+                    t('plans.prioritySupport'),
+                    t('plans.customFaqImport')
+                  ]}
+                  buttonText={upgradeLoading && upgradePlanId === 'growth' ? 'Processing...' : 'Upgrade to Growth'}
+                  onSelect={handleUpgradePlanSelection}
+                  isPopular={true}
+                />
+
+                {/* Pro Plan */}
+                <PricingCard
+                  plan="pro"
+                  price="$99"
+                  features={[
+                    t('plans.unlimitedMessages'),
+                    t('plans.multiLanguageSupport'),
+                    t('plans.advancedAnalytics'),
+                    t('plans.apiAccess'),
+                    t('plans.customIntegrations'),
+                    t('plans.translatedFaqTemplates'),
+                    t('plans.phoneSupport'),
+                    t('plans.whiteLabelOptions')
+                  ]}
+                  buttonText={upgradeLoading && upgradePlanId === 'pro' ? 'Processing...' : 'Upgrade to Pro'}
+                  onSelect={handleUpgradePlanSelection}
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
+                You’ll be redirected to our secure Stripe checkout to complete your upgrade. Your subscription can be
+                managed or cancelled at any time from the billing portal.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -12,6 +12,8 @@ import Stripe from 'stripe';
 import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback, ValidationError, validateAndNormalizeCompanyInput, checkAuthUserExists } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
+import { SupportEmailTemplate } from './emailTemplates.js';
+import { sendEmail } from './config/resend.js';
 import crawlerRoutes from './crawler/crawler-api.js';
 import automationRoutes from './crawler/automation-api.js';
 import scheduler from './services/schedulerService.js';
@@ -81,6 +83,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         const website = session.metadata.website;
         const description = session.metadata.description;
         const themeMetadata = session.metadata.theme;
+        const existingCompanyId = session.metadata.company_id;
         
         // Parse theme from metadata (it's stored as JSON string)
         let theme;
@@ -93,9 +96,9 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         
         console.log('✅ Checkout completed for company:', companyName, 'plan:', planId);
         console.log('💳 Session metadata:', session.metadata);
-        console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description, theme });
+        console.log('💳 Extracted values:', { companyName, planId, customerEmail, location, industry, website, description, theme, existingCompanyId });
         
-        // Create company after successful payment
+        // Supabase config
         const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         
@@ -104,6 +107,59 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           break;
         }
 
+        // If this checkout is tied to an existing company (e.g. Free → paid upgrade),
+        // update that company instead of creating a new one.
+        if (existingCompanyId) {
+          try {
+            console.log('🔄 Updating existing company subscription for ID:', existingCompanyId);
+
+            // Verify the company exists
+            const existingCompanyResponse = await axios.get(
+              `${supabaseUrl}/rest/v1/companies?id=eq.${existingCompanyId}`,
+              {
+                headers: {
+                  apikey: supabaseKey,
+                  Authorization: `Bearer ${supabaseKey}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+
+            if (existingCompanyResponse.data && existingCompanyResponse.data[0]) {
+              const updatePayload = {
+                plan: planId,
+                stripe_customer_id: session.customer,
+                stripe_subscription_id: session.subscription,
+                subscription_status: 'active',
+                // Approximate next billing date for now; detailed dates handled by subscription.updated
+                subscription_end_date: session.subscription ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null
+              };
+
+              await axios.patch(
+                `${supabaseUrl}/rest/v1/companies?id=eq.${existingCompanyId}`,
+                updatePayload,
+                {
+                  headers: {
+                    apikey: supabaseKey,
+                    Authorization: `Bearer ${supabaseKey}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              console.log('✅ Existing company updated for upgrade:', existingCompanyId, updatePayload);
+            } else {
+              console.warn('⚠️ No existing company found for upgrade ID, falling back to new company creation:', existingCompanyId);
+            }
+          } catch (error) {
+            console.error('❌ Error updating existing company during checkout.session.completed:', error.response?.data || error.message);
+          }
+
+          // For upgrades we do not create a new auth user or send welcome email again.
+          break;
+        }
+
+        // New paid signup (no existing companyId in metadata) – create auth user + company
         let baseCompanyData;
         try {
           // Validate and normalize core company fields from Stripe metadata
@@ -124,7 +180,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           throw error;
         }
 
-        // Create company with subscription info for starter and pro users
+        // Create company with subscription info for starter/growth/pro users
         const companyData = {
           ...baseCompanyData,
           email: baseCompanyData.email, // ensure email field exists
@@ -2431,13 +2487,102 @@ app.post('/api/auth/resend-setup-email', async (req, res) => {
   }
 });
 
+// Company deletion request (from company admin)
+app.post('/api/companies/:id/request-deletion', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, requesterEmail } = req.body || {};
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ success: false, error: 'Supabase configuration missing' });
+    }
+
+    console.log('🗑️ Account deletion request for company:', id);
+
+    // Fetch company details
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${id}`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      // Avoid leaking existence but log it internally
+      console.warn('⚠️ Deletion request for non-existent company ID:', id);
+      return res.json({
+        success: true,
+        message: 'Your deletion request has been received. Our team will review it and follow up via email.'
+      });
+    }
+
+    const company = companyResponse.data[0];
+
+    const companyName = company.name || 'Unknown Company';
+    const adminEmail = requesterEmail || company.admin_email || company.contact_email || 'unknown';
+
+    // Build support issue and description
+    const issue = `Account deletion request for company: ${companyName}`;
+    const descriptionLines = [
+      `Company ID: ${company.id}`,
+      `Company Name: ${companyName}`,
+      `Plan: ${company.plan || 'unknown'}`,
+      `Admin / Contact Email: ${adminEmail}`,
+      `Website: ${company.website || 'N/A'}`,
+      `Location: ${company.location || 'N/A'}`,
+      `Requested At: ${new Date().toISOString()}`,
+      '',
+      'Reason provided by user:',
+      reason || '(No additional reason provided.)'
+    ];
+
+    const supportHtml = SupportEmailTemplate({
+      issue,
+      description: descriptionLines.join('\n'),
+      priority: 'high'
+    });
+
+    try {
+      await sendEmail({
+        to: 'qurius.ai@gmail.com',
+        subject: `🚨 Account deletion request: ${companyName}`,
+        html: supportHtml,
+        from: 'Qurius AI <hello@qurius.app>',
+        replyTo: adminEmail && adminEmail !== 'unknown' ? adminEmail : 'qurius.ai@gmail.com'
+      });
+      console.log('✅ Account deletion request email sent for company:', id);
+    } catch (emailError) {
+      console.error('❌ Failed to send deletion request email:', emailError);
+      // Still return success to the user; treat email failure as internal
+    }
+
+    return res.json({
+      success: true,
+      message: 'Your deletion request has been received. Our team will review it and follow up via email.'
+    });
+  } catch (error) {
+    console.error('❌ Company deletion request error:', error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to submit deletion request. Please try again later or contact support.'
+    });
+  }
+});
+
 // Stripe Payment Endpoints
 
 // Create checkout session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   try {
     // console.log('💳 PRICING_PLANS:', PRICING_PLANS);
-    const { companyName, customerEmail, planId, theme, location, industry, website, description } = req.body;
+    const { companyId, companyName, customerEmail, planId, theme, location, industry, website, description } = req.body;
     
     console.log('💳 Creating checkout session for:', { 
       companyName, 
@@ -2471,11 +2616,12 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0];
-      // Update customer metadata to include latest theme
+      // Update customer metadata to include latest context
       await stripe.customers.update(customer.id, {
         metadata: {
           ...customer.metadata,
           company_name: companyName,
+          company_id: companyId || customer.metadata?.company_id || '',
           plan_id: planId,
           location: location || '',
           industry: industry || '',
@@ -2490,6 +2636,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         name: companyName,
         metadata: {
           company_name: companyName,
+          company_id: companyId || '',
           plan_id: planId,
           location: location || '',
           industry: industry || '',
@@ -2530,6 +2677,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       success_url: `${frontendUrl}/admin?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/onboarding?payment=canceled`,
       metadata: {
+        company_id: companyId || '',
         company_name: companyName,
         plan_id: planId,
         customer_email: customerEmail,
