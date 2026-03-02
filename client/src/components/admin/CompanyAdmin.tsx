@@ -927,9 +927,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                   price="$29"
                   features={[
                     "10,000 messages/month",
-                    t('plans.prioritySupport'),
-                    t('plans.analyticsDashboard'),
-                    t('plans.customFaqImport')
+                    "Advanced customization",
+                    "Live AI testing",
+                    "Core analytics dashboard",
+                    "Custom FAQ import"
                   ]}
                   buttonText={upgradeLoading && upgradePlanId === 'starter' ? 'Processing...' : 'Upgrade to Starter'}
                   onSelect={handleUpgradePlanSelection}
@@ -941,10 +942,10 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                   price="$59"
                   features={[
                     "50,000 messages/month",
-                    t('plans.analyticsDashboard'),
-                    t('plans.multiLanguageSupport'),
-                    t('plans.prioritySupport'),
-                    t('plans.customFaqImport')
+                    "Advanced analytics",
+                    "Multi-language support",
+                    "Lead generation",
+                    "Limited crawling up to 6 pages"
                   ]}
                   buttonText={upgradeLoading && upgradePlanId === 'growth' ? 'Processing...' : 'Upgrade to Growth'}
                   onSelect={handleUpgradePlanSelection}
@@ -956,14 +957,13 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                   plan="pro"
                   price="$99"
                   features={[
-                    t('plans.unlimitedMessages'),
-                    t('plans.multiLanguageSupport'),
-                    t('plans.advancedAnalytics'),
-                    t('plans.apiAccess'),
-                    t('plans.customIntegrations'),
-                    t('plans.translatedFaqTemplates'),
-                    t('plans.phoneSupport'),
-                    t('plans.whiteLabelOptions')
+                    "Unlimited messages",
+                    "Unlimited web crawling",
+                    "Advanced analytics",
+                    "White-label options",
+                    "Custom integrations",
+                    "Lead generation",
+                    "Live AI testing"
                   ]}
                   buttonText={upgradeLoading && upgradePlanId === 'pro' ? 'Processing...' : 'Upgrade to Pro'}
                   onSelect={handleUpgradePlanSelection}

@@ -62,12 +62,12 @@ export const PRICING_PLANS = {
       stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
       features: [
         'Unlimited messages',
-        'White-label options',
+        'Unlimited web crawling',
         'Advanced Analytics',
+        'White-label options',
+        'Lead generation',
         'Live AI Testing',
         'Custom integrations',
-        'Lead generation',
-        'Unlimited crawling'
       ]
     }
   };

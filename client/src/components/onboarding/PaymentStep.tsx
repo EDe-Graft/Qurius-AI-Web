@@ -115,9 +115,10 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
           price="$29"
           features={[
             "10,000 messages/month",
-            t('plans.prioritySupport'),
-            t('plans.analyticsDashboard'),
-            t('plans.customFaqImport')
+            "Advanced customization",
+            "Live AI testing",
+            "Core analytics dashboard",
+            "Custom FAQ import"
           ]}
           onSelect={handlePlanSelection}
         />
@@ -128,10 +129,10 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
           price="$59"
           features={[
             "50,000 messages/month",
-            t('plans.analyticsDashboard'),
-            t('plans.multiLanguageSupport'),
-            t('plans.prioritySupport'),
-            t('plans.customFaqImport')
+            "Advanced analytics",
+            "Multi-language support",
+            "Lead generation",
+            "Limited crawling up to 6 pages"
           ]}
           onSelect={handlePlanSelection}
           isPopular={true}
@@ -142,18 +143,13 @@ export function PaymentStep({ selectedPlan, setSelectedPlan, companyData, themeD
           plan="pro"
           price="$99"
           features={[
-            t('plans.unlimitedMessages'),
-            t('plans.multiLanguageSupport'),
-            t('plans.advancedAnalytics'),
-            t('plans.apiAccess'),
-            t('plans.customIntegrations'),
-            t('plans.translatedFaqTemplates'),
-            t('plans.phoneSupport'),
-            t('plans.whiteLabelOptions'),
-            t('plans.autoLanguageDetection'),
-            t('plans.languageSpecificCustomization'),
-            t('plans.multiLanguageAnalytics'),
-            t('plans.customLanguageSupport')
+            "Unlimited messages",
+            "Unlimited web crawling",
+            "Advanced analytics",
+            "Custom integrations",
+            "Lead generation",            
+            "White-label options",
+            "Live AI testing"
           ]}
           onSelect={handlePlanSelection}
         />
