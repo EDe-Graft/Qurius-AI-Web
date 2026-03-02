@@ -16,6 +16,8 @@ export default function Login() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("")
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false)
+  const [resendSetupLoading, setResendSetupLoading] = useState(false)
+  const [resendSetupMessage, setResendSetupMessage] = useState("")
   
   const { signIn, isAuthenticated, authFlow } = useAuth()
   const { defaultTheme } = useTheme()
@@ -37,14 +39,67 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setResendSetupMessage("")
 
     try {
       await signIn(email, password)
       navigate("/admin")
     } catch (err: any) {
-      setError(err.message || "Failed to sign in")
+      const rawMessage = err?.message || "Failed to sign in"
+      const lower = rawMessage.toLowerCase()
+
+      if (lower.includes("invalid login credentials")) {
+        setError("Incorrect email or password. Please try again.")
+      } else if (lower.includes("email not confirmed") || lower.includes("user not confirmed")) {
+        setError(
+          "Your email is not confirmed yet. Check your inbox for the welcome/setup email or resend it below."
+        )
+      } else if (lower.includes("access denied")) {
+        setError(rawMessage)
+      } else {
+        setError(rawMessage)
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendSetupEmail = async () => {
+    if (!email) {
+      setError("Please enter your email above first, then click \"Resend setup email\".")
+      return
+    }
+
+    setResendSetupLoading(true)
+    setResendSetupMessage("")
+    setError("")
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/auth/resend-setup-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email })
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok || data.success === false) {
+        setError(data.error || "Failed to resend setup email. Please try again or contact support.")
+      } else {
+        setResendSetupMessage(
+          data.message ||
+            "If an account exists for this email, a setup link has been resent. Please check your inbox."
+        )
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to resend setup email. Please try again.")
+    } finally {
+      setResendSetupLoading(false)
     }
   }
 
@@ -137,12 +192,37 @@ export default function Login() {
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-4 w-4 md:h-5 md:w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                       {error}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {resendSetupMessage && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3 md:p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-4 w-4 md:h-5 md:w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 9.293a1 1 0 011.414 0L11 10.172l1.879-1.879a1 1 0 111.414 1.414l-2.586 2.586a1 1 0 01-1.414 0L8.707 10.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                      {resendSetupMessage}
                     </h3>
                   </div>
                 </div>
@@ -311,6 +391,14 @@ export default function Login() {
                   Contact support
                 </button>
               </p>
+              <button
+                type="button"
+                onClick={handleResendSetupEmail}
+                disabled={resendSetupLoading}
+                className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 min-h-[44px] md:min-h-[40px]"
+              >
+                {resendSetupLoading ? "Resending setup email..." : "Didn't receive your setup email? Resend it"}
+              </button>
             </div>
           </form>
         )}

@@ -2364,6 +2364,73 @@ app.get('/api/validate-key', async (req, res) => {
 //   }
 // });
 
+// Resend setup / verification email for admins
+app.post('/api/auth/resend-setup-email', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+
+    const trimmedEmail = email.trim();
+    console.log('🔄 Resend setup email requested for:', trimmedEmail);
+
+    // Check if email is associated with an existing company (admin or contact)
+    let emailExists = false;
+    try {
+      emailExists = await checkAuthUserExists(trimmedEmail);
+    } catch (err) {
+      console.error('❌ Error checking email existence before resend:', err.message);
+      return res.status(500).json({ success: false, error: 'Failed to verify account status.' });
+    }
+
+    // To avoid leaking which emails exist, always return a generic success message
+    if (!emailExists) {
+      console.log('ℹ️ No company found for email, returning generic success.');
+      return res.json({
+        success: true,
+        message: 'If an account exists for this email, a setup link has been resent. Please check your inbox.'
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://qurius.app' : 'http://localhost:5173');
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Supabase configuration missing for resend-setup-email');
+      return res.status(500).json({ success: false, error: 'Server configuration error.' });
+    }
+
+    // Trigger Supabase password recovery flow (used as initial setup link)
+    await axios.post(
+      `${supabaseUrl}/auth/v1/recover`,
+      {
+        email: trimmedEmail,
+        redirect_to: `${frontendUrl}/auth/callback`
+      },
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('✅ Setup / recovery email resent via Supabase for:', trimmedEmail);
+
+    return res.json({
+      success: true,
+      message: 'If an account exists for this email, a setup link has been resent. Please check your inbox.'
+    });
+  } catch (error) {
+    console.error('❌ Resend setup email error:', error.response?.data || error.message);
+    return res.status(500).json({ success: false, error: 'Failed to resend setup email.' });
+  }
+});
+
 // Stripe Payment Endpoints
 
 // Create checkout session
