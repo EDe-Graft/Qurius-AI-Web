@@ -357,6 +357,8 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
         // Start polling for status updates
         pollCrawlStatus()
         setUploadedFiles([]) // Clear uploaded files
+        // Stop upload spinner once documents are accepted; background processing is tracked via crawl sessions
+        setIsUploading(false)
       } else {
         setIsUploading(false)
       }
