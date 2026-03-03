@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, Check, AlertCircle, Info, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Bell, X, Check, AlertCircle, Info, AlertTriangle, ChevronDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext'; // Added import for useAuth
 
 export function NotificationCenter() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, isLoading } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, isLoading, refreshNotifications } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth(); // Add this to determine user type
 
@@ -125,6 +125,16 @@ export function NotificationCenter() {
                       Notifications
                     </h3>
                     <div className="flex items-center gap-1 sm:gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={refreshNotifications}
+                        disabled={isLoading}
+                        className="text-xs px-2 py-1 h-7 sm:h-8 flex items-center gap-1"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Refresh</span>
+                      </Button>
                       {unreadCount > 0 && (
                         <Button
                           variant="ghost"
@@ -236,18 +246,28 @@ export function NotificationCenter() {
                   Notifications
                 </h3>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshNotifications}
+                    disabled={isLoading}
+                    className="text-xs px-2 py-1 h-8 flex items-center gap-1 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </Button>
                   {unreadCount > 0 && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={markAllAsRead}
-                      className="text-xs px-2 py-1 h-8"
+                      className="text-xs px-2 py-1 h-8 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200"
                     >
                       Mark all read
                     </Button>
                   )}
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setIsOpen(false)}
                     className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"

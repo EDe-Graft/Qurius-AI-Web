@@ -249,7 +249,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const interval = setInterval(() => {
       refreshNotifications();
-    }, 30000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [currentCompanyId, refreshNotifications]);
