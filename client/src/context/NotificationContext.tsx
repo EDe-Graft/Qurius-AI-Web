@@ -162,12 +162,41 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
+  // Helper function to check if a string is a valid UUID
+  const isValidUUID = (str: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
   // Mark notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
       console.log('🔍 Marking notification as read:', { id, type: typeof id, length: id?.length });
       
-      // Determine user type based on current context
+      // Check if this is a temporary notification (timestamp ID) or a real UUID
+      const isTemporaryNotification = !isValidUUID(id);
+      
+      if (isTemporaryNotification) {
+        // For temporary notifications, just update local state without API call
+        console.log('📝 Temporary notification - updating local state only');
+        const userType = currentCompanyId ? 'company' : 'super_admin';
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === id 
+              ? { 
+                  ...notification, 
+                  read: true,
+                  read_by_super_admin: userType === 'super_admin' ? true : notification.read_by_super_admin,
+                  read_by_company: userType === 'company' ? true : notification.read_by_company
+                }
+              : notification
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        return;
+      }
+      
+      // For real notifications with UUID, make API call
       const userType = currentCompanyId ? 'company' : 'super_admin';
       const success = await notificationService.markAsRead(id, userType);
       if (success) {
@@ -227,6 +256,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Remove notification
   const removeNotification = useCallback(async (id: string) => {
     try {
+      // Check if this is a temporary notification (timestamp ID) or a real UUID
+      const isTemporaryNotification = !isValidUUID(id);
+      
+      if (isTemporaryNotification) {
+        // For temporary notifications, just remove from local state without API call
+        console.log('📝 Temporary notification - removing from local state only');
+        setNotifications(prev => {
+          const notification = prev.find(n => n.id === id);
+          const newNotifications = prev.filter(n => n.id !== id);
+          if (notification && !notification.read) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+          }
+          return newNotifications;
+        });
+        return;
+      }
+      
+      // For real notifications with UUID, make API call
       const success = await notificationService.deleteNotification(id);
       if (success) {
         setNotifications(prev => {
