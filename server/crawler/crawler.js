@@ -118,7 +118,11 @@ class QuriusCrawler {
       console.log(`  - Total pages crawled: ${crawlData.pages.length}`)
       console.log(`  - Total content items: ${crawlData.content.length}`)
       console.log(`  - Content types found:`, [...new Set(crawlData.content.map(c => c.type))])
-      console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+      const totalTextLength = crawlData.content.reduce(
+        (sum, c) => sum + (c && typeof c.text === 'string' ? c.text.length : 0),
+        0
+      )
+      console.log(`  - Total text length: ${totalTextLength} chars`)
       
       // Extract existing FAQs from website (not generate new ones)
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 30, 'Extracting existing FAQs from website...')
@@ -166,9 +170,13 @@ class QuriusCrawler {
       // Update status to ready for review and send email notification
       await this.updateCrawlStatus(crawlData.sessionId, 'ready_for_review', 100, `${aiFAQs.length} AI-generated FAQs ready for review`)
       
-      // Send email notification
+      // Send email notification (best-effort only; don't fail the crawl if email sending fails)
       if (aiFAQs.length > 0) {
-        await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+        try {
+          await this.sendFAQCompletionEmail(company, aiFAQs.length, 'website')
+        } catch (emailError) {
+          console.warn('⚠️ Failed to send FAQ completion email (website crawl):', emailError.message)
+        }
       }
       
       // Store content hashes for change detection if this is an automated crawl
@@ -884,10 +892,14 @@ class QuriusCrawler {
     console.log('🔍 Looking for existing FAQ patterns on website...')
     
     const faqs = []
-    const content = crawlData.content
+    const content = Array.isArray(crawlData.content) ? crawlData.content : []
     
     // Look for existing FAQ patterns on the website
     for (const item of content) {
+      if (!item || typeof item.text !== 'string') {
+        continue
+      }
+
       const text = item.text.toLowerCase()
       
       // Common FAQ indicators
@@ -1222,8 +1234,8 @@ class QuriusCrawler {
         .eq('id', crawlData.sessionId)
 
       if (crawlError) {
-        console.warn('⚠️ Failed to update crawl session:', crawlError)
-        throw crawlError
+        console.warn('⚠️ Failed to update crawl session progress (non-fatal):', crawlError)
+        // Do not throw here – continue saving content and FAQs
       }
 
       // Save content chunks with embeddings for RAG
@@ -1239,23 +1251,25 @@ class QuriusCrawler {
         
         for (const contentItem of crawlData.content) {
           try {
+            const text = typeof contentItem.text === 'string' ? contentItem.text : ''
+
             console.log(`🔍 Processing content item ${processedItems + 1}/${crawlData.content.length}:`, {
               type: contentItem.type,
-              textLength: contentItem.text.length,
+              textLength: text.length,
               priority: contentItem.priority,
               source: contentItem.source
             });
             
-            // Skip very short content
-            if (contentItem.text.length < 50) {
-              console.log(`⏭️ Skipping content item - too short (${contentItem.text.length} chars)`);
+            // Skip very short or missing content
+            if (text.length < 50) {
+              console.log(`⏭️ Skipping content item - too short or missing text (${text.length} chars)`);
               skippedItems++;
               continue;
             }
             
             // Create chunks from this content item
             console.log(`✂️ Creating chunks from content item...`);
-            const itemChunks = chunkContent(contentItem.text, 800); // Larger chunks for better context
+            const itemChunks = chunkContent(text, 800); // Larger chunks for better context
             console.log(`📄 Generated ${itemChunks.length} chunks from this content item`);
             
             for (let i = 0; i < itemChunks.length; i++) {
@@ -1533,7 +1547,11 @@ class QuriusCrawler {
       console.log(`📊 Document processing completed summary:`)
       console.log(`  - Total files processed: ${files.length}`)
       console.log(`  - Total content items: ${crawlData.content.length}`)
-      console.log(`  - Total text length: ${crawlData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
+      const totalTextLength = crawlData.content.reduce(
+        (sum, c) => sum + (c && typeof c.text === 'string' ? c.text.length : 0),
+        0
+      )
+      console.log(`  - Total text length: ${totalTextLength} chars`)
       
       // Extract existing FAQs from documents (if any)
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 40, 'Extracting existing FAQs from documents...')
@@ -1581,8 +1599,12 @@ class QuriusCrawler {
       // Update status to ready for review and send email notification
       await this.updateCrawlStatus(crawlData.sessionId, 'ready_for_review', 100, `${aiFAQs.length} AI-generated FAQs ready for review`)
       
-      // Send email notification
-      await this.sendFAQCompletionEmail(company, aiFAQs.length, 'uploaded documents')
+      // Send email notification (best-effort only; don't fail document processing if email sending fails)
+      try {
+        await this.sendFAQCompletionEmail(company, aiFAQs.length, 'uploaded documents')
+      } catch (emailError) {
+        console.warn('⚠️ Failed to send FAQ completion email (uploaded documents):', emailError.message)
+      }
       
       // Create crawl completion notification
       try {
