@@ -261,13 +261,13 @@ export function FAQPreviewModal({
                     >
                       {entry.isApproved ? (
                         <>
-                          <Check className="h-3 w-3 mr-1" />
+                          <Check className="h-3 w-3 mr-1 hidden sm:inline" />
                           <span className="hidden sm:inline">Approved</span>
                           <span className="sm:hidden">✓</span>
                         </>
                       ) : (
                         <>
-                          <X className="h-3 w-3 mr-1" />
+                          <X className="h-3 w-3 mr-1 hidden sm:inline" />
                           <span className="hidden sm:inline">Rejected</span>
                           <span className="sm:hidden">✗</span>
                         </>

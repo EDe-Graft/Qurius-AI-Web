@@ -133,9 +133,21 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
         const activeSession = sessions.find((s: CrawlSession) => 
           ['running', 'crawling', 'processing_embeddings', 'generating_faqs'].includes(s.status)
         )
+        
+        // Check if there's a session ready for review
+        const readySession = sessions.find((s: CrawlSession) => 
+          s.status === 'ready_for_review'
+        )
+        
         if (activeSession) {
           setIsCrawling(true)
           pollCrawlStatus()
+        } else if (readySession) {
+          // If there's a ready session, check for FAQs but don't set isCrawling
+          setIsCrawling(false)
+          await checkForGeneratedFAQs(readySession)
+        } else {
+          setIsCrawling(false)
         }
       } else {
         // Fallback to single session API if new endpoint doesn't exist
@@ -144,17 +156,24 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
           const session = fallbackResponse.data.crawlSession
           setCrawlSessions([session])
           
-          if (session.status === 'running') {
+          if (['running', 'crawling', 'processing_embeddings', 'generating_faqs'].includes(session.status)) {
             setIsCrawling(true)
             pollCrawlStatus()
+          } else if (session.status === 'ready_for_review') {
+            setIsCrawling(false)
+            await checkForGeneratedFAQs(session)
+          } else {
+            setIsCrawling(false)
           }
         } else {
           setCrawlSessions([])
+          setIsCrawling(false)
         }
       }
     } catch (error) {
       console.error('Failed to load crawl sessions:', error)
       setCrawlSessions([])
+      setIsCrawling(false)
     } finally {
       setLoading(false)
     }
@@ -448,16 +467,61 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
     }
   }
 
+  const refreshCrawlStatus = async () => {
+    try {
+      console.log('🔄 Manually refreshing crawl status...')
+      const response = await axios.get(`${BACKEND_URL}/api/crawler/status/${companyId}`)
+      if (response.data.success && response.data.crawlSession) {
+        const session = response.data.crawlSession
+        console.log('📊 Refreshed status:', {
+          sessionId: session.id,
+          status: session.status,
+          progress: session.progress_percentage,
+          crawlDate: session.crawl_date
+        })
+        
+        setCrawlSessions([session])
+        
+        // If status is ready_for_review or completed, stop crawling state
+        if (['ready_for_review', 'completed', 'failed'].includes(session.status)) {
+          setIsCrawling(false)
+          await checkForGeneratedFAQs(session)
+          loadCrawledFAQs()
+        } else {
+          // If still in progress, ensure polling is active
+          if (!isCrawling) {
+            console.log('🔄 Restarting polling for active session')
+            setIsCrawling(true)
+            pollCrawlStatus()
+          }
+        }
+      } else {
+        console.log('⚠️ No session found on refresh')
+        setIsCrawling(false)
+      }
+    } catch (error) {
+      console.error('Failed to refresh crawl status:', error)
+    }
+  }
+
   const pollCrawlStatus = () => {
     const interval = setInterval(async () => {
       try {
         const response = await axios.get(`${BACKEND_URL}/api/crawler/status/${companyId}`)
         if (response.data.success && response.data.crawlSession) {
           const session = response.data.crawlSession
+          console.log('📊 Polling status:', {
+            sessionId: session.id,
+            status: session.status,
+            progress: session.progress_percentage,
+            crawlDate: session.crawl_date
+          })
+          
           setCrawlSessions([session])
 
           // Continue polling until status is 'ready_for_review' or 'completed' or 'failed'
           if (session.status === 'ready_for_review') {
+            console.log('✅ Status is ready_for_review - stopping polling')
             clearInterval(interval)
             setIsCrawling(false)
             
@@ -467,6 +531,7 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
             // Reload existing FAQs
             loadCrawledFAQs()
           } else if (session.status === 'completed') {
+            console.log('✅ Status is completed - stopping polling')
             clearInterval(interval)
             setIsCrawling(false)
             
@@ -476,13 +541,18 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
             // Reload existing FAQs
             loadCrawledFAQs()
           } else if (session.status === 'failed') {
+            console.log('❌ Status is failed - stopping polling')
             clearInterval(interval)
             setIsCrawling(false)
             loadCrawledFAQs()
+          } else {
+            // Log intermediate statuses for debugging
+            console.log(`⏳ Still polling - status: ${session.status}, progress: ${session.progress_percentage}%`)
           }
           // Continue polling for: 'crawling', 'processing_embeddings', 'generating_faqs'
         } else {
           // If no session found, stop polling and loading
+          console.log('⚠️ No session found - stopping polling')
           clearInterval(interval)
           setIsCrawling(false)
         }
@@ -495,6 +565,7 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
 
     // Stop polling after 30 minutes (increased from 10 minutes)
     setTimeout(() => {
+      console.log('⏰ Polling timeout reached - stopping')
       clearInterval(interval)
       setIsCrawling(false) // Stop loading animation after timeout
     }, 1800000) // 30 minutes
@@ -771,16 +842,28 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
       {crawlSessions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              <span className="text-sm sm:text-base">Crawl Sessions ({crawlSessions.length})</span>
-              {isCrawling && (
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
-                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                  Active
-                </Badge>
-              )}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <span className="text-sm sm:text-base">Crawl Sessions ({crawlSessions.length})</span>
+                {isCrawling && (
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
+                    <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                    Active
+                  </Badge>
+                )}
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshCrawlStatus}
+                className="text-xs"
+                title="Refresh crawl status"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
