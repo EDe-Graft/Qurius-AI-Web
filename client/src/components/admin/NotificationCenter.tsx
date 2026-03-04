@@ -138,36 +138,37 @@ export function NotificationCenter() {
               >
                 {/* Header - Mobile Optimized */}
                 <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink min-w-0">
                       Notifications
                     </h3>
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={refreshNotifications}
                         disabled={isLoading}
-                        className="text-xs px-2 py-1 h-7 sm:h-8 flex items-center gap-1"
+                        className="text-xs px-1.5 sm:px-2 py-1 h-7 sm:h-8 flex items-center gap-1 min-w-0"
                       >
-                        <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline">Refresh</span>
+                        <RefreshCw className={`h-3 w-3 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline whitespace-nowrap">Refresh</span>
                       </Button>
                       {unreadCount > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={markAllAsRead}
-                          className="text-xs px-2 py-1 h-7 sm:h-8"
+                          className="text-xs px-1.5 sm:px-2 py-1 h-7 sm:h-8 whitespace-nowrap"
                         >
-                          Mark all read
+                          <span className="hidden sm:inline">Mark all read</span>
+                          <span className="sm:hidden">All read</span>
                         </Button>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsOpen(false)}
-                        className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 flex-shrink-0"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -288,19 +289,19 @@ export function NotificationCenter() {
           <div className="hidden sm:block absolute top-full left-auto right-0 mt-2 w-80 max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[9999999] max-h-96 flex flex-col">
             {/* Header - Desktop */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink min-w-0">
                   Notifications
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={refreshNotifications}
                     disabled={isLoading}
-                    className="text-xs px-2 py-1 h-8 flex items-center gap-1 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200"
+                    className="text-xs px-2 py-1 h-8 flex items-center gap-1 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200 whitespace-nowrap"
                   >
-                    <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-3 w-3 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
                     <span>Refresh</span>
                   </Button>
                   {unreadCount > 0 && (
@@ -308,7 +309,7 @@ export function NotificationCenter() {
                       variant="outline"
                       size="sm"
                       onClick={markAllAsRead}
-                      className="text-xs px-2 py-1 h-8 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200"
+                      className="text-xs px-2 py-1 h-8 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200 whitespace-nowrap"
                     >
                       Mark all read
                     </Button>
@@ -317,7 +318,7 @@ export function NotificationCenter() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsOpen(false)}
-                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                    className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
