@@ -671,19 +671,70 @@ class QuriusCrawler {
     
     let browser = null
     try {
-      // Launch browser
-      browser = await puppeteer.default.launch({
+      // Detect production environment (Render, etc.)
+      const isProduction = process.env.NODE_ENV === 'production' || 
+                           process.env.RENDER || 
+                           process.env.RENDER_SERVICE_ID
+      
+      // Enhanced launch args for Render/production environments
+      const launchArgs = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-breakpad',
+        '--disable-client-side-phishing-detection',
+        '--disable-default-apps',
+        '--disable-features=TranslateUI',
+        '--disable-hang-monitor',
+        '--disable-ipc-flooding-protection',
+        '--disable-popup-blocking',
+        '--disable-prompt-on-repost',
+        '--disable-renderer-backgrounding',
+        '--disable-sync',
+        '--disable-translate',
+        '--metrics-recording-only',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--no-pings',
+        '--no-zygote',
+        '--safebrowsing-disable-auto-update',
+        '--enable-automation',
+        '--password-store=basic',
+        '--use-mock-keychain'
+      ]
+      
+      // Add single-process mode for low-memory environments (Render free tier)
+      if (isProduction) {
+        launchArgs.push('--single-process')
+        console.log('🔧 Using single-process mode for production environment')
+      }
+      
+      // Launch browser with error handling
+      const launchOptions = {
         headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
+        args: launchArgs,
+        timeout: 60000, // 60 second timeout for launch
+        // Ignore default args that might cause issues
+        ignoreDefaultArgs: ['--disable-extensions']
+      }
+      
+      console.log('🚀 Launching browser with options:', {
+        headless: true,
+        argsCount: launchArgs.length,
+        timeout: launchOptions.timeout,
+        isProduction
       })
+      
+      browser = await puppeteer.default.launch(launchOptions)
+      console.log('✅ Browser launched successfully')
 
       const page = await browser.newPage()
       
@@ -843,10 +894,45 @@ class QuriusCrawler {
       
     } catch (error) {
       console.error(`❌ SPA content extraction failed for ${url}:`, error.message)
+      
+      // Check if it's a Chrome not found error
+      if (error.message.includes('Could not find Chrome') || 
+          error.message.includes('Executable doesn\'t exist') ||
+          error.message.includes('Cannot find Chrome')) {
+        console.error('💡 Chrome installation issue detected. Solutions:')
+        console.error('   1. Ensure "postinstall": "npx puppeteer browsers install chrome" is in package.json')
+        console.error('   2. Or set PUPPETEER_CACHE_DIR environment variable in Render')
+        console.error('   3. Or update Render build command to: npm install && npx puppeteer browsers install chrome')
+        console.error('   4. Current cache path:', error.message.match(/which is: (.+)\)/)?.[1] || 'unknown')
+      }
+      
+      // Log additional error details for debugging
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        isProduction: process.env.NODE_ENV === 'production',
+        renderEnv: process.env.RENDER,
+        memoryUsage: process.memoryUsage()
+      })
+      
+      // If browser was partially created, try to close it
+      if (browser) {
+        try {
+          await browser.close()
+        } catch (closeError) {
+          console.error('Failed to close browser:', closeError.message)
+        }
+      }
+      
       return null
     } finally {
+      // Ensure browser is always closed
       if (browser) {
-        await browser.close()
+        try {
+          await browser.close()
+        } catch (error) {
+          console.error('Error closing browser:', error.message)
+        }
       }
     }
   }
