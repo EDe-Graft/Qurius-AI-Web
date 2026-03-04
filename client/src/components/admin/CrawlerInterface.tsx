@@ -24,6 +24,7 @@ import { NotificationBanner } from './NotificationBanner'
 interface CrawlerInterfaceProps {
   companyId: string
   companyName: string
+  plan?: string
 }
 
 interface CrawlSession {
@@ -59,7 +60,7 @@ interface UploadedFile {
   type: string
 }
 
-export function CrawlerInterface({ companyId, companyName }: CrawlerInterfaceProps) {
+export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterfaceProps) {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [isCrawling, setIsCrawling] = useState(false)
   const [crawlSessions, setCrawlSessions] = useState<CrawlSession[]>([])
@@ -68,8 +69,12 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
   const [error, setError] = useState<string | null>(null)
   const [previouslyCrawledUrl, setPreviouslyCrawledUrl] = useState<string | null>(null)
   
+  const isWebCrawlingAllowed = plan === 'growth' || plan === 'pro'
+
   // Document upload state
-  const [crawlMode, setCrawlMode] = useState<'website' | 'documents'>('website')
+  const [crawlMode, setCrawlMode] = useState<'website' | 'documents'>(
+    isWebCrawlingAllowed ? 'website' : 'documents'
+  )
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -373,6 +378,11 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
       return startDocumentProcessing()
     }
 
+    if (!isWebCrawlingAllowed) {
+      setError('Website crawling is only available on Growth and Pro plans. You can still upload documents on your current plan.')
+      return
+    }
+
     if (!websiteUrl.trim()) {
       setError('Please enter a website URL')
       return
@@ -573,12 +583,13 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
           {/* Mode Toggle */}
           <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
             <button
-              onClick={() => setCrawlMode('website')}
+              onClick={() => isWebCrawlingAllowed && setCrawlMode('website')}
               className={`flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                 crawlMode === 'website'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-              }`}
+              } ${!isWebCrawlingAllowed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!isWebCrawlingAllowed}
             >
               <Globe className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Website Crawl</span>
@@ -597,6 +608,12 @@ export function CrawlerInterface({ companyId, companyName }: CrawlerInterfacePro
               <span className="sm:hidden">Documents</span>
             </button>
           </div>
+
+          {!isWebCrawlingAllowed && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Website crawling is available on Growth and Pro plans. You can still upload documents on your current plan.
+            </p>
+          )}
 
           {/* Website Crawl Mode */}
           {crawlMode === 'website' && (

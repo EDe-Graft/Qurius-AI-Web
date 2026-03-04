@@ -586,7 +586,8 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                 company?.plan
               )
             ] : []),
-            ...(company?.plan === 'growth' || company?.plan === 'pro' ? [
+            // Content Processor (documents for Starter; documents + web crawl for Growth/Pro)
+            ...(company && company.plan !== 'free' ? [
               createContentProcessorAction(
                 () => setShowCrawler(true),
                 company?.name
@@ -861,6 +862,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
         onClose={() => setShowCrawler(false)}
         companyId={company?.id || ''}
         companyName={company?.name || ''}
+        plan={company?.plan || 'free'}
       />
 
       {/* FAQ Edit Modal */}

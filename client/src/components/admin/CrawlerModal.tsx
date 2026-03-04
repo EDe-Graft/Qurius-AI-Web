@@ -7,9 +7,10 @@ interface CrawlerModalProps {
   onClose: () => void
   companyId: string
   companyName: string
+  plan: string
 }
 
-export function CrawlerModal({ isOpen, onClose, companyId, companyName }: CrawlerModalProps) {
+export function CrawlerModal({ isOpen, onClose, companyId, companyName, plan }: CrawlerModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Handle click outside modal to close
@@ -83,7 +84,9 @@ export function CrawlerModal({ isOpen, onClose, companyId, companyName }: Crawle
                   Content Processor - {companyName}
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Crawl websites or upload documents to automatically generate FAQs
+                  {plan === 'growth' || plan === 'pro'
+                    ? 'Crawl websites or upload documents to automatically generate FAQs'
+                    : 'Upload documents to automatically generate FAQs (website crawling is available on Growth and Pro plans)'}
                 </p>
               </div>
               <Button
@@ -100,6 +103,7 @@ export function CrawlerModal({ isOpen, onClose, companyId, companyName }: Crawle
             <CrawlerInterface
               companyId={companyId}
               companyName={companyName}
+              plan={plan}
             />
           </div>
         </div>

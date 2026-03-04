@@ -743,6 +743,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
               selectedCompany?.name,
               !selectedCompany
             ),
+            // Content Processor (documents for Starter; documents + web crawl for Growth/Pro)
             createContentProcessorAction(
               handleQuickActionCrawler,
               selectedCompany?.name,
@@ -865,6 +866,7 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
           onClose={() => setShowCrawler(false)}
           companyId={selectedCompany.id || ''}
           companyName={selectedCompany.name || ''}
+          plan={selectedCompany.plan || 'free'}
         />
       )}
 

@@ -165,7 +165,8 @@ export const createContentProcessorAction = (
   onClick,
   disabled,
   disabledMessage: 'Select a company from the dropdown above to process their content',
-  showForPlan: 'pro'
+  // Let callers decide plan gating; default to showing for all
+  showForPlan: 'all'
 })
 
 export const createLiveTestAction = (
