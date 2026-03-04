@@ -945,7 +945,7 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
                     "Advanced analytics",
                     "Multi-language support",
                     "Lead generation",
-                    "Limited crawling up to 6 pages"
+                    "Limited web crawling (up to 100 pages per crawl)"
                   ]}
                   buttonText={upgradeLoading && upgradePlanId === 'growth' ? 'Processing...' : 'Upgrade to Growth'}
                   onSelect={handleUpgradePlanSelection}

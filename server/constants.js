@@ -53,7 +53,7 @@ export const PRICING_PLANS = {
         'Advanced Analytics',
         'Multi-language support',
         'Lead generation',
-        'Limited crawling up to 6 pages'
+        'Limited web crawling (up to 100 pages per crawl)'
       ]
     },
     'pro': {

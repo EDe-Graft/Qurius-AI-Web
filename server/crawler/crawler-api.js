@@ -56,15 +56,36 @@ const upload = multer({
   }
 })
 
-// Initialize crawler with Puppeteer support and debug mode
-const crawler = new QuriusCrawler({
-  enablePuppeteer: true,
-  puppeteerTimeout: 30000,
-  maxPages: 10,
-  maxDepth: 1
-  // debugMode: false, // Enable debug mode
-  // disableHTMLCleaning: false // Temporarily disable HTML cleaning to debug
-})
+// Helper to create a crawler instance with per-plan limits
+function createCrawlerForPlan(plan) {
+  // Default conservative limits
+  let maxPages = 10
+  let maxDepth = 1
+
+  switch (plan) {
+    case 'growth':
+      maxPages = 100  // limited but meaningful coverage
+      maxDepth = 2
+      break
+    case 'pro':
+      maxPages = 1000 // effectively "unlimited" for most sites
+      maxDepth = 3
+      break
+    // 'free' and 'starter' will be gated before this, but keep defaults safe
+    default:
+      maxPages = 10
+      maxDepth = 1
+  }
+
+  return new QuriusCrawler({
+    enablePuppeteer: true,
+    puppeteerTimeout: 30000,
+    maxPages,
+    maxDepth
+    // debugMode: false, // Enable debug mode
+    // disableHTMLCleaning: false // Temporarily disable HTML cleaning to debug
+  })
+}
 
 /**
  * Start crawling for a company
@@ -103,6 +124,14 @@ router.post('/start', async (req, res) => {
       })
     }
 
+    // Enforce plan-based access: only growth/pro can use web crawling
+    if (company.plan === 'free' || company.plan === 'starter') {
+      return res.status(403).json({
+        success: false,
+        error: 'Web crawling is only available on Growth and Pro plans. Please upgrade to enable this feature.'
+      })
+    }
+
     // Prefer the website stored for the company if present (already validated/normalized)
     const targetUrl = company.website || normalizedUrl.toString()
 
@@ -130,6 +159,9 @@ router.post('/start', async (req, res) => {
         error: 'We could not reach your website. Please ensure it is publicly accessible and try again.'
       })
     }
+
+    // Create a crawler instance based on the company plan (growth/pro)
+    const crawler = createCrawlerForPlan(company.plan)
 
     // Start crawling in background
     crawler.crawlCompanyWebsite(companyId, targetUrl)
