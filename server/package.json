@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "postinstall": "npx puppeteer browsers install chrome || echo 'Chrome installation skipped (may already be installed)'",
+    "postinstall": "echo 'Installing Chrome for Puppeteer...' && npx puppeteer browsers install chrome || echo 'Chrome installation completed or skipped'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "setup-automation": "node setup-automation.js",
     "test-automation": "node test-automation.js",

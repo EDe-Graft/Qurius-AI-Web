@@ -8,10 +8,12 @@ import { sendEmail } from '../config/resend.js'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import { execSync } from 'child_process'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 // Puppeteer will be imported dynamically when needed
 let puppeteer = null
+let chromeInstallChecked = false // Flag to prevent repeated installation attempts
 
 // Document processing libraries (will be imported dynamically)
 let mammoth = null
@@ -635,6 +637,63 @@ class QuriusCrawler {
   }
 
   /**
+   * Ensure Chrome is installed for Puppeteer
+   */
+  async ensureChromeInstalled() {
+    // Only check once per process to avoid repeated installation attempts
+    if (chromeInstallChecked) {
+      return true
+    }
+    
+    try {
+      // Set cache directory for Render if not already set
+      if (process.env.RENDER && !process.env.PUPPETEER_CACHE_DIR) {
+        process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer'
+        console.log('📁 Set PUPPETEER_CACHE_DIR to:', process.env.PUPPETEER_CACHE_DIR)
+      }
+      
+      // Try to get the executable path to check if Chrome exists
+      if (puppeteer) {
+        try {
+          const executablePath = puppeteer.default.executablePath()
+          if (fs.existsSync(executablePath)) {
+            console.log('✅ Chrome found at:', executablePath)
+            chromeInstallChecked = true
+            return true
+          }
+        } catch (error) {
+          // Chrome not found, will try to install
+          console.log('⚠️ Chrome executable not found, attempting installation...')
+        }
+      }
+      
+      // Try to install Chrome programmatically (only once)
+      console.log('📦 Attempting to install Chrome for Puppeteer...')
+      try {
+        execSync('npx puppeteer browsers install chrome', {
+          stdio: 'pipe', // Use pipe instead of inherit to avoid cluttering logs
+          timeout: 120000, // 2 minute timeout
+          env: { ...process.env }
+        })
+        console.log('✅ Chrome installation completed')
+        chromeInstallChecked = true
+        return true
+      } catch (installError) {
+        console.warn('⚠️ Chrome installation failed:', installError.message)
+        console.warn('💡 This may be normal if Chrome is already installed or installation is handled elsewhere')
+        // Mark as checked to avoid repeated attempts
+        chromeInstallChecked = true
+        // Continue anyway - Puppeteer might still work
+        return false
+      }
+    } catch (error) {
+      console.warn('⚠️ Error checking Chrome installation:', error.message)
+      chromeInstallChecked = true // Mark as checked to avoid repeated attempts
+      return false
+    }
+  }
+
+  /**
    * Initialize Puppeteer if not already loaded
    */
   async initPuppeteer() {
@@ -643,6 +702,9 @@ class QuriusCrawler {
         console.log('🌐 Initializing Puppeteer for SPA support...')
         puppeteer = await import('puppeteer')
         console.log('✅ Puppeteer initialized successfully')
+        
+        // Ensure Chrome is installed (especially important for Render)
+        await this.ensureChromeInstalled()
       } catch (error) {
         console.log('❌ Failed to initialize Puppeteer:', error.message)
         console.log('⚠️ SPA support will be limited - install with: npm install puppeteer')
@@ -717,6 +779,9 @@ class QuriusCrawler {
         console.log('🔧 Using single-process mode for production environment')
       }
       
+      // Ensure Chrome is installed before launching (runtime check)
+      await this.ensureChromeInstalled()
+      
       // Launch browser with error handling
       const launchOptions = {
         headless: true,
@@ -726,11 +791,17 @@ class QuriusCrawler {
         ignoreDefaultArgs: ['--disable-extensions']
       }
       
+      // Set cache directory if in Render environment
+      if (process.env.RENDER && process.env.PUPPETEER_CACHE_DIR) {
+        console.log('📁 Using Puppeteer cache directory:', process.env.PUPPETEER_CACHE_DIR)
+      }
+      
       console.log('🚀 Launching browser with options:', {
         headless: true,
         argsCount: launchArgs.length,
         timeout: launchOptions.timeout,
-        isProduction
+        isProduction,
+        cacheDir: process.env.PUPPETEER_CACHE_DIR || 'default'
       })
       
       browser = await puppeteer.default.launch(launchOptions)
