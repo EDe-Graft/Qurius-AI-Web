@@ -413,26 +413,35 @@ router.post('/save-faqs', async (req, res) => {
 
     const { data: savedFAQs, error: insertError } = await supabase
       .from('faqs')
-      .insert(faqsToInsert)
+      // Use ignoreDuplicates so existing FAQs (by unique constraint) are skipped
+      .insert(faqsToInsert, { ignoreDuplicates: true })
       .select()
 
     if (insertError) {
-      console.error('Error saving FAQs:', insertError)
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to save FAQs'
-      })
+      // If we hit a unique constraint violation, log and continue instead of failing the whole process
+      if (insertError.code === '23505') {
+        console.warn('⚠️ Some FAQs were skipped because they already exist (unique constraint).')
+      } else {
+        console.error('Error saving FAQs:', insertError)
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to save FAQs'
+        })
+      }
     }
+
+    // Safely determine how many FAQs were actually saved
+    const savedCount = Array.isArray(savedFAQs) ? savedFAQs.length : 0
 
     // Update crawl session to mark as completed
     const { error: updateError } = await supabase
       .from('crawl_sessions')
       .update({
         status: 'completed',
-        faqs_generated: savedFAQs.length,
+        faqs_generated: savedCount,
         completed_date: new Date().toISOString(),
         progress_percentage: 100,
-        status_details: `Successfully saved ${savedFAQs.length} approved FAQs`
+        status_details: `Successfully saved ${savedCount} approved FAQs`
       })
       .eq('id', sessionId)
 
@@ -441,12 +450,12 @@ router.post('/save-faqs', async (req, res) => {
       // Don't fail the request if this update fails
     }
 
-    console.log(`✅ Saved ${savedFAQs.length} approved FAQs for company ${session.company_name}`)
+    console.log(`✅ Saved ${savedCount} approved FAQs for company ${session.company_name}`)
 
     res.json({
       success: true,
-      message: `Successfully saved ${savedFAQs.length} FAQs`,
-      savedFAQs: savedFAQs
+      message: `Successfully saved ${savedCount} FAQs`,
+      savedFAQs: savedFAQs || []
     })
   } catch (error) {
     console.error('Error in save FAQs endpoint:', error)

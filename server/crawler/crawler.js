@@ -8,12 +8,12 @@ import { sendEmail } from '../config/resend.js'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 // Puppeteer will be imported dynamically when needed
 let puppeteer = null
 
 // Document processing libraries (will be imported dynamically)
-let pdfParse = null
 let mammoth = null
 
 dotenv.config({ path: './.env' })
@@ -1687,15 +1687,44 @@ class QuriusCrawler {
    */
   async extractPDFContent(filePath) {
     try {
-      if (!pdfParse) {
-        pdfParse = (await import('pdf-parse')).default
-      }
-      
+      console.log('🔍 [PDF] (pdfjs-dist) Attempting extraction from path:', filePath)
+
+      // Read the uploaded PDF from disk
       const dataBuffer = fs.readFileSync(filePath)
-      const data = await pdfParse(dataBuffer)
-      return data.text
+      // pdfjs-dist expects a Uint8Array, not a Node Buffer
+      const data = new Uint8Array(dataBuffer)
+
+      // Load PDF with pdfjs-dist
+      const loadingTask = pdfjsLib.getDocument({ data })
+      const pdf = await loadingTask.promise
+
+      let fullText = ''
+
+      // Safety limits: max ~50 pages / 50k chars
+      const maxPages = Math.min(pdf.numPages, 50)
+      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        const page = await pdf.getPage(pageNum)
+        const textContent = await page.getTextContent()
+
+        const pageText = textContent.items
+          .map((item) => (item && typeof item.str === 'string' ? item.str : ''))
+          .join(' ')
+
+        fullText += pageText + '\n\n'
+
+        if (fullText.length > 50000) {
+          console.log('⚠️ [PDF] Truncating extracted text at 50k chars for performance')
+          break
+        }
+      }
+
+      if (!fullText.trim()) {
+        console.warn('⚠️ [PDF] No text extracted from PDF via pdfjs-dist')
+      }
+
+      return fullText
     } catch (error) {
-      console.error('❌ PDF extraction failed:', error.message)
+      console.error('❌ PDF (pdfjs-dist) extraction failed:', error.message)
       throw error
     }
   }
