@@ -114,10 +114,28 @@ export function NotificationCenter() {
           {createPortal(
             <>
               {/* Backdrop for mobile */}
-              <div className="fixed inset-0 bg-black/20 z-[999999] sm:hidden" onClick={() => setIsOpen(false)} />
+              <div 
+                className="fixed inset-0 bg-black/20 z-[999999] sm:hidden" 
+                onClick={(e) => {
+                  // Only close if clicking directly on backdrop, not on panel
+                  if (e.target === e.currentTarget) {
+                    setIsOpen(false);
+                  }
+                }}
+                onTouchStart={(e) => {
+                  // Prevent backdrop from interfering with panel touches
+                  if (e.target !== e.currentTarget) {
+                    e.stopPropagation();
+                  }
+                }}
+              />
               
               {/* Panel for mobile */}
-              <div className="fixed top-20 left-1/2 right-auto transform -translate-x-1/2 sm:hidden w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[9999999] max-h-[calc(100vh-10rem)] flex flex-col">
+              <div 
+                className="fixed top-20 left-1/2 right-auto transform -translate-x-1/2 sm:hidden w-[calc(100vw-2rem)] max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[9999999] max-h-[calc(100vh-10rem)] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+              >
                 {/* Header - Mobile Optimized */}
                 <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                   <div className="flex items-center justify-between">
@@ -174,10 +192,15 @@ export function NotificationCenter() {
                       {notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
+                          className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer touch-manipulation ${
                             !isNotificationRead(notification) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                           }`}
                           onClick={() => handleNotificationClick(notification)}
+                          onTouchEnd={(e) => {
+                            // Ensure touch events properly trigger the click handler
+                            e.stopPropagation();
+                            handleNotificationClick(notification);
+                          }}
                         >
                           <div className="flex items-start gap-2 sm:gap-3">
                             <div className="flex-shrink-0 mt-0.5">
@@ -195,11 +218,29 @@ export function NotificationCenter() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
-                                      removeNotification(notification.id);
+                                      // Mark as read before removing (if not already read)
+                                      if (!isNotificationRead(notification)) {
+                                        await markAsRead(notification.id);
+                                      }
+                                      // Small delay to ensure read state updates before removal
+                                      setTimeout(() => {
+                                        removeNotification(notification.id);
+                                      }, 100);
                                     }}
-                                    className="h-5 w-5 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                                    onTouchEnd={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      // Mark as read before removing (if not already read)
+                                      if (!isNotificationRead(notification)) {
+                                        markAsRead(notification.id);
+                                      }
+                                      setTimeout(() => {
+                                        removeNotification(notification.id);
+                                      }, 100);
+                                    }}
+                                    className="h-5 w-5 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 touch-manipulation"
                                   >
                                     <X className="h-3 w-3" />
                                   </Button>
@@ -209,22 +250,28 @@ export function NotificationCenter() {
                                 {notification.message}
                               </p>
                               {notification.action && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    notification.action?.onClick();
-                                    markAsRead(notification.id);
-                                  }}
-                                  className={`mt-2 w-full sm:w-auto text-xs ${
-                                    notification.action.label === 'Review FAQs'
-                                      ? 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200'
-                                      : ''
-                                  }`}
-                                >
-                                  {notification.action.label}
-                                </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  notification.action?.onClick();
+                                  markAsRead(notification.id);
+                                }}
+                                onTouchEnd={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  notification.action?.onClick();
+                                  markAsRead(notification.id);
+                                }}
+                                className={`mt-2 w-full sm:w-auto text-xs touch-manipulation ${
+                                  notification.action.label === 'Review FAQs'
+                                    ? 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 dark:hover:bg-green-900/20 dark:hover:text-green-300 dark:hover:border-green-600 transition-all duration-200'
+                                    : ''
+                                }`}
+                              >
+                                {notification.action.label}
+                              </Button>
                               )}
                             </div>
                           </div>
@@ -316,9 +363,16 @@ export function NotificationCenter() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  removeNotification(notification.id);
+                                  // Mark as read before removing (if not already read)
+                                  if (!isNotificationRead(notification)) {
+                                    await markAsRead(notification.id);
+                                  }
+                                  // Small delay to ensure read state updates before removal
+                                  setTimeout(() => {
+                                    removeNotification(notification.id);
+                                  }, 100);
                                 }}
                                 className="h-5 w-5 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                               >

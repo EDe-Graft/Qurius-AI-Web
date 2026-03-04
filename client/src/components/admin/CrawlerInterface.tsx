@@ -173,34 +173,45 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
     }
   }
 
-  const checkForGeneratedFAQs = async () => {
+  const checkForGeneratedFAQs = async (session?: CrawlSession) => {
     try {
-      // Get the latest crawl session to check for generated FAQs
-      const response = await axios.get(`${BACKEND_URL}/api/crawler/status/${companyId}`)
-      if (response.data.success && response.data.crawlSession) {
-        const session = response.data.crawlSession
+      let sessionData: CrawlSession | null = session || null
+      
+      // If session not provided, fetch it
+      if (!sessionData) {
+        const response = await axios.get(`${BACKEND_URL}/api/crawler/status/${companyId}`)
+        if (response.data.success && response.data.crawlSession) {
+          sessionData = response.data.crawlSession
+        } else {
+          return // No session found
+        }
+      }
+      
+      // TypeScript guard: ensure sessionData is defined
+      if (!sessionData) {
+        return
+      }
+      
+      // Check if this session has AI-generated FAQs
+      if (sessionData.ai_generated_faqs && sessionData.ai_generated_faqs.length > 0) {
+        setGeneratedFAQs(sessionData.ai_generated_faqs)
+        setShowFAQPreview(true)
         
-        // Check if this session has AI-generated FAQs
-        if (session.ai_generated_faqs && session.ai_generated_faqs.length > 0) {
-          setGeneratedFAQs(session.ai_generated_faqs)
-          setShowFAQPreview(true)
-          
-          // Add notification
-          addNotification({
-            type: 'success',
-            title: 'AI FAQs Ready for Review',
-            message: `${session.ai_generated_faqs.length} AI-generated FAQs are ready for your review and approval.`,
-            read: false,
-            action: {
-              label: 'Review FAQs',
-              onClick: () => setShowFAQPreview(true)
-            }
-          })
-          
-          // Show banner if not dismissed
-          if (!bannerDismissed) {
-            setShowBanner(true)
+        // Add notification
+        addNotification({
+          type: 'success',
+          title: 'AI FAQs Ready for Review',
+          message: `${sessionData.ai_generated_faqs.length} AI-generated FAQs are ready for your review and approval.`,
+          read: false,
+          action: {
+            label: 'Review FAQs',
+            onClick: () => setShowFAQPreview(true)
           }
+        })
+        
+        // Show banner if not dismissed
+        if (!bannerDismissed) {
+          setShowBanner(true)
         }
       }
     } catch (error) {
@@ -450,8 +461,8 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
             clearInterval(interval)
             setIsCrawling(false)
             
-            // Check for AI-generated FAQs to review
-            await checkForGeneratedFAQs()
+            // Pass the session data we already have instead of making another API call
+            await checkForGeneratedFAQs(session)
             
             // Reload existing FAQs
             loadCrawledFAQs()
@@ -459,8 +470,8 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
             clearInterval(interval)
             setIsCrawling(false)
             
-            // Check for AI-generated FAQs to review (in case they were already reviewed)
-            await checkForGeneratedFAQs()
+            // Pass the session data we already have
+            await checkForGeneratedFAQs(session)
             
             // Reload existing FAQs
             loadCrawledFAQs()

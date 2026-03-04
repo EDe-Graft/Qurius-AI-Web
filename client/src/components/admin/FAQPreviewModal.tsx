@@ -57,17 +57,25 @@ export function FAQPreviewModal({
 
   // Initialize FAQ entries when modal opens
   useEffect(() => {
-    if (isOpen && generatedFAQs.length > 0) {
-      const entries = generatedFAQs.map((faq, index) => ({
-        id: `faq-${index}`,
-        question: faq.question,
-        answer: faq.answer,
-        isApproved: true, // Default to approved
-        isEdited: false,
-        originalQuestion: faq.question,
-        originalAnswer: faq.answer
-      }));
-      setFaqEntries(entries);
+    if (isOpen) {
+      if (generatedFAQs.length > 0) {
+        const entries = generatedFAQs.map((faq, index) => ({
+          id: `faq-${index}`,
+          question: faq.question,
+          answer: faq.answer,
+          isApproved: true, // Default to approved
+          isEdited: false,
+          originalQuestion: faq.question,
+          originalAnswer: faq.answer
+        }));
+        setFaqEntries(entries);
+      } else {
+        // Clear entries if FAQs are empty when modal is open
+        setFaqEntries([]);
+      }
+    } else {
+      // Clear entries when modal closes
+      setFaqEntries([]);
     }
   }, [isOpen, generatedFAQs]);
 
