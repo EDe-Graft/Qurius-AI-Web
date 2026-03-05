@@ -11,6 +11,7 @@ import { Contact } from "@/pages/Contact"
 // import { TestPaymentBypass } from "@/pages/TestPaymentBypass"
 import { AuthCallback } from "@/pages/AuthCallback"
 import { PasswordReset } from "@/pages/PasswordReset"
+import { WidgetIframePage } from "@/pages/WidgetIframePage"
 import { PublicNavigation, AdminNavigation } from "@/components/admin/Navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthProvider } from "@/context/AuthContext"
@@ -57,6 +58,9 @@ export default function App() {
                   </NotificationProvider>
                 </ProtectedRoute>
               } />
+              
+              {/* Widget iframe route - no auth required */}
+              <Route path="/widget-iframe" element={<WidgetIframePage />} />
             </Routes>
           </AuthProvider>
         </BrowserRouter>
