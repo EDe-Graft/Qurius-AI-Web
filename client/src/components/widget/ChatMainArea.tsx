@@ -227,7 +227,7 @@ export function ChatMainArea({
             </button>
           )}
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-indigo-500 flex items-center justify-center text-xs sm:text-sm font-semibold text-white shadow-[0_0_0_3px_rgba(15,23,42,0.9)] flex-shrink-0">
-            Q
+            <img src={companyData.logo_url} alt={companyData.name} className="w-full h-full object-cover rounded-full" />
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="text-xs sm:text-sm font-semibold text-slate-200 truncate">
@@ -262,7 +262,7 @@ export function ChatMainArea({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
-        <MessageList messages={messages} isTyping={isTyping} />
+        <MessageList messages={messages} isTyping={isTyping} companyData={companyData} />
         <div ref={messagesEndRef} />
       </div>
 
