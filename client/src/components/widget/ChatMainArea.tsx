@@ -209,6 +209,38 @@ export function ChatMainArea({
     }
   }
 
+  const handleRatingChange = async (messageId: string, rating: 'like' | 'dislike' | null) => {
+    // Find the message before updating to get its content
+    const message = messages.find(m => m.id === messageId)
+    if (!message || message.isUser) return
+
+    // Update message liked state
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, liked: rating } : msg
+      )
+    )
+
+    // Track rating in analytics
+    if (companyData.name && rating !== null) {
+      try {
+        const ratingValue = rating === 'like' ? 1 : -1
+        await AnalyticsService.trackRating(
+          companyData.name,
+          companyData.id || '',
+          ratingValue,
+          message.content,
+          'ai', // Default to 'ai' for now, could be enhanced to track actual source
+          undefined, // feedbackText
+          undefined, // faqId
+          undefined // confidenceScore
+        )
+      } catch (error) {
+        console.error('Failed to track rating:', error)
+      }
+    }
+  }
+
   return (
     <section className="flex-1 flex flex-col bg-gradient-to-br from-slate-900 via-slate-950 to-black transition-all duration-300 ease-in-out">
       {/* Header */}
@@ -262,7 +294,12 @@ export function ChatMainArea({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
-        <MessageList messages={messages} isTyping={isTyping} companyData={companyData} />
+        <MessageList 
+          messages={messages} 
+          isTyping={isTyping} 
+          companyData={companyData}
+          onRatingChange={handleRatingChange}
+        />
         <div ref={messagesEndRef} />
       </div>
 
