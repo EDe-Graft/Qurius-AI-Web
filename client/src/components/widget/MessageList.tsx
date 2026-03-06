@@ -8,6 +8,8 @@ interface Message {
   isUser: boolean
   timestamp: string
   liked?: 'like' | 'dislike' | null
+  isStreaming?: boolean
+  streamingContent?: string
 }
 
 interface CompanyData {
@@ -98,14 +100,16 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
               }`}
             >
               <MessageBubble
-                content={message.content}
+                content={message.isStreaming && message.streamingContent !== undefined 
+                  ? message.streamingContent 
+                  : message.content}
                 isUser={message.isUser}
                 timestamp={message.timestamp}
                 liked={message.liked}
               />
             </div>
-            {/* Feedback buttons for AI messages */}
-            {!message.isUser && (
+            {/* Feedback buttons for AI messages - only show when streaming is complete */}
+            {!message.isUser && !message.isStreaming && (
               <div className="flex items-center gap-1.5 px-0.5 sm:px-1">
                 <button
                   onClick={() => handleRating(message.id, message.liked === 'like' ? null : 'like')}

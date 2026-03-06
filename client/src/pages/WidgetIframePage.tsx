@@ -64,7 +64,7 @@ export function WidgetIframePage() {
     return true
   })
 
-  const BACKEND_URL = 'https://qurius-ai.onrender.com'
+  const BACKEND_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com'
 
   // Validate widget key and fetch company data
   useEffect(() => {

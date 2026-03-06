@@ -31,6 +31,8 @@ interface Message {
   isUser: boolean
   timestamp: string
   liked?: 'like' | 'dislike' | null
+  isStreaming?: boolean
+  streamingContent?: string
 }
 
 interface Conversation {
@@ -66,6 +68,7 @@ export function ChatMainArea({
 }: ChatMainAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -74,6 +77,44 @@ export function ChatMainArea({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Cleanup streaming timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (streamingTimeoutRef.current) {
+        clearTimeout(streamingTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Update conversation in sidebar when streaming completes
+  useEffect(() => {
+    if (!activeConversationId) return
+    
+    const completedMessages = messages.filter(m => !m.isUser && !m.isStreaming)
+    if (completedMessages.length > 0) {
+      const lastCompletedMessage = completedMessages[completedMessages.length - 1]
+      const messageIndex = messages.findIndex(m => m.id === lastCompletedMessage.id)
+      const correspondingUserMessage = messageIndex > 0 ? messages[messageIndex - 1] : null
+      
+      if (correspondingUserMessage && correspondingUserMessage.isUser) {
+        setConversations(prev =>
+          prev.map(conv => {
+            if (conv.id === activeConversationId) {
+              return {
+                ...conv,
+                title: correspondingUserMessage.content.substring(0, 30) + (correspondingUserMessage.content.length > 30 ? '...' : ''),
+                preview: lastCompletedMessage.content.substring(0, 50) + (lastCompletedMessage.content.length > 50 ? '...' : ''),
+                timestamp: 'Just now',
+                messages: messages.filter(m => m.id !== 'welcome')
+              }
+            }
+            return conv
+          })
+        )
+      }
+    }
+  }, [messages, activeConversationId, setConversations])
 
   const buildMessagesForAPI = (currentMessages: Message[], currentUserMessage: string) => {
     const history = currentMessages
@@ -90,6 +131,44 @@ export function ChatMainArea({
         content: currentUserMessage
       }
     ]
+  }
+
+  // Simulate streaming for AI messages
+  const simulateStreaming = (messageId: string, fullContent: string) => {
+    const words = fullContent.split(' ')
+    let currentIndex = 0
+    const wordsPerChunk = 2 // Stream 2 words at a time for smoother effect
+    const delayPerChunk = 30 // 30ms delay between chunks
+
+    const streamNext = () => {
+      if (currentIndex >= words.length) {
+        // Streaming complete
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === messageId
+              ? { ...msg, content: fullContent, isStreaming: false, streamingContent: undefined }
+              : msg
+          )
+        )
+        return
+      }
+
+      const nextChunk = words.slice(0, currentIndex + wordsPerChunk).join(' ')
+      currentIndex += wordsPerChunk
+
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId
+            ? { ...msg, streamingContent: nextChunk, isStreaming: true }
+            : msg
+        )
+      )
+
+      streamingTimeoutRef.current = setTimeout(streamNext, delayPerChunk)
+    }
+
+    // Start streaming
+    streamNext()
   }
 
   const handleSendMessage = async (content: string) => {
@@ -128,13 +207,18 @@ export function ChatMainArea({
       if (response) {
         // Check for limit reached
         if (response.source === 'limit_reached' || response.limitReached) {
+          const limitMessageId = `msg-${Date.now() + 1}`
+          const limitContent = response.answer || 'Message limit reached for this month. Please upgrade your plan or wait until next month.'
           const limitMessage: Message = {
-            id: `msg-${Date.now() + 1}`,
-            content: response.answer || 'Message limit reached for this month. Please upgrade your plan or wait until next month.',
+            id: limitMessageId,
+            content: limitContent,
             isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isStreaming: true,
+            streamingContent: ''
           }
           setMessages(prev => [...prev, limitMessage])
+          simulateStreaming(limitMessageId, limitContent)
           return
         }
 
@@ -147,14 +231,21 @@ export function ChatMainArea({
           console.warn('Response translation failed:', error)
         }
 
+        const messageId = `msg-${Date.now() + 1}`
         const aiMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          content: translatedAnswer,
+          id: messageId,
+          content: translatedAnswer, // Store full content
           isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isStreaming: true,
+          streamingContent: '' // Start with empty content for streaming
         }
 
+        // Add message with empty streaming content
         setMessages(prev => [...prev, aiMessage])
+        
+        // Start streaming animation
+        simulateStreaming(messageId, translatedAnswer)
 
         // Track message received
         if (companyData.name) {
@@ -168,42 +259,37 @@ export function ChatMainArea({
           )
         }
 
-        // Update conversation in sidebar if active
-        if (activeConversationId) {
-          setConversations(prev =>
-            prev.map(conv => {
-              if (conv.id === activeConversationId) {
-                const updatedMessages = [...messages, userMessage, aiMessage]
-                return {
-                  ...conv,
-                  title: content.substring(0, 30) + (content.length > 30 ? '...' : ''),
-                  preview: translatedAnswer.substring(0, 50) + (translatedAnswer.length > 50 ? '...' : ''),
-                  timestamp: 'Just now',
-                  messages: updatedMessages
-                }
-              }
-              return conv
-            })
-          )
-        }
+        // Update conversation in sidebar after streaming completes
+        // We'll do this in a useEffect that watches for streaming completion
+        // For now, we'll update it when the message is added
       } else {
+        const errorMessageId = `msg-${Date.now() + 1}`
+        const errorContent = "Sorry, I couldn't find a relevant answer. Please try rephrasing your question."
         const errorMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          content: "Sorry, I couldn't find a relevant answer. Please try rephrasing your question.",
+          id: errorMessageId,
+          content: errorContent,
           isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isStreaming: true,
+          streamingContent: ''
         }
         setMessages(prev => [...prev, errorMessage])
+        simulateStreaming(errorMessageId, errorContent)
       }
     } catch (error) {
       console.error('Error sending message:', error)
+      const errorMessageId = `msg-${Date.now() + 1}`
+      const errorContent = "Sorry, I encountered an error. Please try again."
       const errorMessage: Message = {
-        id: `msg-${Date.now() + 1}`,
-        content: "Sorry, I encountered an error. Please try again.",
+        id: errorMessageId,
+        content: errorContent,
         isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isStreaming: true,
+        streamingContent: ''
       }
       setMessages(prev => [...prev, errorMessage])
+      simulateStreaming(errorMessageId, errorContent)
     } finally {
       setIsTyping(false)
     }
