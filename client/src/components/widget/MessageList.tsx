@@ -75,8 +75,18 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange, p
             className={`w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-semibold text-white flex-shrink-0 overflow-hidden ${
               message.isUser
                 ? 'bg-gradient-to-br from-emerald-500 to-sky-400'
-                : 'bg-gradient-to-br from-indigo-500 to-sky-400'
+                : isDark
+                  ? 'bg-gradient-to-br from-indigo-500 to-sky-400'
+                  : 'shadow-[0_0_0_2px_rgba(148,163,184,0.45)]'
             }`}
+            style={
+              !message.isUser && !isDark
+                ? {
+                    backgroundColor: `${primaryColor}20`,
+                    borderRadius: '9999px'
+                  }
+                : undefined
+            }
           >
             {message.isUser ? (
               <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -198,7 +208,21 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange, p
       {/* Typing Indicator */}
       {isTyping && (
         <div className="flex gap-2 sm:gap-2.5 items-start self-start max-w-[85%] sm:max-w-[80%]">
-          <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-gradient-to-br from-indigo-500 to-sky-400 flex items-center justify-center text-[10px] sm:text-xs font-semibold text-white flex-shrink-0 overflow-hidden">
+          <div
+            className={`w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-semibold text-white flex-shrink-0 overflow-hidden ${
+              isDark
+                ? 'bg-gradient-to-br from-indigo-500 to-sky-400'
+                : 'shadow-[0_0_0_2px_rgba(148,163,184,0.45)]'
+            }`}
+            style={
+              isDark
+                ? undefined
+                : {
+                    backgroundColor: `${primaryColor}20`,
+                    borderRadius: '9999px'
+                  }
+            }
+          >
             {companyData.logo_url ? (
               <img 
                 src={companyData.logo_url} 
@@ -219,11 +243,32 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange, p
               'Q'
             )}
           </div>
-          <div className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-slate-900/95 border border-slate-800/80">
+          <div
+            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border ${
+              isDark
+                ? 'bg-slate-900/95 border-slate-800/80'
+                : 'bg-white border-gray-200'
+            }`}
+          >
             <div className="flex gap-0.5 sm:gap-1">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div
+                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${
+                  isDark ? 'bg-slate-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '0ms' }}
+              ></div>
+              <div
+                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${
+                  isDark ? 'bg-slate-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '150ms' }}
+              ></div>
+              <div
+                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${
+                  isDark ? 'bg-slate-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '300ms' }}
+              ></div>
             </div>
           </div>
         </div>

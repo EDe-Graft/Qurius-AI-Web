@@ -361,9 +361,27 @@ export function ChatMainArea({
               </svg>
             </button>
           )}
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-indigo-500 flex items-center justify-center text-xs sm:text-sm font-semibold text-white shadow-[0_0_0_3px_rgba(15,23,42,0.9)] flex-shrink-0">
+          <div
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold text-white flex-shrink-0 overflow-hidden ${
+              isDark
+                ? 'bg-gradient-to-br from-emerald-500 to-indigo-500 shadow-[0_0_0_3px_rgba(15,23,42,0.9)]'
+                : 'shadow-[0_0_0_2px_rgba(148,163,184,0.45)]'
+            }`}
+            style={
+              isDark
+                ? undefined
+                : {
+                    backgroundColor: `${primaryColor}20`,
+                    borderRadius: '9999px'
+                  }
+            }
+          >
             {companyData.logo_url ? (
-              <img src={companyData.logo_url} alt={companyData.name} className="w-full h-full object-cover rounded-full" />
+              <img
+                src={companyData.logo_url}
+                alt={companyData.name}
+                className="w-full h-full object-cover rounded-full"
+              />
             ) : (
               'Q'
             )}
