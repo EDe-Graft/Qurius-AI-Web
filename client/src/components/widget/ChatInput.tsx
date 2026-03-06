@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { Paperclip, RotateCcw } from 'lucide-react'
+import { useTheme } from '@/context/useThemeContext'
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void
   disabled?: boolean
+  primaryColor: string
 }
 
-export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled, primaryColor }: ChatInputProps) {
   const [input, setInput] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { isDark } = useTheme()
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -36,30 +40,63 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   }
 
   return (
-    <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-indigo-500/75 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col gap-1 sm:gap-1.5">
+    <div className={`px-3 sm:px-4 py-2.5 sm:py-3 border-t flex flex-col gap-1 sm:gap-1.5 transition-colors ${
+      isDark 
+        ? 'border-indigo-500/75 bg-gradient-to-b from-slate-900 to-slate-950' 
+        : 'border-gray-200 bg-gradient-to-b from-white to-gray-50'
+    }`} style={!isDark ? { borderTopColor: `${primaryColor}30` } : {}}>
       <form onSubmit={handleSubmit} className="flex items-end gap-2 sm:gap-2.5">
-        <div className="flex-1 rounded-full bg-slate-900/88 border border-slate-800/90 flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1">
+        <div 
+          className={`flex-1 rounded-full flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 transition-all ${
+            isDark 
+              ? 'bg-slate-900/88 border' 
+              : 'bg-gray-100/90 border'
+          } ${isFocused ? 'ring-2 ring-offset-0' : ''}`}
+          style={isFocused ? { 
+            borderColor: primaryColor,
+            boxShadow: `0 0 0 2px ${primaryColor}40`
+          } : {
+            borderColor: isDark ? 'rgb(30 41 59 / 0.9)' : 'rgb(229 231 235)'
+          }}
+        >
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder="Ask anything..."
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none bg-transparent border-none outline-none px-1 sm:px-1.5 py-0.5 sm:py-1 text-xs sm:text-sm text-slate-200 placeholder:text-slate-600 max-h-[72px] overflow-y-auto"
+            className={`flex-1 resize-none bg-transparent border-none outline-none px-1 sm:px-1.5 py-0.5 sm:py-1 text-xs sm:text-sm max-h-[72px] overflow-y-auto ${
+              isDark 
+                ? 'text-slate-200 placeholder:text-slate-600' 
+                : 'text-gray-900 placeholder:text-gray-500'
+            }`}
           />
           <div className="flex items-center gap-1 sm:gap-1.5 pl-0.5 sm:pl-1">
             <button
               type="button"
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-slate-800/90 bg-slate-900/90 flex items-center justify-center text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200 transition-all hover:-translate-y-px"
+              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
+                isDark 
+                  ? 'border-slate-800/90 bg-slate-900/90 text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200' 
+                  : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-100'
+              }`}
+              style={!isDark ? {
+                '--hover-color': primaryColor
+              } as React.CSSProperties : {}}
               title="Upload file"
             >
               <Paperclip className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
             <button
               type="button"
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-slate-800/90 bg-slate-900/90 flex items-center justify-center text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200 transition-all hover:-translate-y-px"
+              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
+                isDark 
+                  ? 'border-slate-800/90 bg-slate-900/90 text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200' 
+                  : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-100'
+              }`}
               title="Regenerate"
             >
               <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -69,20 +106,42 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         <button
           type="submit"
           disabled={!input.trim() || disabled}
-          className="rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-px shadow-[0_10px_30px_rgba(99,102,241,0.45)] hover:shadow-[0_12px_35px_rgba(99,102,241,0.55)] flex items-center gap-1 sm:gap-1.5 flex-shrink-0"
+          className="rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-px flex items-center gap-1 sm:gap-1.5 flex-shrink-0"
+          style={{
+            background: `linear-gradient(to right, ${primaryColor}, ${primaryColor}dd)`,
+            boxShadow: `0 10px 30px ${primaryColor}45`,
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled) {
+              e.currentTarget.style.boxShadow = `0 12px 35px ${primaryColor}55`
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = `0 10px 30px ${primaryColor}45`
+          }}
         >
           <span className="hidden sm:inline">Send</span>
           <span>➤</span>
         </button>
       </form>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 text-[10px] sm:text-[11px] text-slate-600">
+      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 text-[10px] sm:text-[11px] ${
+        isDark ? 'text-slate-600' : 'text-gray-500'
+      }`}>
         <span className="hidden sm:inline">Qurius AI may make mistakes. Please verify important information.</span>
         <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-[11px]">
-          <kbd className="px-0.5 sm:px-1 py-0.5 rounded bg-slate-900/90 border border-slate-800/90 text-[9px] sm:text-[10px] text-slate-500">
+          <kbd className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
+            isDark 
+              ? 'bg-slate-900/90 border-slate-800/90 text-slate-500' 
+              : 'bg-gray-100 border-gray-300 text-gray-600'
+          }`}>
             Shift
           </kbd>
           <span>+</span>
-          <kbd className="px-0.5 sm:px-1 py-0.5 rounded bg-slate-900/90 border border-slate-800/90 text-[9px] sm:text-[10px] text-slate-500">
+          <kbd className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
+            isDark 
+              ? 'bg-slate-900/90 border-slate-800/90 text-slate-500' 
+              : 'bg-gray-100 border-gray-300 text-gray-600'
+          }`}>
             Enter
           </kbd>
           <span className="hidden sm:inline">for newline</span>

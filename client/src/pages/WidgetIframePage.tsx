@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ChatSidebar } from '@/components/widget/ChatSidebar'
 import { ChatMainArea } from '@/components/widget/ChatMainArea'
-import { ThemeProvider } from '@/context/useThemeContext'
+import { ThemeProvider, useTheme } from '@/context/useThemeContext'
 import { LanguageProvider } from '@/context/LanguageContext'
 import axios from 'axios'
 
@@ -42,6 +42,22 @@ interface Conversation {
   messages: Message[]
 }
 
+// Overlay to hide theme transition race conditions
+function ThemeLoadingOverlay() {
+  const { isThemeChanging } = useTheme()
+
+  if (!isThemeChanging) return null
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-200/90">Updating theme…</p>
+      </div>
+    </div>
+  )
+}
+
 export function WidgetIframePage() {
   const [searchParams] = useSearchParams()
   const companyId = searchParams.get('companyId') || ''
@@ -51,6 +67,7 @@ export function WidgetIframePage() {
   const key = searchParams.get('key') || ''
 
   const [companyData, setCompanyData] = useState<CompanyData | null>(null)
+  const [primaryColor, setPrimaryColor] = useState<string>('#6366f1') // Default indigo
   const [isLoading, setIsLoading] = useState(true)
   const [isValid, setIsValid] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -91,6 +108,17 @@ export function WidgetIframePage() {
         const companyResponse = await axios.get(`${BACKEND_URL}/api/companies/${companyId}`)
         const company = companyResponse.data
 
+        // Extract primary color from theme
+        let extractedPrimaryColor = '#6366f1' // Default indigo
+        if (company?.theme) {
+          // Handle both parsed and unparsed theme
+          const theme = typeof company.theme === 'string' 
+            ? JSON.parse(company.theme) 
+            : company.theme
+          extractedPrimaryColor = theme?.primaryColor || '#6366f1'
+        }
+
+        setPrimaryColor(extractedPrimaryColor)
         setCompanyData({
           ...company,
           plan: plan // Use plan from query params
@@ -165,8 +193,20 @@ export function WidgetIframePage() {
   return (
     <ThemeProvider initialTheme={theme}>
       <LanguageProvider>
-        <div className="h-screen w-screen flex bg-gradient-to-br from-slate-900 via-slate-950 to-black overflow-hidden">
-          <div className="flex flex-1 w-full h-full bg-slate-900/90 backdrop-blur-sm overflow-hidden">
+        <div
+          className="relative h-screen w-screen flex overflow-hidden"
+          style={{
+            background:
+              theme === 'dark'
+                ? 'linear-gradient(to bottom right, rgb(15 23 42), rgb(2 6 23), rgb(0 0 0))'
+                : 'linear-gradient(to bottom right, rgb(249 250 251), rgb(255 255 255), rgb(243 244 246))'
+          }}
+        >
+          <div
+            className={`flex flex-1 w-full h-full backdrop-blur-sm overflow-hidden ${
+              theme === 'dark' ? 'bg-slate-900/90' : 'bg-white/90'
+            }`}
+          >
             <ChatSidebar
               conversations={conversations}
               activeConversationId={activeConversationId}
@@ -174,6 +214,7 @@ export function WidgetIframePage() {
               onNewConversation={handleNewConversation}
               isOpen={isSidebarOpen}
               onClose={() => setIsSidebarOpen(false)}
+              primaryColor={primaryColor}
             />
             <ChatMainArea
               companyData={companyData}
@@ -185,8 +226,10 @@ export function WidgetIframePage() {
               isSidebarOpen={isSidebarOpen}
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onNewConversation={handleNewConversation}
+              primaryColor={primaryColor}
             />
           </div>
+          <ThemeLoadingOverlay />
         </div>
       </LanguageProvider>
     </ThemeProvider>

@@ -4,6 +4,8 @@ import { ChatInput } from './ChatInput'
 import { faqService } from '@/services/faqService'
 import { AnalyticsService } from '@/services/analyticsService'
 import { TranslationService } from '@/services/translationService'
+import { useTheme } from '@/context/useThemeContext'
+import { Sun, Moon } from 'lucide-react'
 
 // CompanyData interface
 interface CompanyData {
@@ -53,6 +55,7 @@ interface ChatMainAreaProps {
   isSidebarOpen: boolean
   onToggleSidebar: () => void
   onNewConversation: () => void
+  primaryColor: string
 }
 
 export function ChatMainArea({
@@ -64,11 +67,13 @@ export function ChatMainArea({
   setConversations,
   isSidebarOpen,
   onToggleSidebar,
-  onNewConversation
+  onNewConversation,
+  primaryColor
 }: ChatMainAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const { isDark, toggleTheme } = useTheme()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -328,15 +333,27 @@ export function ChatMainArea({
   }
 
   return (
-    <section className="flex-1 flex flex-col bg-gradient-to-br from-slate-900 via-slate-950 to-black transition-all duration-300 ease-in-out">
+    <section className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
+      isDark 
+        ? 'bg-gradient-to-br from-slate-900 via-slate-950 to-black' 
+        : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
+    }`}>
       {/* Header */}
-      <header className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-indigo-500/75 flex items-center justify-between bg-gradient-to-r from-slate-900/96 to-slate-900/92">
+      <header className={`px-3 sm:px-4 py-2.5 sm:py-3 border-b flex items-center justify-between transition-colors ${
+        isDark 
+          ? 'border-indigo-500/75 bg-gradient-to-r from-slate-900/96 to-slate-900/92' 
+          : 'border-gray-200 bg-gradient-to-r from-white to-gray-50'
+      }`} style={{ borderBottomColor: isDark ? undefined : `${primaryColor}20` }}>
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
           {/* Sidebar Toggle Button - Only show when sidebar is closed */}
           {!isSidebarOpen && (
             <button
               onClick={onToggleSidebar}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-md hover:bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors flex-shrink-0"
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+                isDark 
+                  ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
               aria-label="Open sidebar"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,29 +362,72 @@ export function ChatMainArea({
             </button>
           )}
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-indigo-500 flex items-center justify-center text-xs sm:text-sm font-semibold text-white shadow-[0_0_0_3px_rgba(15,23,42,0.9)] flex-shrink-0">
-            <img src={companyData.logo_url} alt={companyData.name} className="w-full h-full object-cover rounded-full" />
+            {companyData.logo_url ? (
+              <img src={companyData.logo_url} alt={companyData.name} className="w-full h-full object-cover rounded-full" />
+            ) : (
+              'Q'
+            )}
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="text-xs sm:text-sm font-semibold text-slate-200 truncate">
+            <div className={`text-xs sm:text-sm font-semibold truncate ${
+              isDark ? 'text-slate-200' : 'text-gray-900'
+            }`}>
               {companyData.name || 'Qurius AI'} Assistant
             </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">
+            <div className={`text-[10px] sm:text-[11px] hidden sm:block ${
+              isDark ? 'text-slate-500' : 'text-gray-500'
+            }`}>
               Answers based on your docs & website.
             </div>
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-          <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border border-indigo-500/70 bg-indigo-500/14 text-[10px] sm:text-[11px] text-indigo-200 flex items-center gap-0.5 sm:gap-1">
+          <div 
+            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-[11px] flex items-center gap-0.5 sm:gap-1 ${
+              isDark 
+                ? 'border-indigo-500/70 bg-indigo-500/14 text-indigo-200' 
+                : 'text-gray-700'
+            }`}
+            style={!isDark ? { 
+              borderColor: `${primaryColor}40`, 
+              backgroundColor: `${primaryColor}10` 
+            } : {}}
+          >
             <span>⚡</span>
             <span className="hidden sm:inline">AI‑powered</span>
           </div>
-          <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border border-slate-700/50 bg-slate-900/80 text-[10px] sm:text-[11px] text-slate-400 hidden sm:block">
+          <div className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-[11px] hidden sm:block ${
+            isDark 
+              ? 'border-slate-700/50 bg-slate-900/80 text-slate-400' 
+              : 'border-gray-200 bg-gray-100 text-gray-600'
+          }`}>
             Private
           </div>
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+              isDark 
+                ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
+            ) : (
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+            )}
+          </button>
           {/* New Chat Button */}
           <button
             onClick={onNewConversation}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-md hover:bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors flex-shrink-0"
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+              isDark 
+                ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
             aria-label="New chat"
             title="New chat"
           >
@@ -385,12 +445,13 @@ export function ChatMainArea({
           isTyping={isTyping} 
           companyData={companyData}
           onRatingChange={handleRatingChange}
+          primaryColor={primaryColor}
         />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <ChatInput onSendMessage={handleSendMessage} disabled={isTyping} />
+      <ChatInput onSendMessage={handleSendMessage} disabled={isTyping} primaryColor={primaryColor} />
     </section>
   )
 }

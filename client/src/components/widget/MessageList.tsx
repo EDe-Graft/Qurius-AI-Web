@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { User, Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react'
+import { useTheme } from '@/context/useThemeContext'
 
 interface Message {
   id: string
@@ -23,10 +24,12 @@ interface MessageListProps {
   isTyping: boolean
   companyData: CompanyData
   onRatingChange?: (messageId: string, rating: 'like' | 'dislike' | null) => void
+  primaryColor: string
 }
 
-export function MessageList({ messages, isTyping, companyData, onRatingChange }: MessageListProps) {
+export function MessageList({ messages, isTyping, companyData, onRatingChange, primaryColor }: MessageListProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const { isDark } = useTheme()
 
   const handleCopy = async (messageId: string, content: string) => {
     try {
@@ -46,10 +49,16 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
     <div className="flex flex-col gap-2 sm:gap-3">
       {/* System Banner */}
       {messages.length === 1 && (
-        <div className="mx-auto mb-1 sm:mb-2 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full bg-slate-900/90 border border-slate-800/90 text-[10px] sm:text-[11px] text-slate-500 inline-flex items-center gap-1 sm:gap-1.5">
+        <div className={`mx-auto mb-1 sm:mb-2 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border text-[10px] sm:text-[11px] inline-flex items-center gap-1 sm:gap-1.5 ${
+          isDark 
+            ? 'bg-slate-900/90 border-slate-800/90 text-slate-500' 
+            : 'bg-gray-100 border-gray-200 text-gray-600'
+        }`}>
           <span>✨</span>
           <span>
-            <strong className="text-slate-400 font-medium">Pro tip:</strong> <span className="hidden sm:inline">Ask one focused question at a time for best results.</span><span className="sm:hidden">Ask one question at a time.</span>
+            <strong className={`font-medium ${
+              isDark ? 'text-slate-400' : 'text-gray-700'
+            }`}>Pro tip:</strong> <span className="hidden sm:inline">Ask one focused question at a time for best results.</span><span className="sm:hidden">Ask one question at a time.</span>
           </span>
         </div>
       )}
@@ -95,9 +104,17 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
             <div
               className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border ${
                 message.isUser
-                  ? 'bg-indigo-600 border-indigo-500/80 text-slate-50'
-                  : 'bg-slate-900/95 border-slate-800/80 text-slate-200'
+                  ? isDark
+                    ? 'bg-indigo-600 border-indigo-500/80 text-slate-50'
+                    : 'text-white'
+                  : isDark
+                    ? 'bg-slate-900/95 border-slate-800/80 text-slate-200'
+                    : 'bg-white border-gray-200 text-gray-900'
               }`}
+              style={message.isUser ? {
+                background: isDark ? undefined : primaryColor,
+                borderColor: isDark ? undefined : primaryColor
+              } : {}}
             >
               <MessageBubble
                 content={message.isStreaming && message.streamingContent !== undefined 
@@ -116,7 +133,9 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
                   className={`p-1 rounded-md transition-colors ${
                     message.liked === 'like'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'text-slate-500 hover:text-emerald-400 hover:bg-slate-800/50'
+                      : isDark
+                        ? 'text-slate-500 hover:text-emerald-400 hover:bg-slate-800/50'
+                        : 'text-gray-500 hover:text-emerald-400 hover:bg-gray-100'
                   }`}
                   title="Thumbs up"
                 >
@@ -127,7 +146,9 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
                   className={`p-1 rounded-md transition-colors ${
                     message.liked === 'dislike'
                       ? 'bg-red-500/20 text-red-400'
-                      : 'text-slate-500 hover:text-red-400 hover:bg-slate-800/50'
+                      : isDark
+                        ? 'text-slate-500 hover:text-red-400 hover:bg-slate-800/50'
+                        : 'text-gray-500 hover:text-red-400 hover:bg-gray-100'
                   }`}
                   title="Thumbs down"
                 >
@@ -137,9 +158,24 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
                   onClick={() => handleCopy(message.id, message.content)}
                   className={`p-1 rounded-md transition-colors ${
                     copiedMessageId === message.id
-                      ? 'bg-indigo-500/20 text-indigo-400'
-                      : 'text-slate-500 hover:text-indigo-400 hover:bg-slate-800/50'
+                      ? 'text-white'
+                      : isDark
+                        ? 'text-slate-500 hover:bg-slate-800/50'
+                        : 'text-gray-500 hover:bg-gray-100'
                   }`}
+                  style={copiedMessageId === message.id ? {
+                    backgroundColor: primaryColor
+                  } : {}}
+                  onMouseEnter={(e) => {
+                    if (copiedMessageId !== message.id) {
+                      e.currentTarget.style.color = primaryColor
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (copiedMessageId !== message.id) {
+                      e.currentTarget.style.color = ''
+                    }
+                  }}
                   title="Copy message"
                 >
                   {copiedMessageId === message.id ? (
@@ -150,7 +186,9 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange }:
                 </button>
               </div>
             )}
-            <p className="text-[10px] sm:text-[11px] text-slate-600 px-0.5 sm:px-1">
+            <p className={`text-[10px] sm:text-[11px] px-0.5 sm:px-1 ${
+              isDark ? 'text-slate-600' : 'text-gray-500'
+            }`}>
               {message.isUser ? 'You' : 'AI'} · {message.timestamp}
             </p>
           </div>
