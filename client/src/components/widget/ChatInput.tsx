@@ -6,9 +6,10 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void
   disabled?: boolean
   primaryColor: string
+  showAttribution?: boolean
 }
 
-export function ChatInput({ onSendMessage, disabled, primaryColor }: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled, primaryColor, showAttribution }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -124,27 +125,59 @@ export function ChatInput({ onSendMessage, disabled, primaryColor }: ChatInputPr
           <span>➤</span>
         </button>
       </form>
-      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 text-[10px] sm:text-[11px] ${
-        isDark ? 'text-slate-600' : 'text-gray-500'
-      }`}>
-        <span className="hidden sm:inline">Qurius AI may make mistakes. Please verify important information.</span>
+      {/* Warning text above shortcuts/attribution */}
+      <div
+        className={`flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 text-[10px] sm:text-[11px] ${
+          isDark ? 'text-slate-600' : 'text-gray-500'
+        }`}
+      >
+        <span className="hidden sm:inline">
+          Qurius AI may make mistakes. Please verify important information.
+        </span>
+      </div>
+
+      {/* Bottom row: attribution (left) + Shift+Enter label (right) */}
+      <div
+        className={`mt-0.5 flex items-center text-[10px] sm:text-[11px] ${
+          isDark ? 'text-slate-600' : 'text-gray-500'
+        } ${showAttribution ? 'justify-between' : 'justify-end'}`}
+      >
+        {showAttribution && (
+          <span>
+            Powered by{' '}
+            <a
+              href="https://qurius.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold hover:underline transition-all"
+              style={{ color: primaryColor }}
+            >
+              Qurius AI
+            </a>
+          </span>
+        )}
         <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-[11px]">
-          <kbd className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
-            isDark 
-              ? 'bg-slate-900/90 border-slate-800/90 text-slate-500' 
-              : 'bg-gray-100 border-gray-300 text-gray-600'
-          }`}>
+          <span>Press</span>
+          <kbd
+            className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
+              isDark
+                ? 'bg-slate-900/90 border-slate-800/90 text-slate-500'
+                : 'bg-gray-100 border-gray-300 text-gray-600'
+            }`}
+          >
             Shift
           </kbd>
           <span>+</span>
-          <kbd className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
-            isDark 
-              ? 'bg-slate-900/90 border-slate-800/90 text-slate-500' 
-              : 'bg-gray-100 border-gray-300 text-gray-600'
-          }`}>
+          <kbd
+            className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
+              isDark
+                ? 'bg-slate-900/90 border-slate-800/90 text-slate-500'
+                : 'bg-gray-100 border-gray-300 text-gray-600'
+            }`}
+          >
             Enter
           </kbd>
-          <span className="hidden sm:inline">for newline</span>
+          <span>for new line</span>
         </span>
       </div>
     </div>

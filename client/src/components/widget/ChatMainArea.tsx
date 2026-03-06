@@ -5,6 +5,7 @@ import { faqService } from '@/services/faqService'
 import { AnalyticsService } from '@/services/analyticsService'
 import { TranslationService } from '@/services/translationService'
 import { useTheme } from '@/context/useThemeContext'
+import { useLanguage, LANGUAGE_FLAGS } from '@/context/LanguageContext'
 import { Sun, Moon } from 'lucide-react'
 
 // CompanyData interface
@@ -74,6 +75,35 @@ export function ChatMainArea({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { isDark, toggleTheme } = useTheme()
+  const { currentLanguage, setLanguage } = useLanguage()
+
+  const handleToggleFullscreen = () => {
+    if (typeof window === 'undefined') return
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { source: 'qurius-widget', type: 'qurius-toggle-fullscreen' },
+          '*'
+        )
+      }
+    } catch (error) {
+      console.error('Failed to toggle fullscreen from widget iframe:', error)
+    }
+  }
+
+  const handleCloseWidget = () => {
+    if (typeof window === 'undefined') return
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { source: 'qurius-widget', type: 'qurius-close-widget' },
+          '*'
+        )
+      }
+    } catch (error) {
+      console.error('Failed to close widget from iframe:', error)
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -400,20 +430,6 @@ export function ChatMainArea({
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-          <div 
-            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-[11px] flex items-center gap-0.5 sm:gap-1 ${
-              isDark 
-                ? 'border-indigo-500/70 bg-indigo-500/14 text-indigo-200' 
-                : 'text-gray-700'
-            }`}
-            style={!isDark ? { 
-              borderColor: `${primaryColor}40`, 
-              backgroundColor: `${primaryColor}10` 
-            } : {}}
-          >
-            <span>⚡</span>
-            <span className="hidden sm:inline">AI‑powered</span>
-          </div>
           <div className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-[11px] hidden sm:block ${
             isDark 
               ? 'border-slate-700/50 bg-slate-900/80 text-slate-400' 
@@ -421,6 +437,30 @@ export function ChatMainArea({
           }`}>
             Private
           </div>
+          {/* Change language (cycles through supported languages) */}
+          <button
+            onClick={() => {
+              const codes = Object.keys(LANGUAGE_FLAGS) as (keyof typeof LANGUAGE_FLAGS)[]
+              const index = codes.indexOf(currentLanguage)
+              const next = codes[(index + 1) % codes.length]
+              setLanguage(next)
+            }}
+            className={`hidden sm:flex items-center justify-center rounded-md px-2 h-8 sm:h-9 text-[10px] sm:text-[11px] border flex-shrink-0 transition-colors ${
+              isDark
+                ? 'border-slate-700/60 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            aria-label="Change language"
+            title="Change language"
+            type="button"
+          >
+            <span className="mr-1.5 text-base leading-none">
+              {LANGUAGE_FLAGS[currentLanguage]}
+            </span>
+            <span className="font-medium uppercase tracking-wide">
+              {currentLanguage}
+            </span>
+          </button>
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
@@ -453,6 +493,50 @@ export function ChatMainArea({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </button>
+          {/* Fullscreen button (desktop & mobile, same visual weight as other icon buttons) */}
+          <button
+            onClick={handleToggleFullscreen}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+              isDark
+                ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
+            aria-label="Toggle fullscreen"
+            title="Toggle fullscreen"
+          >
+            <svg
+              className="w-4 h-4 sm:w-5 sm:h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+          </button>
+          {/* Close widget */}
+          <button
+            onClick={handleCloseWidget}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+              isDark
+                ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
+            aria-label="Close chat"
+            title="Close chat"
+          >
+            <svg
+              className="w-4 h-4 sm:w-5 sm:h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -468,8 +552,13 @@ export function ChatMainArea({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <ChatInput onSendMessage={handleSendMessage} disabled={isTyping} primaryColor={primaryColor} />
+      {/* Input + plan-based attribution (inside ChatInput so it sits directly under the text area) */}
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        disabled={isTyping}
+        primaryColor={primaryColor}
+        showAttribution={companyData.plan === 'free' || companyData.plan === 'starter'}
+      />
     </section>
   )
 }

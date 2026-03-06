@@ -72,6 +72,7 @@
   var container = null;
   var iframe = null;
   var launcherButton = null;
+  var fullscreenBtn = null;
   var isMobile = window.innerWidth <= 768;
 
   // ---- Helpers ----
@@ -139,131 +140,19 @@
     container.style.boxShadow = '0 20px 45px rgba(15, 23, 42, 0.45)';
     container.style.backgroundColor = 'transparent';
     container.style.transition = 'all 0.3s ease-in-out';
+    container.style.transformOrigin = 'bottom right';
 
     applyContainerLayout(); // set initial layout based on viewport
-
-    // Header bar (close + fullscreen) – only meaningful on desktop, but harmless on mobile
-    var header = document.createElement('div');
-    header.style.height = '40px';
-    header.style.display = 'flex';
-    header.style.alignItems = 'center';
-    header.style.justifyContent = 'space-between';
-    header.style.padding = '0 12px';
-    header.style.fontSize = '12px';
-    header.style.fontWeight = '500';
-    header.style.background =
-      'linear-gradient(to right, rgba(15,23,42,0.98), rgba(15,23,42,0.94))';
-    header.style.color = '#e5e7eb';
-    header.style.borderBottom = '1px solid rgba(55,65,81,0.9)';
-
-    var title = document.createElement('div');
-    title.textContent = 'Qurius AI Assistant';
-    title.style.display = 'flex';
-    title.style.alignItems = 'center';
-    title.style.gap = '6px';
-    title.style.fontSize = '12px';
-
-    var dot = document.createElement('span');
-    dot.style.display = 'inline-block';
-    dot.style.width = '6px';
-    dot.style.height = '6px';
-    dot.style.borderRadius = '9999px';
-    dot.style.backgroundColor = '#22c55e';
-
-    var titleText = document.createElement('span');
-    titleText.textContent = 'Online';
-    titleText.style.opacity = '0.9';
-
-    title.appendChild(dot);
-    title.appendChild(titleText);
-
-    var controls = document.createElement('div');
-    controls.style.display = 'flex';
-    controls.style.alignItems = 'center';
-    controls.style.gap = '6px';
-
-    // Fullscreen toggle button (desktop only)
-    var fullscreenBtn = document.createElement('button');
-    fullscreenBtn.type = 'button';
-    fullscreenBtn.setAttribute('aria-label', 'Toggle fullscreen');
-    fullscreenBtn.style.width = '24px';
-    fullscreenBtn.style.height = '24px';
-    fullscreenBtn.style.borderRadius = '9999px';
-    fullscreenBtn.style.border = 'none';
-    fullscreenBtn.style.display = 'flex';
-    fullscreenBtn.style.alignItems = 'center';
-    fullscreenBtn.style.justifyContent = 'center';
-    fullscreenBtn.style.cursor = 'pointer';
-    fullscreenBtn.style.backgroundColor = 'transparent';
-    fullscreenBtn.style.color = '#9ca3af';
-    fullscreenBtn.style.transition = 'background-color 0.15s ease, color 0.15s ease';
-
-    fullscreenBtn.onmouseenter = function () {
-      fullscreenBtn.style.backgroundColor = 'rgba(31,41,55,0.85)';
-      fullscreenBtn.style.color = '#e5e7eb';
-    };
-    fullscreenBtn.onmouseleave = function () {
-      fullscreenBtn.style.backgroundColor = 'transparent';
-      fullscreenBtn.style.color = '#9ca3af';
-    };
-
-    fullscreenBtn.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
-
-    fullscreenBtn.onclick = function (e) {
-      e.stopPropagation();
-      toggleFullscreen();
-    };
-
-    // Close button
-    var closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.setAttribute('aria-label', 'Close chat');
-    closeBtn.style.width = '24px';
-    closeBtn.style.height = '24px';
-    closeBtn.style.borderRadius = '9999px';
-    closeBtn.style.border = 'none';
-    closeBtn.style.display = 'flex';
-    closeBtn.style.alignItems = 'center';
-    closeBtn.style.justifyContent = 'center';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.backgroundColor = 'transparent';
-    closeBtn.style.color = '#9ca3af';
-    closeBtn.style.transition = 'background-color 0.15s ease, color 0.15s ease';
-
-    closeBtn.onmouseenter = function () {
-      closeBtn.style.backgroundColor = 'rgba(31,41,55,0.85)';
-      closeBtn.style.color = '#e5e7eb';
-    };
-    closeBtn.onmouseleave = function () {
-      closeBtn.style.backgroundColor = 'transparent';
-      closeBtn.style.color = '#9ca3af';
-    };
-
-    closeBtn.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-
-    closeBtn.onclick = function (e) {
-      e.stopPropagation();
-      closeWidget();
-    };
-
-    controls.appendChild(fullscreenBtn);
-    controls.appendChild(closeBtn);
-
-    header.appendChild(title);
-    header.appendChild(controls);
 
     // Iframe
     iframe = document.createElement('iframe');
     iframe.id = 'qurius-widget-iframe';
     iframe.src = iframeSrc;
     iframe.style.width = '100%';
-    iframe.style.height = 'calc(100% - 40px)'; // minus header height
+    iframe.style.height = '100%';
     iframe.style.border = 'none';
     iframe.style.display = 'block';
 
-    container.appendChild(header);
     container.appendChild(iframe);
     document.body.appendChild(container);
   }
@@ -274,9 +163,9 @@
     isMobile = window.innerWidth <= 768;
 
     if (isFullscreen) {
-      // Fullscreen mode - cover entire viewport
-      container.style.top = '0';
-      container.style.left = '0';
+      // Fullscreen mode - cover entire viewport, expanding from bottom-right
+      container.style.top = 'auto';
+      container.style.left = 'auto';
       container.style.right = '0';
       container.style.bottom = '0';
       container.style.width = '100vw';
@@ -337,6 +226,20 @@
     applyContainerLayout();
   }
 
+  // Listen for messages from the iframe to control fullscreen/close
+  function handleMessage(event) {
+    if (!event || !event.data) return;
+    var data = event.data;
+
+    if (data && data.source === 'qurius-widget') {
+      if (data.type === 'qurius-close-widget') {
+        closeWidget();
+      } else if (data.type === 'qurius-toggle-fullscreen') {
+        toggleFullscreen();
+      }
+    }
+  }
+
   function handleResize() {
     applyContainerLayout();
   }
@@ -347,6 +250,7 @@
       createLauncherButton();
       createContainerAndIframe();
       window.addEventListener('resize', handleResize);
+      window.addEventListener('message', handleMessage);
     } catch (e) {
       console.error('Qurius AI: Failed to initialize widget iframe embed:', e);
     }
