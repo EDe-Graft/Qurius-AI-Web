@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, X, Copy, Check, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import { CompanyService } from '@/services/companyService';
 
 // Get backend URL from environment
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -9,17 +10,16 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 interface IntegrationCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  companyName: string;
   companyId: string;
   plan: string;
 }
 
-export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, plan }: IntegrationCodeModalProps) {
+export function IntegrationCodeModal({ isOpen, onClose, companyId, plan }: IntegrationCodeModalProps) {
   const [copied, setCopied] = useState(false);
   const [widgetKey, setWidgetKey] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isWixUser, setIsWixUser] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string>('#6366f1'); // Default indigo
 
   // Handle click outside modal to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -42,6 +42,24 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
     }
   }, [isOpen]);
 
+  // Fetch company data to get primaryColor
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      if (isOpen && companyId) {
+        try {
+          const company = await CompanyService.getCompanyById(companyId);
+          if (company?.theme?.primaryColor) {
+            setPrimaryColor(company.theme.primaryColor);
+          }
+        } catch (error) {
+          console.error('Failed to fetch company data:', error);
+        }
+      }
+    };
+
+    fetchCompanyData();
+  }, [isOpen, companyId]);
+
   // Scroll to top when modal opens with loading screen
   useEffect(() => {
     if (isOpen) {
@@ -57,21 +75,13 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
     }
   }, [isOpen]);
 
-  // Remove automatic Wix detection since users access this from admin page
-  // Users will manually confirm if they're using Wix
-
   const getIntegrationCode = () => {
     if (!widgetKey) {
       return '<!-- Click "Generate New Key" to get your widget integration code -->'
     }
 
-    if (isWixUser) {
-      // Wix Iframe Embed (using iframe-embed.js)
-      return `<script src="https://qurius.app/iframe-embed.js" data-company="${companyName}" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="light"></script>`
-    }
-
-    // Standard embed for non-Wix users
-    return `<script src="https://qurius.app/embed.js" data-company="${companyName}" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="light"></script>`
+    // All websites now use the iframe embed method
+    return `<script src="https://qurius.app/widget-iframe-embed.js" data-id="${companyId}" data-key="${widgetKey}" data-plan="${plan}" data-theme="dark" data-primary-color="${primaryColor}"></script>`
   }
 
   const copyIntegrationCode = async () => {
@@ -178,61 +188,6 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
                 </div>
               )}
 
-              {/* Wix User Confirmation */}
-              {widgetKey && (
-                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 mb-4">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                    🌐 Website Platform
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <input
-                        type="radio"
-                        id="not-wix"
-                        name="platform"
-                        checked={!isWixUser}
-                        onChange={() => setIsWixUser(false)}
-                        className="text-blue-600 focus:ring-blue-500 mt-1"
-                      />
-                      <label htmlFor="not-wix" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                        <strong>Standard Website</strong> - WordPress, Shopify, custom HTML, etc.
-                      </label>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <input
-                        type="radio"
-                        id="is-wix"
-                        name="platform"
-                        checked={isWixUser}
-                        onChange={() => setIsWixUser(true)}
-                        className="text-purple-600 focus:ring-purple-500 mt-1"
-                      />
-                      <label htmlFor="is-wix" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                        <strong>Wix Website</strong> - Wix users can use the iframe embed method.
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Wix Integration Info */}
-              {/* {isWixUser && widgetKey && (
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-3">
-                    🎯 Wix Integration Method
-                  </h3>
-                  <div className="flex items-center space-x-2">
-                    <Monitor className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm text-purple-800 dark:text-purple-200">
-                      <strong>Iframe Embed</strong> - Uses iframe-embed.js for optimal Wix compatibility
-                    </span>
-                  </div>
-                  <div className="mt-3 text-xs text-purple-700 dark:text-purple-300">
-                    <p><strong>Features:</strong> Full React widget experience, hover effects, company theming, and seamless Wix integration</p>
-                    <p><strong>Compatibility:</strong> Works with all Wix site types and custom domains</p>
-                  </div>
-                </div>
-              )} */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -266,24 +221,11 @@ export function IntegrationCodeModal({ isOpen, onClose, companyName, companyId, 
                   📋 Instructions
                 </h3>
                 <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                  {isWixUser ? (
-                    <>
-                      <li>• Copy the code above</li>
-                      <li>• Paste it into your Wix site's Custom Code section</li>
-                      <li>• Add to &lt;head&gt; or before &lt;/body&gt; tag</li>
-                      <li>• The widget will automatically appear on your Wix site</li>
-                      <li>• Features: hover effects, company theming, and seamless integration</li>
-                      <li>• If you need to regenerate your key, any previous keys will stop working</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>• Copy the code above</li>
-                      <li>• Paste it into your website's HTML, preferably before the closing &lt;/body&gt; tag</li>
-                      <li>• The widget will automatically appear on your website</li>
-                      <li>• Make sure your website is accessible via HTTPS for the widget to work properly</li>
-                      <li>• If you need to regenerate your key, any previous keys will stop working</li>
-                    </>
-                  )}
+                  <li>• Copy the code above</li>
+                  <li>• Paste it into your website's HTML, preferably before the closing &lt;/body&gt; tag</li>
+                  <li>• The widget will automatically appear on your website</li>
+                  <li>• Make sure your website is accessible via HTTPS for the widget to work properly</li>
+                  <li>• If you need to regenerate your key, any previous keys will stop working</li>
                 </ul>
               </div>
             </div>

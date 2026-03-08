@@ -36,6 +36,7 @@
   var key = script.getAttribute('data-key') || '';
   var plan = script.getAttribute('data-plan') || 'starter';
   var theme = script.getAttribute('data-theme') || 'dark';
+  var primaryColor = script.getAttribute('data-primary-color') || '#6366f1'; // Default indigo
 
   if (!companyId || !key) {
     console.error(
@@ -87,40 +88,56 @@
     launcherButton.style.position = 'fixed';
     launcherButton.style.bottom = '20px';
     launcherButton.style.right = '20px';
-    launcherButton.style.width = '56px';
-    launcherButton.style.height = '56px';
-    launcherButton.style.borderRadius = '9999px';
+    launcherButton.style.padding = '12px 20px';
+    launcherButton.style.borderRadius = '8px';
     launcherButton.style.border = 'none';
     launcherButton.style.cursor = 'pointer';
     launcherButton.style.zIndex = '999998';
     launcherButton.style.display = 'flex';
     launcherButton.style.alignItems = 'center';
     launcherButton.style.justifyContent = 'center';
-    launcherButton.style.boxShadow = '0 10px 30px rgba(15, 23, 42, 0.35)';
-    launcherButton.style.background =
-      'linear-gradient(135deg, #4f46e5, #6366f1)';
+    launcherButton.style.gap = '8px';
+    launcherButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    launcherButton.style.background = primaryColor;
     launcherButton.style.color = '#ffffff';
-    launcherButton.style.fontSize = '20px';
+    launcherButton.style.fontSize = '14px';
+    launcherButton.style.fontWeight = '500';
+    launcherButton.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     launcherButton.style.transition =
-      'transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease';
+      'transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease, filter 0.2s ease';
+
+    // Helper function to darken color for hover
+    function darkenColor(color, percent) {
+      var num = parseInt(color.replace('#', ''), 16);
+      var amt = Math.round(2.55 * percent);
+      var R = (num >> 16) + amt;
+      var G = (num >> 8 & 0x00FF) + amt;
+      var B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
 
     launcherButton.onmouseenter = function () {
-      launcherButton.style.transform = 'translateY(-2px)';
-      launcherButton.style.boxShadow = '0 14px 40px rgba(15, 23, 42, 0.45)';
+      launcherButton.style.transform = 'translateY(-1px)';
+      launcherButton.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.25)';
+      launcherButton.style.filter = 'brightness(0.9)';
     };
 
     launcherButton.onmouseleave = function () {
       launcherButton.style.transform = 'translateY(0)';
-      launcherButton.style.boxShadow = '0 10px 30px rgba(15, 23, 42, 0.35)';
+      launcherButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+      launcherButton.style.filter = 'brightness(1)';
     };
 
     launcherButton.onclick = function () {
       openWidget();
     };
 
-    // Simple chat icon (speech bubble)
+    // "Ask AI" text with sparkle icon
     launcherButton.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4 8.5 8.5 0 0 1-6.6 3.1 8.38 8.38 0 0 1-5.4-1.9L3 21l2.9-4.1A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 7.1 4.9 8.38 8.38 0 0 1 12.5 3H13a8.5 8.5 0 0 1 8 8.5z"></path></svg>';
+      '<span style="font-size: 16px; line-height: 1;">✨</span>' +
+      '<span>Ask AI</span>';
 
     document.body.appendChild(launcherButton);
 

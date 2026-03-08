@@ -850,7 +850,6 @@ export function CompanyAdmin({ user }: CompanyAdminProps) {
       <IntegrationCodeModal
         isOpen={showIntegrationCode}
         onClose={() => setShowIntegrationCode(false)}
-        companyName={company?.name || ''}
         companyId={company?.id || ''}
         plan={company?.plan || ''}
       />

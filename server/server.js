@@ -2379,15 +2379,15 @@ app.get('/api/validate-key', async (req, res) => {
   console.log('🔑 Validating key:', key, 'for company with id:', companyId);
 
   // Demo key validation
-  if (key.includes('demo-2025')) {
-    return res.json({
-      valid: true,
-      companyId: companyId || null,
-      plan: 'demo',
-      features: ['chat', 'faq', 'analytics'],
-      demo: true
-    });
-  }
+  // if (key.includes('demo-2025')) {
+  //   return res.json({
+  //     valid: true,
+  //     companyId: companyId || null,
+  //     plan: 'demo',
+  //     features: ['chat', 'faq', 'analytics'],
+  //     demo: true
+  //   });
+  // }
 
   try {
     const supabaseUrl = process.env.SUPABASE_PROJECT_URL;

@@ -852,7 +852,6 @@ export function QuriusAdmin({ user }: QuriusAdminProps) {
       <IntegrationCodeModal
         isOpen={integrationModal.isOpen}
         onClose={closeIntegrationModal}
-        companyName={integrationModal.companyName}
         companyId={integrationModal.companyId}
         plan={integrationModal.plan}
       />

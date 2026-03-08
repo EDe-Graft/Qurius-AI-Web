@@ -255,12 +255,12 @@ export function Docs() {
                 code={`<!-- Add this script right before the closing </body> tag -->
 
 <script
-  src="https://qurius.app/iframe-embed.js"
-  data-company="Your SaaS Product"
+  src="https://qurius.app/widget-iframe-embed.js"
   data-id="your-company-id"
   data-key="your-public-api-key"
   data-plan="pro"
-  data-theme="light"
+  data-theme="dark"
+  data-primary-color="#6366f1"
 ></script>
 `}
                 title="Assistant Integration Code"
