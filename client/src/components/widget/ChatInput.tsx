@@ -41,14 +41,14 @@ export function ChatInput({ onSendMessage, disabled, primaryColor, showAttributi
   }
 
   return (
-    <div className={`px-3 sm:px-4 py-2.5 sm:py-3 border-t flex flex-col gap-1 sm:gap-1.5 transition-colors ${
+    <div className={`px-4 sm:px-6 py-2.5 sm:py-3 border-t flex flex-col gap-1 sm:gap-1.5 transition-colors ${
       isDark 
         ? 'border-indigo-500/75 bg-gradient-to-b from-slate-900 to-slate-950' 
         : 'border-gray-200 bg-gradient-to-b from-white to-gray-50'
     }`} style={!isDark ? { borderTopColor: `${primaryColor}30` } : {}}>
       <form onSubmit={handleSubmit} className="flex items-end gap-2 sm:gap-2.5">
         <div 
-          className={`flex-1 rounded-full flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 transition-all ${
+          className={`flex-1 rounded-full flex items-start px-1.5 sm:px-2 py-0.5 sm:py-1 transition-all overflow-hidden ${
             isDark 
               ? 'bg-slate-900/88 border' 
               : 'bg-gray-100/90 border'
@@ -70,16 +70,20 @@ export function ChatInput({ onSendMessage, disabled, primaryColor, showAttributi
             placeholder="Ask anything..."
             disabled={disabled}
             rows={1}
-            className={`flex-1 resize-none bg-transparent border-none outline-none px-1 sm:px-1.5 py-0.5 sm:py-1 text-xs sm:text-sm max-h-[72px] overflow-y-auto ${
+            className={`flex-1 resize-none bg-transparent border-none outline-none px-1 sm:px-1.5 py-0.5 sm:py-1 text-xs sm:text-sm max-h-[72px] overflow-y-auto min-h-[20px] ${
               isDark 
-                ? 'text-slate-200 placeholder:text-slate-600' 
-                : 'text-gray-900 placeholder:text-gray-500'
+                ? 'text-slate-200 placeholder:text-slate-400' 
+                : 'text-gray-900 placeholder:text-gray-400'
             }`}
+            style={{
+              maxHeight: '72px',
+              overflowY: 'auto'
+            }}
           />
           <div className="flex items-center gap-1 sm:gap-1.5 pl-0.5 sm:pl-1">
             <button
               type="button"
-              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
+              className={`hidden w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
                 isDark 
                   ? 'border-slate-800/90 bg-slate-900/90 text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200' 
                   : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-100'
@@ -93,7 +97,7 @@ export function ChatInput({ onSendMessage, disabled, primaryColor, showAttributi
             </button>
             <button
               type="button"
-              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
+              className={`hidden w-6 h-6 sm:w-7 sm:h-7 rounded-full border flex items-center justify-center transition-all hover:-translate-y-px ${
                 isDark 
                   ? 'border-slate-800/90 bg-slate-900/90 text-slate-500 hover:bg-indigo-500/50 hover:border-indigo-500/90 hover:text-slate-200' 
                   : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-100'

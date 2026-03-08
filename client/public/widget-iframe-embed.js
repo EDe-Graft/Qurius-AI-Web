@@ -152,6 +152,14 @@
     iframe.style.height = '100%';
     iframe.style.border = 'none';
     iframe.style.display = 'block';
+    
+    // Send fullscreen state after iframe loads
+    iframe.onload = function() {
+      // Small delay to ensure iframe is fully ready
+      setTimeout(function() {
+        notifyIframeFullscreenState();
+      }, 100);
+    };
 
     container.appendChild(iframe);
     document.body.appendChild(container);
@@ -204,6 +212,7 @@
       launcherButton.style.pointerEvents = 'none';
     }
     applyContainerLayout();
+    notifyIframeFullscreenState();
   }
 
   function closeWidget() {
@@ -224,6 +233,24 @@
 
     isFullscreen = !isFullscreen;
     applyContainerLayout();
+    notifyIframeFullscreenState();
+  }
+
+  // Inform the iframe of fullscreen state so it can adjust UI
+  function notifyIframeFullscreenState() {
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      iframe.contentWindow.postMessage(
+        {
+          source: 'qurius-embed',
+          type: 'qurius-fullscreen-changed',
+          isFullscreen: isFullscreen
+        },
+        '*'
+      );
+    } catch (e) {
+      // Fail silently; this is non-critical UX info
+    }
   }
 
   // Listen for messages from the iframe to control fullscreen/close
@@ -236,6 +263,9 @@
         closeWidget();
       } else if (data.type === 'qurius-toggle-fullscreen') {
         toggleFullscreen();
+      } else if (data.type === 'qurius-request-fullscreen-state') {
+        // Respond to iframe's request for current fullscreen state
+        notifyIframeFullscreenState();
       }
     }
   }

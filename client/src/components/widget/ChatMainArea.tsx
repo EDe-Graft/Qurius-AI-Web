@@ -5,8 +5,9 @@ import { faqService } from '@/services/faqService'
 import { AnalyticsService } from '@/services/analyticsService'
 import { TranslationService } from '@/services/translationService'
 import { useTheme } from '@/context/useThemeContext'
-import { useLanguage, LANGUAGE_FLAGS } from '@/context/LanguageContext'
-import { Sun, Moon } from 'lucide-react'
+import { useLanguage, LANGUAGE_FLAGS, LANGUAGE_NAMES } from '@/context/LanguageContext'
+import type { Language } from '@/context/LanguageContext'
+import { Sun, Moon, Globe, ChevronDown } from 'lucide-react'
 
 // CompanyData interface
 interface CompanyData {
@@ -57,6 +58,7 @@ interface ChatMainAreaProps {
   onToggleSidebar: () => void
   onNewConversation: () => void
   primaryColor: string
+  isFullscreen: boolean
 }
 
 export function ChatMainArea({
@@ -69,13 +71,23 @@ export function ChatMainArea({
   isSidebarOpen,
   onToggleSidebar,
   onNewConversation,
-  primaryColor
+  primaryColor,
+  isFullscreen
 }: ChatMainAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { isDark, toggleTheme } = useTheme()
-  const { currentLanguage, setLanguage } = useLanguage()
+  const { currentLanguage, setLanguage, isLanguageChanging } = useLanguage()
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+
+  const handleLanguageChange = (language: Language) => {
+    setLanguage(language)
+    setIsLanguageMenuOpen(false)
+    if (companyData.name) {
+      AnalyticsService.trackLanguageChange(companyData.name, companyData.id || '', language)
+    }
+  }
 
   const handleToggleFullscreen = () => {
     if (typeof window === 'undefined') return
@@ -369,7 +381,7 @@ export function ChatMainArea({
         : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
     }`}>
       {/* Header */}
-      <header className={`px-3 sm:px-4 py-2.5 sm:py-3 border-b flex items-center justify-between transition-colors ${
+      <header className={`relative z-50 px-3 sm:px-4 py-2.5 sm:py-3 border-b flex items-center justify-between transition-colors ${
         isDark 
           ? 'border-indigo-500/75 bg-gradient-to-r from-slate-900/96 to-slate-900/92' 
           : 'border-gray-200 bg-gradient-to-r from-white to-gray-50'
@@ -420,7 +432,7 @@ export function ChatMainArea({
             <div className={`text-xs sm:text-sm font-semibold truncate ${
               isDark ? 'text-slate-200' : 'text-gray-900'
             }`}>
-              {companyData.name || 'Qurius AI'} Assistant
+              {companyData.name || 'AI'} Assistant
             </div>
             <div className={`text-[10px] sm:text-[11px] hidden sm:block ${
               isDark ? 'text-slate-500' : 'text-gray-500'
@@ -437,40 +449,80 @@ export function ChatMainArea({
           }`}>
             Private
           </div>
-          {/* Change language (cycles through supported languages) */}
-          <button
-            onClick={() => {
-              const codes = Object.keys(LANGUAGE_FLAGS) as (keyof typeof LANGUAGE_FLAGS)[]
-              const index = codes.indexOf(currentLanguage)
-              const next = codes[(index + 1) % codes.length]
-              setLanguage(next)
-            }}
-            className={`hidden sm:flex items-center justify-center rounded-md px-2 h-8 sm:h-9 text-[10px] sm:text-[11px] border flex-shrink-0 transition-colors ${
-              isDark
-                ? 'border-slate-700/60 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-            aria-label="Change language"
-            title="Change language"
-            type="button"
-          >
-            <span className="mr-1.5 text-base leading-none">
-              {LANGUAGE_FLAGS[currentLanguage]}
-            </span>
-            <span className="font-medium uppercase tracking-wide">
-              {currentLanguage}
-            </span>
-          </button>
+          {/* Change language dropdown (matches main page LanguageSelector) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              disabled={isLanguageChanging}
+              className={`flex items-center px-1.5 sm:px-2 py-1 rounded-md h-8 sm:h-9 text-[10px] sm:text-[11px] border flex-shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDark
+                  ? 'border-slate-700/60 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+              aria-label="Change language"
+              title="Change language"
+              type="button"
+            >
+              <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+              <span className="mr-1 text-base leading-none">
+                {LANGUAGE_FLAGS[currentLanguage]}
+              </span>
+              <ChevronDown className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ml-0.5 transition-transform ${isLanguageMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isLanguageMenuOpen && (
+              <>
+                <div
+                  className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-50 ${
+                    isDark
+                      ? 'bg-slate-900 border-slate-700'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="py-1">
+                    {(Object.keys(LANGUAGE_NAMES) as Language[]).map((code) => (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => handleLanguageChange(code)}
+                        className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm text-left transition-colors ${
+                          code === currentLanguage
+                            ? isDark
+                              ? 'bg-blue-900/20 text-blue-300'
+                              : 'bg-blue-50 text-blue-700'
+                            : isDark
+                              ? 'text-slate-300 hover:bg-slate-800'
+                              : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="mr-3 text-base">
+                          {LANGUAGE_FLAGS[code]}
+                        </span>
+                        {LANGUAGE_NAMES[code]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Backdrop to close dropdown */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsLanguageMenuOpen(false)}
+                  onTouchStart={() => setIsLanguageMenuOpen(false)}
+                />
+              </>
+            )}
+          </div>
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+            className={`relative z-50 w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 touch-manipulation ${
               isDark 
                 ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
             }`}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            type="button"
           >
             {isDark ? (
               <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -478,25 +530,28 @@ export function ChatMainArea({
               <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
           </button>
-          {/* New Chat Button */}
-          <button
-            onClick={onNewConversation}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
-              isDark 
-                ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-            }`}
-            aria-label="New chat"
-            title="New chat"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-          {/* Fullscreen button (desktop & mobile, same visual weight as other icon buttons) */}
+          {/* New Chat Button - only visible when iframe is fullscreen */}
+          {isFullscreen && (
+            <button
+              onClick={onNewConversation}
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+                isDark 
+                  ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              aria-label="New chat"
+              title="New chat"
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
+          {/* Fullscreen button (desktop only) */}
           <button
             onClick={handleToggleFullscreen}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+            className={`hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 rounded-md items-center justify-center transition-colors flex-shrink-0 ${
               isDark
                 ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
@@ -519,13 +574,14 @@ export function ChatMainArea({
           {/* Close widget */}
           <button
             onClick={handleCloseWidget}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 ${
+            className={`relative z-50 w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center transition-colors flex-shrink-0 touch-manipulation ${
               isDark
                 ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
             }`}
             aria-label="Close chat"
             title="Close chat"
+            type="button"
           >
             <svg
               className="w-4 h-4 sm:w-5 sm:h-5"

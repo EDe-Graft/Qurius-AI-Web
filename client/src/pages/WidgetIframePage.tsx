@@ -73,6 +73,7 @@ export function WidgetIframePage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [isFullscreen, setIsFullscreen] = useState(false)
   // Sidebar open by default on desktop, closed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -169,6 +170,34 @@ export function WidgetIframePage() {
     }
   }
 
+  // Listen for fullscreen state messages from the parent embed container
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event || !event.data) return
+      const data = event.data as any
+
+      if (
+        data &&
+        data.source === 'qurius-embed' &&
+        (data.type === 'qurius-fullscreen-changed' || typeof data.isFullscreen === 'boolean')
+      ) {
+        setIsFullscreen(data.isFullscreen)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    
+    // Request initial fullscreen state from parent
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        { source: 'qurius-widget', type: 'qurius-request-fullscreen-state' },
+        '*'
+      )
+    }
+    
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-950">
@@ -227,6 +256,7 @@ export function WidgetIframePage() {
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               onNewConversation={handleNewConversation}
               primaryColor={primaryColor}
+              isFullscreen={isFullscreen}
             />
           </div>
           <ThemeLoadingOverlay />
