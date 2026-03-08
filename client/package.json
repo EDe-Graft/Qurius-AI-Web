@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npx tsc -b && vite build",
     "build:widget": "vite build --config vite.widget.config.ts",
     "build:vanilla": "vite build --config vite.vanilla.config.ts",
     "build:widget:deploy": "npm run build:widget && node copy-widget.js",
