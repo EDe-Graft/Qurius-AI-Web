@@ -18,6 +18,7 @@ import { AuthProvider } from "@/context/AuthContext"
 import { LanguageProvider } from "@/context/LanguageContext"
 import { CompanyDataProvider } from "@/context/CompanyDataContext"
 import { NotificationProvider } from "@/context/NotificationContext"
+import { GlobalWidgetEmbed } from "@/components/widget/GlobalWidgetEmbed"
 
 export default function App() {
   return (
@@ -62,6 +63,9 @@ export default function App() {
               {/* Widget iframe route - no auth required */}
               <Route path="/widget-iframe" element={<WidgetIframePage />} />
             </Routes>
+            
+            {/* Global Widget Embed - Persists across all navigation */}
+            <GlobalWidgetEmbed />
           </AuthProvider>
         </BrowserRouter>
       </LanguageProvider>

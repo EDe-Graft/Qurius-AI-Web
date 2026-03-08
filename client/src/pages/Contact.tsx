@@ -2,16 +2,13 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLanguage } from "@/context/LanguageContext"
 import { MessageCircle, Mail, Phone, MapPin, Send } from "lucide-react"
-import { WidgetEmbed } from "@/components/widget/WidgetEmbed"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 import { Navigation } from "@/components/custom/Navigation"
 import { Footer } from "@/components/custom/Footer"
-import { useTheme } from "@/context/useThemeContext"
 
 export function Contact() {
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { defaultTheme } = useTheme()
   
   const [formData, setFormData] = useState({
     name: "",
@@ -22,7 +19,7 @@ export function Contact() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(true)
-  const { quriusData, isDataLoading } = useRouteBasedCompany()
+  const { isDataLoading } = useRouteBasedCompany()
 
   useEffect(() => {
     // Simulate page loading time and wait for company data
@@ -341,14 +338,6 @@ export function Contact() {
       {/* Footer */}
       <Footer showFullFooter={false} />
     </div>
-
-    {/* Widget Embed - Uses the same script as external websites */}
-    {quriusData && (
-      <WidgetEmbed
-        companyData={quriusData}
-        theme={defaultTheme}
-      />
-    )}
   </>
   )
 } 

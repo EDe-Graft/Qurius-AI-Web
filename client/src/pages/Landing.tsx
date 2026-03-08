@@ -13,10 +13,8 @@ import {
   Lightbulb,
 } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
-import { useTheme } from '@/context/useThemeContext'
 import { TestimonialCarousel } from '@/components/custom/TestimonialCarousel'
 import { PricingCard } from '@/components/custom/PricingCard'
-import { WidgetEmbed } from '@/components/widget/WidgetEmbed'
 import { Navigation } from '@/components/custom/Navigation'
 import { Footer } from '@/components/custom/Footer'
 import { useRouteBasedCompany } from '@/hooks/useRouteBasedCompany'
@@ -31,8 +29,7 @@ export function Landing() {
   const [subscriptionMessage, setSubscriptionMessage] = useState('')
   const [subscriptionError, setSubscriptionError] = useState('')
   const { t } = useLanguage()
-  const { defaultTheme } = useTheme()
-  const { quriusData, isDataLoading } = useRouteBasedCompany()
+  const { isDataLoading } = useRouteBasedCompany()
 
   useEffect(() => {
     // Only set page loading to false when company data is fully loaded
@@ -580,14 +577,6 @@ export function Landing() {
       </section>
 
       <Footer onFooterLinkClick={handleFooterLinkClick} showFullFooter={true} />
-
-      {/* Widget Embed - Uses the same script as external websites */}
-      {quriusData && (
-        <WidgetEmbed
-          companyData={quriusData}
-          theme={defaultTheme}
-        />
-      )}
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/context/useThemeContext"
 import { useLanguage } from "@/context/LanguageContext"
-import { WidgetEmbed } from "@/components/widget/WidgetEmbed"
 import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
@@ -12,7 +11,7 @@ export function Demo() {
   const { t } = useLanguage()
   const [isPageLoading, setIsPageLoading] = useState(true)
   const navigate = useNavigate()
-  const { quriusData, isDataLoading } = useRouteBasedCompany()
+  const { isDataLoading } = useRouteBasedCompany()
 
   useEffect(() => {
     // Simulate page loading time and wait for company data
@@ -97,14 +96,6 @@ export function Demo() {
           </div>
         </div>
       </div>
-
-      {/* Widget Embed - Uses the same script as external websites */}
-      {quriusData && (
-        <WidgetEmbed
-          companyData={quriusData}
-          theme={defaultTheme}
-        />
-      )}
     </div>
   )
 } 
