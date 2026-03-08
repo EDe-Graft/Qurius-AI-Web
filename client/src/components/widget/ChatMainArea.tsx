@@ -59,6 +59,7 @@ interface ChatMainAreaProps {
   onNewConversation: () => void
   primaryColor: string
   isFullscreen: boolean
+  onClose?: () => void // Optional close handler for internal pages
 }
 
 export function ChatMainArea({
@@ -72,7 +73,8 @@ export function ChatMainArea({
   onToggleSidebar,
   onNewConversation,
   primaryColor,
-  isFullscreen
+  isFullscreen,
+  onClose
 }: ChatMainAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -137,6 +139,13 @@ export function ChatMainArea({
   }
 
   const handleCloseWidget = () => {
+    // If onClose is provided (for internal pages), use it
+    if (onClose) {
+      onClose()
+      return
+    }
+    
+    // Otherwise, use postMessage for iframe embedding
     if (typeof window === 'undefined') return
     try {
       if (window.parent && window.parent !== window) {

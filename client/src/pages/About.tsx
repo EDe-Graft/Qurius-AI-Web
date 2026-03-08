@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLanguage } from "@/context/LanguageContext"
 import { Users, Target, Award, MessageCircle } from "lucide-react"
-import { ChatInterface } from "@/components/custom/ChatInterface"
+import { WidgetEmbed } from "@/components/widget/WidgetEmbed"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 import { Navigation } from "@/components/custom/Navigation"
 import { Footer } from "@/components/custom/Footer"
@@ -12,8 +12,7 @@ import founderImage from "@/assets/founder.png"
 export function About() {
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { defaultTheme, isThemeChanging, toggleTheme } = useTheme()
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
+  const { defaultTheme } = useTheme()
   const [isPageLoading, setIsPageLoading] = useState(true)
   const { quriusData, isDataLoading } = useRouteBasedCompany()
 
@@ -314,17 +313,13 @@ export function About() {
       <Footer showFullFooter={false} />
     </div>
 
-    {/* Chat Interface - Rendered at root level */}
-    {quriusData ? (
-      <ChatInterface
-        defaultTheme={defaultTheme}
-        toggleTheme={toggleTheme}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+    {/* Widget Embed - Uses the same script as external websites */}
+    {quriusData && (
+      <WidgetEmbed
         companyData={quriusData}
-        isThemeChanging={isThemeChanging}
+        theme={defaultTheme}
       />
-    ) : null}
+    )}
   </>
   )
 } 

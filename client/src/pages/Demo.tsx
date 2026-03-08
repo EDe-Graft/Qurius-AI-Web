@@ -2,15 +2,14 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/context/useThemeContext"
 import { useLanguage } from "@/context/LanguageContext"
-import { ChatInterface } from "@/components/custom/ChatInterface"
+import { WidgetEmbed } from "@/components/widget/WidgetEmbed"
 import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 
 export function Demo() {
-  const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
+  const { defaultTheme } = useTheme()
   const { t } = useLanguage()
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
   const navigate = useNavigate()
   const { quriusData, isDataLoading } = useRouteBasedCompany()
@@ -99,15 +98,11 @@ export function Demo() {
         </div>
       </div>
 
-      {/* Chat Interface */}
+      {/* Widget Embed - Uses the same script as external websites */}
       {quriusData && (
-        <ChatInterface
-          defaultTheme={defaultTheme}
-          toggleTheme={toggleTheme}
-          isMinimized={isChatMinimized}
-          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+        <WidgetEmbed
           companyData={quriusData}
-          isThemeChanging={isThemeChanging}
+          theme={defaultTheme}
         />
       )}
     </div>

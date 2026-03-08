@@ -16,7 +16,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useTheme } from '@/context/useThemeContext'
 import { TestimonialCarousel } from '@/components/custom/TestimonialCarousel'
 import { PricingCard } from '@/components/custom/PricingCard'
-import { ChatInterface } from '@/components/custom/ChatInterface'
+import { WidgetEmbed } from '@/components/widget/WidgetEmbed'
 import { Navigation } from '@/components/custom/Navigation'
 import { Footer } from '@/components/custom/Footer'
 import { useRouteBasedCompany } from '@/hooks/useRouteBasedCompany'
@@ -25,14 +25,13 @@ import { subscriptionService } from '@/services/subscriptionService'
 export function Landing() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [isVideoLoading, setIsVideoLoading] = useState(true)
   const [isSubscribing, setIsSubscribing] = useState(false)
   const [subscriptionMessage, setSubscriptionMessage] = useState('')
   const [subscriptionError, setSubscriptionError] = useState('')
   const { t } = useLanguage()
-  const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
+  const { defaultTheme } = useTheme()
   const { quriusData, isDataLoading } = useRouteBasedCompany()
 
   useEffect(() => {
@@ -582,15 +581,11 @@ export function Landing() {
 
       <Footer onFooterLinkClick={handleFooterLinkClick} showFullFooter={true} />
 
-      {/* Chat Interface */}
+      {/* Widget Embed - Uses the same script as external websites */}
       {quriusData && (
-        <ChatInterface
-          defaultTheme={defaultTheme}
-          toggleTheme={toggleTheme}
-          isMinimized={isChatMinimized}
-          onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+        <WidgetEmbed
           companyData={quriusData}
-          isThemeChanging={isThemeChanging}
+          theme={defaultTheme}
         />
       )}
     </div>

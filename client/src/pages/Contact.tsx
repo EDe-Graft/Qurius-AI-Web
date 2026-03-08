@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLanguage } from "@/context/LanguageContext"
 import { MessageCircle, Mail, Phone, MapPin, Send } from "lucide-react"
-import { ChatInterface } from "@/components/custom/ChatInterface"
+import { WidgetEmbed } from "@/components/widget/WidgetEmbed"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
 import { Navigation } from "@/components/custom/Navigation"
 import { Footer } from "@/components/custom/Footer"
@@ -11,7 +11,7 @@ import { useTheme } from "@/context/useThemeContext"
 export function Contact() {
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { defaultTheme, isThemeChanging, toggleTheme } = useTheme()
+  const { defaultTheme } = useTheme()
   
   const [formData, setFormData] = useState({
     name: "",
@@ -21,7 +21,6 @@ export function Contact() {
     message: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
   const [isPageLoading, setIsPageLoading] = useState(true)
   const { quriusData, isDataLoading } = useRouteBasedCompany()
 
@@ -343,17 +342,13 @@ export function Contact() {
       <Footer showFullFooter={false} />
     </div>
 
-    {/* Chat Interface - Rendered at root level */}
-    {quriusData ? (
-      <ChatInterface
-        defaultTheme={defaultTheme}
-        toggleTheme={toggleTheme}
-        isMinimized={isChatMinimized}
-        onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+    {/* Widget Embed - Uses the same script as external websites */}
+    {quriusData && (
+      <WidgetEmbed
         companyData={quriusData}
-        isThemeChanging={isThemeChanging}
+        theme={defaultTheme}
       />
-    ) : null}
+    )}
   </>
   )
 } 
