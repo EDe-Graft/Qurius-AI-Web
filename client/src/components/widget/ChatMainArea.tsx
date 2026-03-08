@@ -7,7 +7,7 @@ import { TranslationService } from '@/services/translationService'
 import { useTheme } from '@/context/useThemeContext'
 import { useLanguage, LANGUAGE_FLAGS, LANGUAGE_NAMES } from '@/context/LanguageContext'
 import type { Language } from '@/context/LanguageContext'
-import { Sun, Moon, Globe, ChevronDown } from 'lucide-react'
+import { Sun, Moon, Globe, ChevronDown, X } from 'lucide-react'
 
 // CompanyData interface
 interface CompanyData {
@@ -80,12 +80,45 @@ export function ChatMainArea({
   const { isDark, toggleTheme } = useTheme()
   const { currentLanguage, setLanguage, isLanguageChanging } = useLanguage()
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+  const [showLanguageChangeNotification, setShowLanguageChangeNotification] = useState(false)
+  const previousLanguageRef = useRef<Language>(currentLanguage)
+  const languageNotificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Detect language changes and show notification
+  useEffect(() => {
+    if (currentLanguage !== previousLanguageRef.current) {
+      // Language has changed - show notification
+      setShowLanguageChangeNotification(true)
+      previousLanguageRef.current = currentLanguage
+
+      // Auto-dismiss after 4 seconds
+      if (languageNotificationTimeoutRef.current) {
+        clearTimeout(languageNotificationTimeoutRef.current)
+      }
+      languageNotificationTimeoutRef.current = setTimeout(() => {
+        setShowLanguageChangeNotification(false)
+      }, 4000)
+    }
+
+    return () => {
+      if (languageNotificationTimeoutRef.current) {
+        clearTimeout(languageNotificationTimeoutRef.current)
+      }
+    }
+  }, [currentLanguage])
 
   const handleLanguageChange = (language: Language) => {
     setLanguage(language)
     setIsLanguageMenuOpen(false)
     if (companyData.name) {
       AnalyticsService.trackLanguageChange(companyData.name, companyData.id || '', language)
+    }
+  }
+
+  const handleDismissLanguageNotification = () => {
+    setShowLanguageChangeNotification(false)
+    if (languageNotificationTimeoutRef.current) {
+      clearTimeout(languageNotificationTimeoutRef.current)
     }
   }
 
@@ -597,7 +630,41 @@ export function ChatMainArea({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4 relative">
+        {/* Language Change Notification Toast */}
+        {showLanguageChangeNotification && (
+          <div
+            className={`absolute top-3 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border shadow-lg transition-all duration-300 ease-out ${
+              isDark
+                ? 'bg-slate-900 border-slate-700 text-slate-200'
+                : 'bg-white border-gray-200 text-gray-800'
+            }`}
+            style={{
+              maxWidth: 'calc(100% - 2rem)',
+              width: 'auto',
+              minWidth: '200px'
+            }}
+          >
+            <span className="text-base leading-none">
+              {LANGUAGE_FLAGS[currentLanguage]}
+            </span>
+            <span className="text-xs sm:text-sm font-medium">
+              Language changed to {LANGUAGE_NAMES[currentLanguage]}
+            </span>
+            <button
+              onClick={handleDismissLanguageNotification}
+              className={`ml-1 sm:ml-2 p-0.5 sm:p-1 rounded-md transition-colors flex-shrink-0 ${
+                isDark
+                  ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+              }`}
+              aria-label="Dismiss notification"
+              type="button"
+            >
+              <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </button>
+          </div>
+        )}
         <MessageList 
           messages={messages} 
           isTyping={isTyping} 
