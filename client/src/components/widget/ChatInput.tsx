@@ -160,7 +160,7 @@ export function ChatInput({ onSendMessage, disabled, primaryColor, showAttributi
             </a>
           </span>
         )}
-        <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-[11px]">
+        <span className="hidden sm:flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-[11px]">
           <span>Press</span>
           <kbd
             className={`px-0.5 sm:px-1 py-0.5 rounded border text-[9px] sm:text-[10px] ${
