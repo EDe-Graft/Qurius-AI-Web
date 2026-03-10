@@ -7,7 +7,8 @@ export function WelcomeEmailTemplate({ companyName, planName, adminLink }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -103,6 +104,7 @@ export function WelcomeEmailTemplate({ companyName, planName, adminLink }) {
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -118,7 +120,8 @@ export function NotificationEmailTemplate({ subject, message, actionText, action
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${subject}</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -158,6 +161,7 @@ export function NotificationEmailTemplate({ subject, message, actionText, action
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -181,7 +185,8 @@ export function SupportEmailTemplate({ issue, description, priority = 'normal' }
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Support Request - Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -219,6 +224,7 @@ export function SupportEmailTemplate({ issue, description, priority = 'normal' }
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -234,7 +240,8 @@ export function MessageLimitReachedEmailTemplate({ companyName, planName, adminL
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Message Limit Reached - Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -338,6 +345,7 @@ export function MessageLimitReachedEmailTemplate({ companyName, planName, adminL
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -353,7 +361,8 @@ export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faq
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI FAQ Generation Complete - Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -430,6 +439,7 @@ export function FAQGenerationCompleteEmailTemplate({ companyName, adminLink, faq
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -445,7 +455,8 @@ export function PasswordResetEmailTemplate({ resetLink }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reset Your Password - Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -529,6 +540,7 @@ export function PasswordResetEmailTemplate({ resetLink }) {
       </p>
     </div>
   </div>
+  </div>
 </body>
 </html>
   `;
@@ -561,7 +573,8 @@ export function AdminCompanyNotificationEmailTemplate({ companyName, companyEmai
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Company Joined - Qurius AI</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+<body bgcolor="#111827" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 0; background-color: #111827;">
+  <div style="width: 100%; background-color: #111827; margin: 0; padding: 0;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #111827;">
     <!-- Header -->
     <div style="margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid #374151;">
@@ -661,6 +674,7 @@ export function AdminCompanyNotificationEmailTemplate({ companyName, companyEmai
         ${new Date().toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'full', timeStyle: 'long' })}
       </p>
     </div>
+  </div>
   </div>
 </body>
 </html>
