@@ -74,6 +74,7 @@ export function WidgetIframePage() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(false)
   // Sidebar open by default on desktop, closed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -182,6 +183,9 @@ export function WidgetIframePage() {
         (data.type === 'qurius-fullscreen-changed' || typeof data.isFullscreen === 'boolean')
       ) {
         setIsFullscreen(data.isFullscreen)
+        if (typeof data.isMobile === 'boolean') {
+          setIsMobileView(data.isMobile)
+        }
       }
     }
 
@@ -257,6 +261,7 @@ export function WidgetIframePage() {
               onNewConversation={handleNewConversation}
               primaryColor={primaryColor}
               isFullscreen={isFullscreen}
+              isMobileView={isMobileView}
             />
           </div>
           <ThemeLoadingOverlay />

@@ -59,6 +59,7 @@ interface ChatMainAreaProps {
   onNewConversation: () => void
   primaryColor: string
   isFullscreen: boolean
+  isMobileView?: boolean
   onClose?: () => void // Optional close handler for internal pages
 }
 
@@ -74,6 +75,7 @@ export function ChatMainArea({
   onNewConversation,
   primaryColor,
   isFullscreen,
+  isMobileView = false,
   onClose
 }: ChatMainAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
@@ -593,7 +595,7 @@ export function ChatMainArea({
           {/* Fullscreen button (desktop only) */}
           <button
             onClick={handleToggleFullscreen}
-            className={`hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 rounded-md items-center justify-center transition-colors flex-shrink-0 ${
+            className={`${isMobileView ? 'hidden' : 'flex'} w-8 h-8 sm:w-9 sm:h-9 rounded-md items-center justify-center transition-colors flex-shrink-0 ${
               isDark
                 ? 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'

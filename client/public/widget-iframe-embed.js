@@ -261,7 +261,8 @@
         {
           source: 'qurius-embed',
           type: 'qurius-fullscreen-changed',
-          isFullscreen: isFullscreen
+          isFullscreen: isFullscreen,
+          isMobile: window.innerWidth <= 768
         },
         '*'
       );
