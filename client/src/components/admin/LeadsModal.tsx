@@ -272,41 +272,58 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
   const exportLeads = () => {
     const filteredLeads = getFilteredLeads();
     const csvContent = generateCSV(filteredLeads);
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+
+    // Use \uFEFF BOM so Excel opens UTF-8 correctly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
+
+    const safeCompanyName = companyName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const tabLabel = activeTab === 'leads' ? 'leads' : 'support_requests';
+    const date = new Date().toISOString().split('T')[0];
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${companyName}-leads-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${safeCompanyName}-${tabLabel}-${date}.csv`;
+
+    // Must be in DOM for Firefox compatibility
+    document.body.appendChild(a);
     a.click();
-    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    // Revoke after a tick so the download has time to start
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
   };
 
   // Generate CSV content
   const generateCSV = (leads: Lead[]) => {
     const headers = [
+      'Type',
       'Name',
       'Email',
       'Phone',
       'Status',
-      'Question',
+      'Last Message',
       'AI Response',
+      'Conversation Context',
       'Created At',
       'Updated At'
     ];
 
     const rows = leads.map(lead => [
+      lead.type === 'support_request' ? 'Support Request' : 'Lead',
       lead.name || '',
       lead.email || '',
       lead.phone || '',
       lead.lead_status,
       lead.user_question || '',
       lead.ai_response || '',
+      lead.conversation_context || '',
       new Date(lead.created_at).toLocaleString(),
       new Date(lead.updated_at).toLocaleString()
     ]);
 
     return [headers, ...rows].map(row => 
-      row.map(field => `"${field.replace(/"/g, '""')}"`).join(',')
+      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
   };
 
