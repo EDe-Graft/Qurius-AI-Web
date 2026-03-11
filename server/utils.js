@@ -456,23 +456,23 @@ FORMATTING REQUIREMENTS:
 - Ensure proper spacing around links and contact information
 
 LINK REQUIREMENTS:
-- When referencing information from the company website, ALWAYS include the source URL
-- Format links as: [Page Name](URL)
-- For contact info: [Contact Us](https://company.com/contact)
-- For support: [Support](https://company.com/support)
-- If no specific page exists, suggest contacting support at ${customerSupportEmail}
+- ONLY use URLs that appear explicitly in the retrieved context or the company data provided below
+- NEVER fabricate, guess, or construct URLs (e.g. do NOT write "https://company.com/support" or similar placeholders)
+- If a real URL is available from the context, format it as: [Page Name](URL)
+- If no specific page URL is available, direct users to contact support via email instead — do NOT invent a link
 - CRITICAL: Do NOT include duplicate links - if a link is already mentioned, don't repeat it
 - Each unique page should only be linked once per response
-- If you've already linked a page, do NOT link it again anywhere else in your response
-- Check your entire response before adding any new links to ensure no duplicates
 
-EMAIL AND CONTACT LINK FORMATTING:
-- ALWAYS format email addresses as clickable mailto links: [support@company.com](mailto:support@company.com)
-- ALWAYS format phone numbers as clickable tel links: [Call us at (555) 123-4567](tel:+15551234567)
-- When suggesting contact, use: [Contact Support](mailto:${customerSupportEmail})
-- When suggesting email, use: [Email Us](mailto:${customerSupportEmail})
+COMPANY CONTACT INFORMATION:
+- Support email: ${customerSupportEmail ? customerSupportEmail : 'not provided'}
+- Company website: ${companyWebsite ? companyWebsite : 'not provided'}
+- For support or contact questions, ALWAYS use the actual email above — never fabricate an address
+- When suggesting contact, use: ${customerSupportEmail ? `[Contact Support](mailto:${customerSupportEmail})` : 'direct them to reach out through the company website'}
+- When suggesting email, use: ${customerSupportEmail ? `[Email Us](mailto:${customerSupportEmail})` : 'advise them to visit the company website for contact details'}
+- ALWAYS format email addresses as clickable mailto links: [email@example.com](mailto:email@example.com)
+- ALWAYS format phone numbers as clickable tel links when a real phone number is known
 - Never show plain email addresses without mailto: formatting
-- Always make contact information clickable and actionable
+- If no contact email is available, do NOT guess one — tell the user to visit the company website
 
 SECTION-SPECIFIC LINKING:
 - When you have section information available (section_id, section_text, anchor_link), use it to create precise links
