@@ -43,7 +43,7 @@ router.post('/schedules', async (req, res) => {
       max_pages = 25, 
       max_depth = 1, 
       delay_ms = 1000,
-      change_threshold = 0.1,
+      content_change_threshold = 0.1,
       is_active = true 
     } = req.body
 
@@ -98,7 +98,7 @@ router.post('/schedules', async (req, res) => {
         max_pages,
         max_depth,
         delay_ms,
-        change_threshold,
+        content_change_threshold,
         is_active,
         next_crawl: nextCrawl
       })
@@ -189,7 +189,7 @@ router.put('/schedules/:id', async (req, res) => {
       max_pages, 
       max_depth, 
       delay_ms, 
-      change_threshold, 
+      content_change_threshold, 
       is_active 
     } = req.body
 
@@ -220,7 +220,7 @@ router.put('/schedules/:id', async (req, res) => {
     if (max_pages !== undefined) updateData.max_pages = max_pages
     if (max_depth !== undefined) updateData.max_depth = max_depth
     if (delay_ms !== undefined) updateData.delay_ms = delay_ms
-    if (change_threshold !== undefined) updateData.change_threshold = change_threshold
+    if (content_change_threshold !== undefined) updateData.content_change_threshold = content_change_threshold
     if (is_active !== undefined) updateData.is_active = is_active
 
     updateData.updated_at = new Date().toISOString()
@@ -838,7 +838,7 @@ export async function provisionCrawlScheduleForPlan(companyId, plan, websiteUrl,
         max_pages: config.max_pages,
         max_depth: config.max_depth,
         delay_ms: 1000,
-        change_threshold: 0.1,
+        content_change_threshold: 0.1,
         is_active: true,
         next_crawl: nextCrawl
       })

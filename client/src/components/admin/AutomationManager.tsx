@@ -35,7 +35,7 @@ interface CrawlSchedule {
   max_pages: number
   max_depth: number
   delay_ms: number
-  change_threshold: number
+  content_change_threshold: number
   is_active: boolean
   next_crawl: string
   created_at: string
@@ -102,7 +102,7 @@ const AutomationManager: React.FC = () => {
     max_pages: 25,
     max_depth: 1,
     delay_ms: 1000,
-    change_threshold: 0.1,
+    content_change_threshold: 0.1,
     is_active: true
   })
 
@@ -175,7 +175,7 @@ const AutomationManager: React.FC = () => {
           max_pages: 25,
           max_depth: 1,
           delay_ms: 1000,
-          change_threshold: 0.1,
+          content_change_threshold: 0.1,
           is_active: true
         })
         await fetchData()
@@ -436,7 +436,7 @@ const AutomationManager: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs text-muted-foreground">
                         <span>Next: {new Date(schedule.next_crawl).toLocaleDateString()}</span>
                         <span>Max pages: {schedule.max_pages}</span>
-                        <span>Threshold: {Math.round(schedule.change_threshold * 100)}%</span>
+                        <span>Threshold: {Math.round(schedule.content_change_threshold * 100)}%</span>
                       </div>
                     </div>
                     <div className="flex gap-1 md:gap-2">
@@ -587,13 +587,13 @@ const AutomationManager: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="change_threshold" className="text-sm">Change Threshold (%)</Label>
+                  <Label htmlFor="content_change_threshold" className="text-sm">Change Threshold (%)</Label>
                   <Input
-                    id="change_threshold"
+                    id="content_change_threshold"
                     type="number"
                     step="0.1"
-                    value={formData.change_threshold * 100}
-                    onChange={(e) => setFormData({ ...formData, change_threshold: parseFloat(e.target.value) / 100 })}
+                    value={formData.content_change_threshold * 100}
+                    onChange={(e) => setFormData({ ...formData, content_change_threshold: parseFloat(e.target.value) / 100 })}
                     className="text-sm"
                   />
                 </div>
