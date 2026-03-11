@@ -12,7 +12,7 @@ import Stripe from 'stripe';
 import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback, ValidationError, validateAndNormalizeCompanyInput, checkAuthUserExists } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
-import { SupportEmailTemplate, SupportRequestEmailTemplate } from './emailTemplates.js';
+import { SupportEmailTemplate, LeadCapturedEmailTemplate, SupportRequestEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
 import crawlerRoutes from './crawler/crawler-api.js';
 import automationRoutes from './crawler/automation-api.js';
@@ -4343,8 +4343,8 @@ app.post('/api/leads/store', async (req, res) => {
     if (result.success) {
       console.log(`✅ ${recordType} stored successfully with ID:`, result.leadId);
 
-      // Send email notification to company admin for support requests (growth/pro plans only)
-      if (recordType === 'support_request') {
+      // Send email notifications to company admin (growth/pro plans only)
+      if (recordType === 'support_request' || recordType === 'lead') {
         try {
           // Fetch company to get contact_email and plan
           const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
@@ -4363,24 +4363,44 @@ app.post('/api/leads/store', async (req, res) => {
           const isPaidPlan = company?.plan === 'growth' || company?.plan === 'pro';
 
           if (notifyEmail && isPaidPlan) {
-            const htmlBody = SupportRequestEmailTemplate({
-              companyName,
-              userEmail: email || null,
-              userName: name || null,
-              conversationContext: conversationContext || null,
-              createdAt: new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC'
-            });
+            const createdAt = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC';
 
-            await sendEmail({
-              to: notifyEmail,
-              subject: `🙋 New Support Request — ${companyName}`,
-              html: htmlBody
-            });
-            console.log(`✅ Support request notification sent to ${notifyEmail}`);
+            if (recordType === 'support_request') {
+              const htmlBody = SupportRequestEmailTemplate({
+                companyName,
+                userEmail: email || null,
+                userName: name || null,
+                conversationContext: conversationContext || null,
+                createdAt
+              });
+              await sendEmail({
+                to: notifyEmail,
+                subject: `🙋 New Support Request — ${companyName}`,
+                html: htmlBody
+              });
+              console.log(`✅ Support request notification sent to ${notifyEmail}`);
+            } else {
+              // recordType === 'lead'
+              const htmlBody = LeadCapturedEmailTemplate({
+                companyName,
+                userEmail: email || null,
+                userName: name || null,
+                userPhone: phone || null,
+                aiResponse: aiResponse || null,
+                conversationContext: conversationContext || null,
+                createdAt
+              });
+              await sendEmail({
+                to: notifyEmail,
+                subject: `🎯 New Lead Captured — ${companyName}`,
+                html: htmlBody
+              });
+              console.log(`✅ Lead captured notification sent to ${notifyEmail}`);
+            }
           }
         } catch (emailError) {
           // Don't fail the request if email notification fails
-          console.warn('⚠️ Failed to send support request notification email:', emailError.message);
+          console.warn('⚠️ Failed to send lead/support notification email:', emailError.message);
         }
       }
 

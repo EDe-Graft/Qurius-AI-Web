@@ -322,6 +322,10 @@ export function ChatMainArea({
         .map(m => `${m.isUser ? 'User' : 'AI'}: ${m.content}`)
         .join('\n')
 
+      // Capture the last AI message that prompted the user to share contact info
+      const lastAiMessage = [...messages].reverse().find(m => !m.isUser && m.id !== 'welcome')
+      const aiResponseContent = lastAiMessage?.content || undefined
+
       // Submit to backend
       await leadService.submitLead({
         companyId: companyData.id,
@@ -332,6 +336,7 @@ export function ChatMainArea({
         conversationContext: contextMessages || undefined,
         sessionId: 'qurius-ai-session',
         userQuestion: content,
+        aiResponse: aiResponseContent,
         type: collectionMode || 'lead'
       })
 

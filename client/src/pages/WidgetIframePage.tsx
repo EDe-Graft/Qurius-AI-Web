@@ -131,7 +131,7 @@ export function WidgetIframePage() {
         // Initialize with welcome message
         const welcomeMessage: Message = {
           id: 'welcome',
-          content: `Hi! I'm your ${company.name || 'Qurius AI'} assistant. I can answer questions about your product, pricing, onboarding, and more. What would you like to know?`,
+          content: `Hi! I'm your ${company.name || 'AI'} assistant. I can answer questions about your product, pricing, onboarding, and more. What would you like to know?`,
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
@@ -148,6 +148,12 @@ export function WidgetIframePage() {
 
   const handleNewConversation = () => {
     const newId = `conv-${Date.now()}`
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      content: `Hi! I'm your ${companyData?.name || 'AI'} assistant. I can answer questions about your product, pricing, onboarding, and more. What would you like to know?`,
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
     const newConversation: Conversation = {
       id: newId,
       title: 'New Conversation',
@@ -157,7 +163,7 @@ export function WidgetIframePage() {
     }
     setConversations(prev => [newConversation, ...prev])
     setActiveConversationId(newId)
-    setMessages([])
+    setMessages([welcomeMessage])
   }
 
   const handleSelectConversation = (id: string) => {
