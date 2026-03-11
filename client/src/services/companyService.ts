@@ -31,6 +31,7 @@ export interface Company {
   stripe_subscription_id?: string
   subscription_status?: string
   subscription_end_date?: string
+  booking_url?: string
   embedding?: any
   analytics?: {
     totalViews: number

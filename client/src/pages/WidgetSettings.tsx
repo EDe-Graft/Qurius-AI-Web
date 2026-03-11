@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Palette, Save, ArrowLeft } from 'lucide-react';
+import { Palette, Save, ArrowLeft, Link } from 'lucide-react';
 import { CompanyService } from '@/services/companyService';
 
 interface WidgetTheme {
@@ -18,6 +18,8 @@ export function WidgetSettings() {
     backgroundColor: '#FFFFFF',
     textColor: '#1F2937'
   });
+  const [bookingUrl, setBookingUrl] = useState('');
+  const [bookingUrlError, setBookingUrlError] = useState('');
   const [savingTheme, setSavingTheme] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,9 @@ export function WidgetSettings() {
         if (company?.theme) {
           setWidgetTheme(company.theme);
         }
+        if (company?.booking_url) {
+          setBookingUrl(company.booking_url);
+        }
       } catch (error) {
         console.error('Error loading company theme:', error);
       } finally {
@@ -56,20 +61,38 @@ export function WidgetSettings() {
     loadCompanyTheme();
   }, [companyId, navigate]);
 
+  const validateBookingUrl = (url: string) => {
+    if (!url) return true; // Optional field
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveTheme = async () => {
     if (!companyId) return;
+
+    // Validate booking URL if provided
+    if (bookingUrl && !validateBookingUrl(bookingUrl)) {
+      setBookingUrlError('Please enter a valid URL (e.g. https://calendly.com/yourname)');
+      return;
+    }
+    setBookingUrlError('');
 
     try {
       setSavingTheme(true);
       await CompanyService.updateCompany(companyId, {
-        theme: widgetTheme
+        theme: widgetTheme,
+        booking_url: bookingUrl || undefined
       });
       
-      alert('Widget theme updated successfully!');
+      alert('Widget settings updated successfully!');
       navigate('/admin');
     } catch (error) {
-      console.error('Error saving theme:', error);
-      alert(`Failed to save theme: ${error}`);
+      console.error('Error saving settings:', error);
+      alert(`Failed to save settings: ${error}`);
     } finally {
       setSavingTheme(false);
     }
@@ -126,7 +149,7 @@ export function WidgetSettings() {
               <Palette className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Widget Theme Configuration
+              Widget Settings
             </h1>
           </div>
         </div>
@@ -297,6 +320,50 @@ export function WidgetSettings() {
               </div>
             </div>
 
+            {/* Booking URL */}
+            <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-2 pt-4">
+                <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Link className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Demo Booking
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    When visitors ask about demos or scheduling, a "Book a Demo" button will appear in the chat.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Booking URL <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={bookingUrl}
+                  onChange={(e) => {
+                    setBookingUrl(e.target.value);
+                    setBookingUrlError('');
+                  }}
+                  placeholder="https://calendly.com/yourname or https://cal.com/yourname"
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    bookingUrlError
+                      ? 'border-red-400 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                {bookingUrlError && (
+                  <p className="text-xs text-red-500 dark:text-red-400">{bookingUrlError}</p>
+                )}
+                {bookingUrl && !bookingUrlError && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    ✓ Booking button will appear when visitors mention demos or scheduling.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Button
@@ -318,7 +385,7 @@ export function WidgetSettings() {
                 ) : (
                   <div className="flex items-center space-x-2">
                     <Save className="h-4 w-4" />
-                    <span>Save Theme</span>
+                    <span>Save Settings</span>
                   </div>
                 )}
               </Button>

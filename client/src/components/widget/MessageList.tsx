@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MessageBubble } from './MessageBubble'
-import { User, Copy, ThumbsUp, ThumbsDown, Check } from 'lucide-react'
+import { User, Copy, ThumbsUp, ThumbsDown, Check, CalendarDays } from 'lucide-react'
 import { useTheme } from '@/context/useThemeContext'
 
 interface Message {
@@ -11,6 +11,7 @@ interface Message {
   liked?: 'like' | 'dislike' | null
   isStreaming?: boolean
   streamingContent?: string
+  shouldOfferBooking?: boolean
 }
 
 interface CompanyData {
@@ -25,9 +26,10 @@ interface MessageListProps {
   companyData: CompanyData
   onRatingChange?: (messageId: string, rating: 'like' | 'dislike' | null) => void
   primaryColor: string
+  bookingUrl?: string
 }
 
-export function MessageList({ messages, isTyping, companyData, onRatingChange, primaryColor }: MessageListProps) {
+export function MessageList({ messages, isTyping, companyData, onRatingChange, primaryColor, bookingUrl }: MessageListProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const { isDark } = useTheme()
 
@@ -137,63 +139,78 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange, p
             </div>
             {/* Feedback buttons for AI messages - only show when streaming is complete */}
             {!message.isUser && !message.isStreaming && (
-              <div className="flex items-center gap-1.5 px-0.5 sm:px-1">
-                <button
-                  onClick={() => handleRating(message.id, message.liked === 'like' ? null : 'like')}
-                  className={`p-1 rounded-md transition-colors ${
-                    message.liked === 'like'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : isDark
-                        ? 'text-slate-500 hover:text-emerald-400 hover:bg-slate-800/50'
-                        : 'text-gray-500 hover:text-emerald-400 hover:bg-gray-100'
-                  }`}
-                  title="Thumbs up"
-                >
-                  <ThumbsUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-                <button
-                  onClick={() => handleRating(message.id, message.liked === 'dislike' ? null : 'dislike')}
-                  className={`p-1 rounded-md transition-colors ${
-                    message.liked === 'dislike'
-                      ? 'bg-red-500/20 text-red-400'
-                      : isDark
-                        ? 'text-slate-500 hover:text-red-400 hover:bg-slate-800/50'
-                        : 'text-gray-500 hover:text-red-400 hover:bg-gray-100'
-                  }`}
-                  title="Thumbs down"
-                >
-                  <ThumbsDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-                <button
-                  onClick={() => handleCopy(message.id, message.content)}
-                  className={`p-1 rounded-md transition-colors ${
-                    copiedMessageId === message.id
-                      ? 'text-white'
-                      : isDark
-                        ? 'text-slate-500 hover:bg-slate-800/50'
-                        : 'text-gray-500 hover:bg-gray-100'
-                  }`}
-                  style={copiedMessageId === message.id ? {
-                    backgroundColor: primaryColor
-                  } : {}}
-                  onMouseEnter={(e) => {
-                    if (copiedMessageId !== message.id) {
-                      e.currentTarget.style.color = primaryColor
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (copiedMessageId !== message.id) {
-                      e.currentTarget.style.color = ''
-                    }
-                  }}
-                  title="Copy message"
-                >
-                  {copiedMessageId === message.id ? (
-                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  )}
-                </button>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 px-0.5 sm:px-1">
+                  <button
+                    onClick={() => handleRating(message.id, message.liked === 'like' ? null : 'like')}
+                    className={`p-1 rounded-md transition-colors ${
+                      message.liked === 'like'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : isDark
+                          ? 'text-slate-500 hover:text-emerald-400 hover:bg-slate-800/50'
+                          : 'text-gray-500 hover:text-emerald-400 hover:bg-gray-100'
+                    }`}
+                    title="Thumbs up"
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleRating(message.id, message.liked === 'dislike' ? null : 'dislike')}
+                    className={`p-1 rounded-md transition-colors ${
+                      message.liked === 'dislike'
+                        ? 'bg-red-500/20 text-red-400'
+                        : isDark
+                          ? 'text-slate-500 hover:text-red-400 hover:bg-slate-800/50'
+                          : 'text-gray-500 hover:text-red-400 hover:bg-gray-100'
+                    }`}
+                    title="Thumbs down"
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleCopy(message.id, message.content)}
+                    className={`p-1 rounded-md transition-colors ${
+                      copiedMessageId === message.id
+                        ? 'text-white'
+                        : isDark
+                          ? 'text-slate-500 hover:bg-slate-800/50'
+                          : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                    style={copiedMessageId === message.id ? {
+                      backgroundColor: primaryColor
+                    } : {}}
+                    onMouseEnter={(e) => {
+                      if (copiedMessageId !== message.id) {
+                        e.currentTarget.style.color = primaryColor
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (copiedMessageId !== message.id) {
+                        e.currentTarget.style.color = ''
+                      }
+                    }}
+                    title="Copy message"
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    )}
+                  </button>
+                </div>
+                {/* Book a Demo button - shown when AI detects booking intent and booking URL is set */}
+                {message.shouldOfferBooking && bookingUrl && (
+                  <a
+                    href={bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-white transition-opacity hover:opacity-90 active:opacity-80 w-fit"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    Book a Demo
+                  </a>
+                )}
               </div>
             )}
             <p className={`text-[10px] sm:text-[11px] px-0.5 sm:px-1 ${

@@ -58,7 +58,8 @@ class FAQService {
             fallbackReason: firstResult.fallbackReason,
             limitReached: firstResult.limitReached || false,
             messagesLeft: firstResult.messagesLeft,
-            shouldRequestLead: firstResult.shouldRequestLead || false
+            shouldRequestLead: firstResult.shouldRequestLead || false,
+            shouldOfferBooking: firstResult.shouldOfferBooking || false
           };
         }
       }
@@ -85,7 +86,8 @@ class FAQService {
           fallbackReason: response.data.fallbackReason,
           limitReached: response.data.limitReached || false,
           messagesLeft: response.data.messagesLeft,
-          shouldRequestLead: response.data.shouldRequestLead || false
+          shouldRequestLead: response.data.shouldRequestLead || false,
+          shouldOfferBooking: response.data.shouldOfferBooking || false
         };
       }
       

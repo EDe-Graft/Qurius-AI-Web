@@ -2,9 +2,11 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/context/useThemeContext"
 import { useLanguage } from "@/context/LanguageContext"
-import { User } from "lucide-react"
+import { User, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouteBasedCompany } from "@/hooks/useRouteBasedCompany"
+
+const QURIUS_BOOKING_URL = import.meta.env.VITE_QURIUS_BOOKING_URL
 
 export function Demo() {
   const { defaultTheme } = useTheme()
@@ -83,6 +85,15 @@ export function Demo() {
                 className="bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
               >
                 {t('demo.getStartedButton') || 'Get Started'}
+              </Button>
+              <Button
+                asChild
+                className="bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-white text-sm md:text-base py-2 md:py-2 px-4 md:px-4 h-auto md:h-10 min-h-[44px] md:min-h-[40px]"
+              >
+                <a href={QURIUS_BOOKING_URL} target="_blank" rel="noopener noreferrer">
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  {t('demo.bookDemoButton') || 'Book a Demo'}
+                </a>
               </Button>
               <Button
                 onClick={() => navigate('/admin')}

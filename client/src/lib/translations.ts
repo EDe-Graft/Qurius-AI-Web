@@ -245,6 +245,7 @@ export interface TranslationKeys {
     tryChatDescription: string
     learnMoreButton: string
     getStartedButton: string
+    bookDemoButton: string
     viewAdminButton: string
   }
 }
@@ -478,6 +479,7 @@ const en: TranslationKeys = {
     tryChatDescription: 'Click the assistant in the bottom-right corner to start a conversation. Ask product questions, explore features, and experience how Qurius AI supports your SaaS users.',
     learnMoreButton: 'Learn More',
     getStartedButton: 'Get Started',
+    bookDemoButton: 'Book a Demo',
     viewAdminButton: 'View Admin Dashboard'
   }
 }
@@ -711,6 +713,7 @@ const es: TranslationKeys = {
     tryChatDescription: 'Haz clic en el botón de chat en la esquina inferior derecha para comenzar una conversación. Puedes alternar entre temas claros y oscuros, minimizar el chat y experimentar la interfaz suave y profesional.',
     learnMoreButton: 'Aprender Más',
     getStartedButton: 'Comenzar',
+    bookDemoButton: 'Reservar una Demo',
     viewAdminButton: 'Ver Panel de Administración'
   }
 }
@@ -944,6 +947,7 @@ const fr: TranslationKeys = {
     tryChatDescription: 'Description pour essayer le widget de chat',
     learnMoreButton: 'En savoir plus',
     getStartedButton: 'Commencer',
+    bookDemoButton: 'Réserver une Démo',
     viewAdminButton: 'Voir l\'administrateur'
   }
 }
@@ -1177,6 +1181,7 @@ const de: TranslationKeys = {
     tryChatDescription: 'Descripción para probar el widget de chat',
     learnMoreButton: 'Aprender más',
     getStartedButton: 'Comenzar',
+    bookDemoButton: 'Demo buchen',
     viewAdminButton: 'Ver Administrador'
   }
 }
@@ -1410,6 +1415,7 @@ const zh: TranslationKeys = {
     tryChatDescription: '试用聊天小部件描述',
     learnMoreButton: '了解更多',
     getStartedButton: '开始',
+    bookDemoButton: '预约演示',
     viewAdminButton: '查看管理员'
   }
 }
@@ -1643,6 +1649,7 @@ const ja: TranslationKeys = {
     tryChatDescription: 'チャットウィジェットを試すための説明',
     learnMoreButton: 'もっと知る',
     getStartedButton: 'はじめる',
+    bookDemoButton: 'デモを予約する',
     viewAdminButton: '管理者を見る'
   }
 }
@@ -1876,6 +1883,7 @@ const pt: TranslationKeys = {
     tryChatDescription: 'Descrição para experimentar o widget de chat',
     learnMoreButton: 'Saber Mais',
     getStartedButton: 'Começar',
+    bookDemoButton: 'Agendar uma Demo',
     viewAdminButton: 'Ver Administrador'
   }
 }
@@ -2109,6 +2117,7 @@ const it: TranslationKeys = {
     tryChatDescription: 'Descrizione per provare il widget di chat',
     learnMoreButton: 'Scopri di più',
     getStartedButton: 'Inizia',
+    bookDemoButton: 'Prenota una Demo',
     viewAdminButton: 'Vedi amministratore'
   }
 }
@@ -2342,6 +2351,7 @@ const ru: TranslationKeys = {
     tryChatDescription: 'Описание для проверки виджета чата',
     learnMoreButton: 'Узнать больше',
     getStartedButton: 'Начать',
+    bookDemoButton: 'Забронировать демо',
     viewAdminButton: 'Просмотреть администратора'
   }
 }
@@ -2575,6 +2585,7 @@ const ko: TranslationKeys = {
     tryChatDescription: 'Descripción para probar el widget de chat',
     learnMoreButton: 'Aprender más',
     getStartedButton: 'Comenzar',
+    bookDemoButton: '데모 예약',
     viewAdminButton: 'Ver Administrador'
   }
 }

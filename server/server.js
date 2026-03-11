@@ -920,6 +920,7 @@ app.patch('/api/companies/:id', async (req, res) => {
       logo_url, 
       admin_email,
       status,
+      booking_url,
     } = req.body;
     
     console.log('Updating company:', id);
@@ -944,6 +945,7 @@ app.patch('/api/companies/:id', async (req, res) => {
       admin_email,
       logo_url: logo_url || '',
       status: status || 'active',
+      booking_url: booking_url || null,
       // updated_at: formatReadableDateTime(new Date())
     };
 
@@ -1055,7 +1057,12 @@ app.delete('/api/companies/:id', async (req, res) => {
 app.post('/api/faqs/search', async (req, res) => {
   try {
     const { question, companyData, messages } = req.body;
-    const {id: companyId, name: companyName, website, contact_email } = companyData;
+    const {id: companyId, name: companyName, website, contact_email, booking_url } = companyData;
+
+    // Detect demo booking intent
+    const bookingKeywords = ['demo', 'book', 'schedule', 'appointment', 'call', 'meeting', 'trial', 'see it in action', 'how does it work', 'can i try', 'show me', 'walkthrough', 'tour', 'get started', 'sign up'];
+    const hasBookingIntent = bookingKeywords.some(kw => question.toLowerCase().includes(kw));
+    const shouldOfferBooking = hasBookingIntent && !!booking_url;
     let sessionId = 'qurius-ai-session';
     
     // Calculate message count for lead generation (excluding welcome message)
@@ -1177,7 +1184,8 @@ app.post('/api/faqs/search', async (req, res) => {
             confidence: bestMatch.similarity,
             contentMatchType: contentMatchType,
             messagesLeft: messageLimitCheck.messagesLeft,
-            shouldRequestLead: shouldRequestLead
+            shouldRequestLead: shouldRequestLead,
+            shouldOfferBooking: shouldOfferBooking
           }]);
         } else {
           // Low confidence - use RAG with multiple sources
@@ -1210,7 +1218,8 @@ app.post('/api/faqs/search', async (req, res) => {
             confidence: bestMatch.similarity,
             contentMatchType: 'mixed',
             messagesLeft: messageLimitCheck.messagesLeft,
-            shouldRequestLead: shouldRequestLead
+            shouldRequestLead: shouldRequestLead,
+            shouldOfferBooking: shouldOfferBooking
           }]);
         }
       } else {
@@ -1242,7 +1251,8 @@ app.post('/api/faqs/search', async (req, res) => {
           fallbackReason: 'no_rag_results',
           contentMatchType: 'none',
           messagesLeft: messageLimitCheck.messagesLeft,
-          shouldRequestLead: shouldRequestLead
+          shouldRequestLead: shouldRequestLead,
+          shouldOfferBooking: shouldOfferBooking
         }]);
       }
     } catch (ragError) {
@@ -1274,7 +1284,8 @@ app.post('/api/faqs/search', async (req, res) => {
         fallbackReason: 'rag_error',
         contentMatchType: 'none',
         messagesLeft: messageLimitCheck.messagesLeft,
-        shouldRequestLead: shouldRequestLead
+        shouldRequestLead: shouldRequestLead,
+        shouldOfferBooking: shouldOfferBooking
       }]);
     }
   } catch (error) {

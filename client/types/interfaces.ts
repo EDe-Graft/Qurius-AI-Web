@@ -50,6 +50,7 @@ export interface FAQResponse {
     limitReached?: boolean;
     messagesLeft?: number;
     shouldRequestLead?: boolean; // New field for lead generation
+    shouldOfferBooking?: boolean; // Whether to show the Book a Demo button
 }
 
 // Lead Collection interfaces
@@ -92,6 +93,7 @@ export interface ChatInterfaceProps {
         enrollment_date?: string
         subscription_status?: string
         subscription_end_date?: string
+        booking_url?: string
     }
 }
 

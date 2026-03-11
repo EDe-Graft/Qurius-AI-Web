@@ -27,6 +27,7 @@ interface CompanyData {
   enrollment_date?: string
   subscription_status?: string
   subscription_end_date?: string
+  booking_url?: string
 }
 
 interface Message {
@@ -37,6 +38,7 @@ interface Message {
   liked?: 'like' | 'dislike' | null
   isStreaming?: boolean
   streamingContent?: string
+  shouldOfferBooking?: boolean
 }
 
 interface Conversation {
@@ -329,7 +331,8 @@ export function ChatMainArea({
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           isStreaming: true,
-          streamingContent: '' // Start with empty content for streaming
+          streamingContent: '', // Start with empty content for streaming
+          shouldOfferBooking: response.shouldOfferBooking && !!companyData.booking_url
         }
 
         // Add message with empty streaming content
@@ -682,6 +685,7 @@ export function ChatMainArea({
           companyData={companyData}
           onRatingChange={handleRatingChange}
           primaryColor={primaryColor}
+          bookingUrl={companyData.booking_url}
         />
         <div ref={messagesEndRef} />
       </div>

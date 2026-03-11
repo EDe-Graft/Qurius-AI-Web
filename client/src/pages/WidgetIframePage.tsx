@@ -24,6 +24,7 @@ interface CompanyData {
   enrollment_date?: string
   subscription_status?: string
   subscription_end_date?: string
+  booking_url?: string
 }
 
 interface Message {
