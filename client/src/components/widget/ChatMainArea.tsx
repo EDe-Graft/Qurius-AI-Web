@@ -197,7 +197,8 @@ export function ChatMainArea({
     }
   }, [messages, pendingCollectionMode])
 
-  // Update conversation in sidebar when streaming completes
+  // Update conversation title/preview in sidebar when streaming completes.
+  // Message persistence is handled by the sync effect in WidgetIframePage.
   useEffect(() => {
     if (!activeConversationId) return
     
@@ -215,8 +216,7 @@ export function ChatMainArea({
                 ...conv,
                 title: correspondingUserMessage.content.substring(0, 30) + (correspondingUserMessage.content.length > 30 ? '...' : ''),
                 preview: lastCompletedMessage.content.substring(0, 50) + (lastCompletedMessage.content.length > 50 ? '...' : ''),
-                timestamp: 'Just now',
-                messages: messages.filter(m => m.id !== 'welcome')
+                timestamp: 'Just now'
               }
             }
             return conv

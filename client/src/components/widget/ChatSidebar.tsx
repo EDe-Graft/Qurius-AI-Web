@@ -195,6 +195,34 @@ export function ChatSidebar({
         )}
       </div>
 
+      {/* New Conversation Button */}
+      <div className={`px-3 py-2.5 border-t ${
+        isDark ? 'border-slate-800/70' : 'border-gray-200'
+      }`}>
+        <button
+          onClick={onNewConversation}
+          className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+            isDark
+              ? 'border-slate-700/60 hover:border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800/60'
+              : 'border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+          style={{ borderColor: `${primaryColor}50` }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = primaryColor
+            e.currentTarget.style.color = primaryColor
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = `${primaryColor}50`
+            e.currentTarget.style.color = ''
+          }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Start new conversation
+        </button>
+      </div>
+
       {/* Footer */}
       <div className={`p-3.5 pt-2.5 border-t flex items-center justify-between gap-2 text-xs ${
         isDark 

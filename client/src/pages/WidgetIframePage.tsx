@@ -128,13 +128,23 @@ export function WidgetIframePage() {
         })
         setIsValid(true)
 
-        // Initialize with welcome message
+        // Initialize with a first conversation and welcome message
         const welcomeMessage: Message = {
           id: 'welcome',
           content: `Hi! I'm your ${company.name || 'AI'} assistant. I can answer questions about your product, pricing, onboarding, and more. What would you like to know?`,
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
+        const initialConversationId = `conv-${Date.now()}`
+        const initialConversation: Conversation = {
+          id: initialConversationId,
+          title: 'New Conversation',
+          preview: 'Start a new conversation...',
+          timestamp: 'Just now',
+          messages: [welcomeMessage]
+        }
+        setConversations([initialConversation])
+        setActiveConversationId(initialConversationId)
         setMessages([welcomeMessage])
       } catch (error) {
         console.error('Failed to initialize widget:', error)
@@ -159,12 +169,25 @@ export function WidgetIframePage() {
       title: 'New Conversation',
       preview: 'Start a new conversation...',
       timestamp: 'Just now',
-      messages: []
+      messages: [welcomeMessage]
     }
     setConversations(prev => [newConversation, ...prev])
     setActiveConversationId(newId)
     setMessages([welcomeMessage])
   }
+
+  // Single source of truth: keep conversations[active].messages in sync
+  // with the live `messages` state whenever it changes.
+  useEffect(() => {
+    if (!activeConversationId || messages.length === 0) return
+    setConversations(prev =>
+      prev.map(c =>
+        c.id === activeConversationId
+          ? { ...c, messages }
+          : c
+      )
+    )
+  }, [messages, activeConversationId])
 
   const handleSelectConversation = (id: string) => {
     setActiveConversationId(id)
