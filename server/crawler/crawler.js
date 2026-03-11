@@ -256,6 +256,9 @@ class QuriusCrawler {
       // Extract page data with Cheerio first
       const pageData = this.extractPageContent($, url)
       
+      // Links discovered on this page — populated below depending on extraction path
+      let discoveredLinks = []
+
       // Check if Cheerio extraction failed (no content extracted)
       if (pageData.content.length === 0) {
         console.log(`⚠️ Cheerio extraction failed - no content found, trying Puppeteer...`)
@@ -267,6 +270,14 @@ class QuriusCrawler {
           console.log(`✅ Puppeteer extraction successful - found ${spaPageData.content.length} content items`)
           crawlData.pages.push(spaPageData)
           crawlData.content.push(...spaPageData.content)
+
+          // Use the links collected from the fully-rendered DOM (SPA-aware)
+          if (spaPageData.links && spaPageData.links.length > 0) {
+            discoveredLinks = spaPageData.links
+            console.log(`🔗 Puppeteer found ${discoveredLinks.length} internal links on rendered page`)
+          } else {
+            console.log(`⚠️ Puppeteer found no internal links — page may have no navigation`)
+          }
         } else {
           console.log(`❌ Both Cheerio and Puppeteer extraction failed for ${url}`)
           crawlData.pages.push(pageData) // Still add the empty page data
@@ -275,21 +286,22 @@ class QuriusCrawler {
         console.log(`✅ Cheerio extraction successful - found ${pageData.content.length} content items`)
         crawlData.pages.push(pageData)
         crawlData.content.push(...pageData.content)
+
+        // Use Cheerio link extraction for server-rendered pages
+        discoveredLinks = this.extractLinks($, url)
       }
       
       console.log(`📊 Page data summary for ${url}:`)
       console.log(`  - Page added to crawlData.pages (total: ${crawlData.pages.length})`)
       console.log(`  - Content items added to crawlData.content (total: ${crawlData.content.length})`)
       console.log(`  - Page content items: ${pageData.content.length}`)
-      
-      // Find links for further crawling
-      const links = this.extractLinks($, url)
+      console.log(`  - Links queued for recursion: ${Math.min(discoveredLinks.length, 5)}`)
       
       // Add delay to be respectful
       await this.sleep(1000)
       
-      // Recursively crawl found links
-      for (const link of links.slice(0, 5)) { // Limit to 5 links per page
+      // Recursively crawl found links (cap at 5 per page to avoid explosion)
+      for (const link of discoveredLinks.slice(0, 5)) {
         await this.crawlPages(link, crawlData, depth + 1)
       }
       
@@ -841,8 +853,28 @@ class QuriusCrawler {
       const pageData = await page.evaluate(() => {
         const title = document.title.trim()
         const description = document.querySelector('meta[name="description"]')?.content || ''
+
+        // ── Collect all internal links BEFORE removing nav/header elements ──
+        const currentOrigin = window.location.origin
+        const links = Array.from(document.querySelectorAll('a[href]'))
+          .map(a => {
+            try {
+              const href = a.getAttribute('href')
+              if (!href) return null
+              const resolved = new URL(href, window.location.href)
+              if (resolved.origin === currentOrigin && resolved.pathname !== '#') {
+                resolved.hash = ''
+                return resolved.href
+              }
+              return null
+            } catch {
+              return null
+            }
+          })
+          .filter(Boolean)
+        const uniqueLinks = [...new Set(links)]
         
-        // Remove unwanted elements
+        // Remove unwanted elements (AFTER link collection so nav links aren't lost)
         const unwantedSelectors = 'script, style, nav, footer, header, .nav, .header, .footer, .sidebar'
         const unwantedElements = document.querySelectorAll(unwantedSelectors)
         unwantedElements.forEach(el => el.remove())
@@ -943,6 +975,7 @@ class QuriusCrawler {
           title,
           description,
           content,
+          links: uniqueLinks,
           bodyTextLength: document.body.textContent.trim().length
         }
       })
@@ -1038,7 +1071,7 @@ class QuriusCrawler {
         // Skip invalid URLs
       }
     })
-    
+    console.log('🔍 Extracted links:', links)
     return [...new Set(links)] // Remove duplicates
   }
 
