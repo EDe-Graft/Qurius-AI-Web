@@ -12,6 +12,7 @@ export interface LeadSubmissionData {
   sessionId?: string;
   userQuestion?: string;
   aiResponse?: string;
+  type?: 'lead' | 'support_request';
 }
 
 class LeadService {
@@ -31,7 +32,8 @@ class LeadService {
         conversationContext: leadData.conversationContext || null,
         sessionId: leadData.sessionId || null,
         userQuestion: leadData.userQuestion || null,
-        aiResponse: leadData.aiResponse || null
+        aiResponse: leadData.aiResponse || null,
+        type: leadData.type || 'lead'
       });
       
       console.log('✅ Lead submitted successfully:', response.data);

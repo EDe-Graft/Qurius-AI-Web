@@ -40,6 +40,7 @@ export interface Lead {
   ai_response?: string;
   created_at: string;
   updated_at: string;
+  type?: 'lead' | 'support_request';
 }
 
 interface LeadsTableProps {
@@ -55,6 +56,7 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingLead, setUpdatingLead] = useState<string | null>(null);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'leads' | 'support_requests'>('leads');
 
   // Fetch leads using leadService
   const fetchLeads = async () => {
@@ -141,6 +143,11 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
   // Filter leads
   const getFilteredLeads = () => {
     return leads.filter(lead => {
+      // Filter by active tab (type)
+      const matchesTab = activeTab === 'leads'
+        ? !lead.type || lead.type === 'lead'
+        : lead.type === 'support_request';
+
       const matchesSearch = searchTerm === '' || 
         (lead.name && lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -149,9 +156,12 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
       
       const matchesStatus = statusFilter === 'all' || lead.lead_status === statusFilter;
       
-      return matchesSearch && matchesStatus;
+      return matchesTab && matchesSearch && matchesStatus;
     });
   };
+
+  const leadsCount = leads.filter(l => !l.type || l.type === 'lead').length;
+  const supportRequestsCount = leads.filter(l => l.type === 'support_request').length;
 
   // Get status badge color
   // const getStatusBadgeColor = (status: string) => {
@@ -208,12 +218,49 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Leads ({filteredLeads.length})
+            {activeTab === 'leads' ? `Leads (${leadsCount})` : `Support Requests (${supportRequestsCount})`}
           </CardTitle>
           <Button onClick={exportLeads} variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
+        </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mt-3 border-b">
+          <button
+            onClick={() => { setActiveTab('leads'); setSearchTerm(''); setStatusFilter('all'); }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'leads'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Leads
+            {leadsCount > 0 && (
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                activeTab === 'leads' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {leadsCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setActiveTab('support_requests'); setSearchTerm(''); setStatusFilter('all'); }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'support_requests'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Support Requests
+            {supportRequestsCount > 0 && (
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                activeTab === 'support_requests' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {supportRequestsCount}
+              </span>
+            )}
+          </button>
         </div>
       </CardHeader>
       
@@ -252,7 +299,10 @@ export function LeadsTable({ companyId, companyName }: LeadsTableProps) {
         {/* Leads Display - Mobile Optimized */}
         {filteredLeads.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            {leads.length === 0 ? 'No leads found for this company.' : 'No leads match your search criteria.'}
+            {activeTab === 'leads'
+              ? (leadsCount === 0 ? 'No leads found yet.' : 'No leads match your search criteria.')
+              : (supportRequestsCount === 0 ? 'No support requests yet.' : 'No support requests match your search criteria.')
+            }
           </div>
         ) : (
           <div className="space-y-4">

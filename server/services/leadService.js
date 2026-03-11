@@ -1,8 +1,12 @@
 import axios from 'axios';
 
 // Lead Generation Functions
-export async function shouldRequestLeadInfo(companyId, sessionId, messageCount) {
+export async function shouldRequestLeadInfo(companyId, sessionId, messageCount, companyPlan) {
   try {
+    // Lead collection prompts are only available on growth and pro plans
+    const isPaidPlan = companyPlan === 'growth' || companyPlan === 'pro';
+    if (!isPaidPlan) return false;
+
     // Request lead info after 1-2 questions to provide value first
     const shouldRequest = messageCount >= 2 && messageCount <= 4;
     
@@ -71,7 +75,8 @@ export async function storeLead(leadData) {
         source_session_id: leadData.sessionId || null,
         user_question: leadData.userQuestion || null,
         ai_response: leadData.aiResponse || null,
-        lead_status: 'new'
+        lead_status: 'new',
+        type: leadData.type || 'lead'
       },
       {
         headers: {

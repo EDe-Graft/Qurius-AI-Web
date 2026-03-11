@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MessageBubble } from './MessageBubble'
-import { User, Copy, ThumbsUp, ThumbsDown, Check, CalendarDays } from 'lucide-react'
+import { User, Copy, ThumbsUp, ThumbsDown, Check, CalendarDays, UserRound } from 'lucide-react'
 import { useTheme } from '@/context/useThemeContext'
 
 interface Message {
@@ -12,6 +12,7 @@ interface Message {
   isStreaming?: boolean
   streamingContent?: string
   shouldOfferBooking?: boolean
+  shouldOfferHuman?: boolean
 }
 
 interface CompanyData {
@@ -27,9 +28,10 @@ interface MessageListProps {
   onRatingChange?: (messageId: string, rating: 'like' | 'dislike' | null) => void
   primaryColor: string
   bookingUrl?: string
+  onTalkToHuman?: () => void
 }
 
-export function MessageList({ messages, isTyping, companyData, onRatingChange, primaryColor, bookingUrl }: MessageListProps) {
+export function MessageList({ messages, isTyping, companyData, onRatingChange, primaryColor, bookingUrl, onTalkToHuman }: MessageListProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const { isDark } = useTheme()
 
@@ -210,6 +212,20 @@ export function MessageList({ messages, isTyping, companyData, onRatingChange, p
                     <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                     Book a Demo
                   </a>
+                )}
+                {/* Talk to a person button - shown when AI detects frustration or has no relevant knowledge */}
+                {message.shouldOfferHuman && onTalkToHuman && (
+                  <button
+                    onClick={onTalkToHuman}
+                    className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors w-fit ${
+                      isDark
+                        ? 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
+                        : 'bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <UserRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    Talk to a person
+                  </button>
                 )}
               </div>
             )}

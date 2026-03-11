@@ -513,3 +513,72 @@ ${spacer}
 `;
   return emailShell('New Company Joined - Qurius AI', rows);
 }
+
+// ─── Support Request Notification Email ───────────────────────────────────────
+export function SupportRequestEmailTemplate({ companyName, userEmail, userName, conversationContext, createdAt }) {
+  const spacer = `          <tr><td bgcolor="#111827" style="background-color:#111827;height:24px;"></td></tr>`;
+
+  const rows = `
+          ${headerRow('New Support Request')}
+
+          <!-- Hero -->
+          <tr>
+            <td bgcolor="#1E3A5F" style="background-color:#1E3A5F;padding:32px;border-radius:12px;">
+              <h2 style="color:#F9FAFB;font-size:22px;font-weight:700;margin:0 0 8px 0;">🙋 Someone wants to talk to a person</h2>
+              <p style="color:#93C5FD;font-size:15px;margin:0;">A visitor using your <strong>${companyName}</strong> Assistant has requested human support.</p>
+            </td>
+          </tr>
+${spacer}
+
+          <!-- Contact Details -->
+          <tr>
+            <td bgcolor="#1F2937" style="background-color:#1F2937;padding:24px;border-radius:12px;border:1px solid #374151;">
+              <h3 style="color:#F9FAFB;font-size:16px;font-weight:600;margin:0 0 16px 0;">Contact Details</h3>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                ${userName ? `
+                <tr>
+                  <td style="color:#9CA3AF;font-size:14px;padding-bottom:12px;width:130px;vertical-align:top;">Name</td>
+                  <td style="color:#F9FAFB;font-size:14px;padding-bottom:12px;">${userName}</td>
+                </tr>` : ''}
+                ${userEmail ? `
+                <tr>
+                  <td style="color:#9CA3AF;font-size:14px;padding-bottom:12px;vertical-align:top;">Email</td>
+                  <td style="color:#F9FAFB;font-size:14px;padding-bottom:12px;">
+                    <a href="mailto:${userEmail}" style="color:#3B82F6;text-decoration:none;">${userEmail}</a>
+                  </td>
+                </tr>` : ''}
+                <tr>
+                  <td style="color:#9CA3AF;font-size:14px;vertical-align:top;">Requested at</td>
+                  <td style="color:#F9FAFB;font-size:14px;">${createdAt}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          ${conversationContext ? `
+${spacer}
+          <!-- Conversation Context -->
+          <tr>
+            <td bgcolor="#1F2937" style="background-color:#1F2937;padding:24px;border-radius:12px;border:1px solid #374151;">
+              <h3 style="color:#F9FAFB;font-size:16px;font-weight:600;margin:0 0 12px 0;">What they were asking about</h3>
+              <p style="color:#D1D5DB;font-size:14px;line-height:1.7;margin:0;white-space:pre-wrap;">${conversationContext}</p>
+            </td>
+          </tr>` : ''}
+
+${spacer}
+
+          <!-- CTA -->
+          <tr>
+            <td style="text-align:center;padding:8px 0;">
+              ${userEmail
+                ? `<a href="mailto:${userEmail}" style="display:inline-block;background-color:#3B82F6;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">Reply to ${userEmail}</a>`
+                : `<p style="color:#9CA3AF;font-size:14px;margin:0;">No email provided — check your Qurius AI dashboard for details.</p>`
+              }
+            </td>
+          </tr>
+${spacer}
+
+          ${supportAndFooter(`© 2026 Qurius AI · This notification was sent because a visitor using ${companyName}'s AI Assistant requested human support.`)}
+`;
+  return emailShell(`New Support Request — ${companyName}`, rows);
+}

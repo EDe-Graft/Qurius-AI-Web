@@ -12,7 +12,7 @@ import Stripe from 'stripe';
 import { parseTheme, getDailyStats, getEmbedding, getAIResponse, generateFAQs, sendWelcomeEmail, sendAdminCompanyNotification, createCompany, createAuthUser, updateAuthUser, generateWidgetKeyForCompany, validateWidgetKey, checkAndUpdateMessageLimit, recordMessageUsage, trackFAQMatch, trackAIFallback, searchWithRAG, trackContentMatch, trackTrueAIFallback, ValidationError, validateAndNormalizeCompanyInput, checkAuthUserExists } from './utils.js';
 import { formatReadableDateTime } from './helper.js';
 import { PRICING_PLANS } from './constants.js';
-import { SupportEmailTemplate } from './emailTemplates.js';
+import { SupportEmailTemplate, SupportRequestEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
 import crawlerRoutes from './crawler/crawler-api.js';
 import automationRoutes from './crawler/automation-api.js';
@@ -1057,7 +1057,7 @@ app.delete('/api/companies/:id', async (req, res) => {
 app.post('/api/faqs/search', async (req, res) => {
   try {
     const { question, companyData, messages } = req.body;
-    const {id: companyId, name: companyName, website, contact_email, booking_url } = companyData;
+    const {id: companyId, name: companyName, website, contact_email, booking_url, plan: companyPlan } = companyData;
 
     // Detect demo booking intent
     const bookingKeywords = ['demo', 'book', 'schedule', 'appointment', 'call', 'meeting', 'trial', 'see it in action', 'how does it work', 'can i try', 'show me', 'walkthrough', 'tour', 'get started', 'sign up'];
@@ -1071,6 +1071,14 @@ app.post('/api/faqs/search', async (req, res) => {
     const aiPreviouslyProposedBooking = !!lastAiMessage && bookingKeywords.some(kw => lastAiMessage.content.toLowerCase().includes(kw));
 
     const shouldOfferBooking = !!booking_url && (hasBookingIntent || (userIsAffirming && aiPreviouslyProposedBooking));
+
+    // Detect "talk to human" intent from explicit request or frustration signals
+    const humanKeywords = ['talk to human', 'real person', 'speak to someone', 'human agent', 'speak to a person', 'talk to a person', 'connect me to', 'live agent', 'customer service rep', 'speak to support', 'human support', 'speak to an agent', 'talk to an agent', 'not helpful', 'not what i asked', 'wrong answer', 'useless', 'not satisfied', 'this is wrong', 'that is wrong', 'you are wrong', 'incorrect answer', 'frustrated', 'speak to a human'];
+    const hasHumanIntent = humanKeywords.some(kw => question.toLowerCase().includes(kw));
+    // Also catch affirmatives after AI already suggested talking to someone
+    const humanSuggestionKeywords = ['human', 'person', 'agent', 'team member', 'support', 'contact'];
+    const aiPreviouslySuggestedHuman = !!lastAiMessage && humanSuggestionKeywords.some(kw => lastAiMessage.content.toLowerCase().includes(kw));
+    const shouldOfferHumanBase = hasHumanIntent || (userIsAffirming && aiPreviouslySuggestedHuman);
     let sessionId = 'qurius-ai-session';
     
     // Calculate message count for lead generation (excluding welcome message)
@@ -1121,7 +1129,7 @@ app.post('/api/faqs/search', async (req, res) => {
           let contentMatchType = bestMatch.type; // 'faq' or 'content'
           
           // Check if we should request lead information (do this before AI response)
-          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount, companyPlan);
           
           if (bestMatch.type === 'faq') {
             // High confidence FAQ match - use AI with FAQ context
@@ -1197,14 +1205,15 @@ app.post('/api/faqs/search', async (req, res) => {
             contentMatchType: contentMatchType,
             messagesLeft: messageLimitCheck.messagesLeft,
             shouldRequestLead: shouldRequestLead,
-            shouldOfferBooking: shouldOfferBooking
+            shouldOfferBooking: shouldOfferBooking,
+            shouldOfferHuman: shouldOfferHumanBase
           }]);
         } else {
           // Low confidence - use RAG with multiple sources
           console.log('Low confidence matches, using RAG with multiple sources');
           
           // Check if we should request lead information (do this before AI response)
-          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+          const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount, companyPlan);
           
           const aiResponse = await getAIResponse({
             companyName, 
@@ -1233,7 +1242,8 @@ app.post('/api/faqs/search', async (req, res) => {
             contentMatchType: 'mixed',
             messagesLeft: messageLimitCheck.messagesLeft,
             shouldRequestLead: shouldRequestLead,
-            shouldOfferBooking: shouldOfferBooking
+            shouldOfferBooking: shouldOfferBooking,
+            shouldOfferHuman: shouldOfferHumanBase
           }]);
         }
       } else {
@@ -1241,7 +1251,7 @@ app.post('/api/faqs/search', async (req, res) => {
         console.log('No RAG results found, falling back to AI');
         
         // Check if we should request lead information (do this before AI response)
-        const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+        const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount, companyPlan);
         
         const aiResponse = await getAIResponse({
           companyName, 
@@ -1268,14 +1278,16 @@ app.post('/api/faqs/search', async (req, res) => {
           contentMatchType: 'none',
           messagesLeft: messageLimitCheck.messagesLeft,
           shouldRequestLead: shouldRequestLead,
-          shouldOfferBooking: shouldOfferBooking
+          shouldOfferBooking: shouldOfferBooking,
+          // Always offer human support when AI has no relevant knowledge
+          shouldOfferHuman: shouldOfferHumanBase || !!contact_email
         }]);
       }
     } catch (ragError) {
       console.log('RAG search failed, falling back to AI:', ragError.message);
       
       // Check if we should request lead information (do this before AI response)
-      const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount);
+      const shouldRequestLead = await shouldRequestLeadInfo(companyId, sessionId, messageCount, companyPlan);
       
       // Fallback to AI when RAG search fails
       const aiResponse = await getAIResponse({
@@ -1303,7 +1315,9 @@ app.post('/api/faqs/search', async (req, res) => {
         contentMatchType: 'none',
         messagesLeft: messageLimitCheck.messagesLeft,
         shouldRequestLead: shouldRequestLead,
-        shouldOfferBooking: shouldOfferBooking
+        shouldOfferBooking: shouldOfferBooking,
+        // Always offer human support when RAG pipeline has an error
+        shouldOfferHuman: shouldOfferHumanBase || !!contact_email
       }]);
     }
   } catch (error) {
@@ -4297,7 +4311,8 @@ app.post('/api/leads/store', async (req, res) => {
       conversationContext, 
       sessionId, 
       userQuestion, 
-      aiResponse 
+      aiResponse,
+      type  // 'lead' or 'support_request'
     } = req.body;
 
     if (!companyId || !companyName) {
@@ -4307,7 +4322,8 @@ app.post('/api/leads/store', async (req, res) => {
       });
     }
 
-    console.log('📝 Storing lead for company:', companyName);
+    const recordType = type || 'lead';
+    console.log(`📝 Storing ${recordType} for company:`, companyName);
 
     const leadData = {
       companyId,
@@ -4318,20 +4334,65 @@ app.post('/api/leads/store', async (req, res) => {
       conversationContext: conversationContext || null,
       sessionId: sessionId || null,
       userQuestion: userQuestion || null,
-      aiResponse: aiResponse || null
+      aiResponse: aiResponse || null,
+      type: recordType
     };
 
     const result = await storeLead(leadData);
 
     if (result.success) {
-      console.log('✅ Lead stored successfully with ID:', result.leadId);
+      console.log(`✅ ${recordType} stored successfully with ID:`, result.leadId);
+
+      // Send email notification to company admin for support requests (growth/pro plans only)
+      if (recordType === 'support_request') {
+        try {
+          // Fetch company to get contact_email and plan
+          const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+          const supabaseKey = process.env.SUPABASE_ANON_KEY;
+          const companyRes = await axios.get(
+            `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=contact_email,admin_email,plan`,
+            {
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+              }
+            }
+          );
+          const company = companyRes.data?.[0];
+          const notifyEmail = company?.contact_email || company?.admin_email;
+          const isPaidPlan = company?.plan === 'growth' || company?.plan === 'pro';
+
+          if (notifyEmail && isPaidPlan) {
+            const htmlBody = SupportRequestEmailTemplate({
+              companyName,
+              userEmail: email || null,
+              userName: name || null,
+              conversationContext: conversationContext || null,
+              createdAt: new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC'
+            });
+
+            await sendEmail({
+              to: notifyEmail,
+              subject: `🙋 New Support Request — ${companyName}`,
+              html: htmlBody
+            });
+            console.log(`✅ Support request notification sent to ${notifyEmail}`);
+          }
+        } catch (emailError) {
+          // Don't fail the request if email notification fails
+          console.warn('⚠️ Failed to send support request notification email:', emailError.message);
+        }
+      }
+
       res.json({ 
         success: true, 
         leadId: result.leadId,
-        message: 'Lead information stored successfully'
+        message: recordType === 'support_request' 
+          ? 'Support request stored and team notified' 
+          : 'Lead information stored successfully'
       });
     } else {
-      console.error('❌ Failed to store lead:', result.error);
+      console.error(`❌ Failed to store ${recordType}:`, result.error);
       res.status(500).json({ 
         success: false, 
         error: result.error || 'Failed to store lead information' 

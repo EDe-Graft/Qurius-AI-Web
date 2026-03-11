@@ -9,6 +9,7 @@ CREATE TABLE companies (
     website TEXT,
     contact_email TEXT UNIQUE,
     admin_email TEXT UNIQUE, -- Email of the company admin
+    booking_url TEXT,
     logo_url TEXT,
     status TEXT DEFAULT 'active',
     plan TEXT DEFAULT 'free', -- Subscription plan: 'free', 'starter', 'pro'
@@ -362,6 +363,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     name TEXT,
     email TEXT,
     phone TEXT,
+    type TEXT DEFAULT 'lead' CHECK (type IN ('lead', 'support_request')),
     conversation_context TEXT, -- Store the conversation that led to this lead
     lead_status TEXT DEFAULT 'new' CHECK (lead_status IN ('new', 'contacted', 'converted', 'lost')),
     source_session_id TEXT, -- Track which conversation session generated this lead
@@ -377,6 +379,7 @@ CREATE INDEX IF NOT EXISTS idx_leads_created_at ON public.leads(created_at);
 CREATE INDEX IF NOT EXISTS idx_leads_status ON public.leads(lead_status);
 CREATE INDEX IF NOT EXISTS idx_leads_email ON public.leads(email);
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON public.leads(phone);
+CREATE INDEX IF NOT EXISTS idx_leads_type ON public.leads(type);
 
 -- Enable RLS
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;

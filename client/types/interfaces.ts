@@ -51,6 +51,7 @@ export interface FAQResponse {
     messagesLeft?: number;
     shouldRequestLead?: boolean; // New field for lead generation
     shouldOfferBooking?: boolean; // Whether to show the Book a Demo button
+    shouldOfferHuman?: boolean; // Whether to show the Talk to Human button
 }
 
 // Lead Collection interfaces
@@ -58,6 +59,7 @@ export interface LeadInfo {
     name?: string;
     email?: string;
     phone?: string;
+    type?: 'lead' | 'support_request';
 }
 
 export interface LeadCollectionState {

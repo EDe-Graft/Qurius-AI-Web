@@ -2,12 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
 import { faqService } from '@/services/faqService'
+import { leadService } from '@/services/leadService'
 import { AnalyticsService } from '@/services/analyticsService'
 import { TranslationService } from '@/services/translationService'
 import { useTheme } from '@/context/useThemeContext'
 import { useLanguage, LANGUAGE_FLAGS, LANGUAGE_NAMES } from '@/context/LanguageContext'
 import type { Language } from '@/context/LanguageContext'
-import { Sun, Moon, Globe, ChevronDown, X } from 'lucide-react'
+import { Sun, Moon, Globe, ChevronDown, X, UserRound } from 'lucide-react'
+
+type CollectionMode = null | 'lead' | 'support_request'
 
 // CompanyData interface
 interface CompanyData {
@@ -39,6 +42,7 @@ interface Message {
   isStreaming?: boolean
   streamingContent?: string
   shouldOfferBooking?: boolean
+  shouldOfferHuman?: boolean
 }
 
 interface Conversation {
@@ -89,6 +93,9 @@ export function ChatMainArea({
   const [showLanguageChangeNotification, setShowLanguageChangeNotification] = useState(false)
   const previousLanguageRef = useRef<Language>(currentLanguage)
   const languageNotificationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // Lead / support-request collection mode
+  const [collectionMode, setCollectionMode] = useState<CollectionMode>(null)
+  const [pendingCollectionMode, setPendingCollectionMode] = useState<CollectionMode>(null)
 
   // Detect language changes and show notification
   useEffect(() => {
@@ -180,6 +187,16 @@ export function ChatMainArea({
     }
   }, [])
 
+  // Activate pending collection mode once all streaming has finished
+  useEffect(() => {
+    if (!pendingCollectionMode) return
+    const isAnyStreaming = messages.some(m => m.isStreaming)
+    if (!isAnyStreaming && messages.length > 0) {
+      setCollectionMode(pendingCollectionMode)
+      setPendingCollectionMode(null)
+    }
+  }, [messages, pendingCollectionMode])
+
   // Update conversation in sidebar when streaming completes
   useEffect(() => {
     if (!activeConversationId) return
@@ -264,8 +281,109 @@ export function ChatMainArea({
     streamNext()
   }
 
+  // Triggered when user clicks "Talk to a person?" — from footer link or AI message button
+  const handleTalkToHuman = () => {
+    if (collectionMode === 'support_request') return // already in mode
+    const aiMessageId = `msg-${Date.now()}`
+    const content = "I'll connect you with a team member! Please share your email address and we'll have someone reach out to you as soon as possible. 🙋"
+    const aiMessage: Message = {
+      id: aiMessageId,
+      content,
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isStreaming: true,
+      streamingContent: ''
+    }
+    setMessages(prev => [...prev, aiMessage])
+    simulateStreaming(aiMessageId, content)
+    // Activate support_request mode once streaming ends
+    setPendingCollectionMode('support_request')
+  }
+
+  // Handle user input when a collection mode is active
+  const handleCollectionSubmit = async (content: string) => {
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      content,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    setMessages(prev => [...prev, userMessage])
+    setIsTyping(true)
+
+    try {
+      // Extract contact info from user's input
+      const contactInfo = leadService.extractContactInfo(content)
+
+      // Build conversation context from the last few messages
+      const contextMessages = messages
+        .filter(m => m.id !== 'welcome')
+        .slice(-8)
+        .map(m => `${m.isUser ? 'User' : 'AI'}: ${m.content}`)
+        .join('\n')
+
+      // Submit to backend
+      await leadService.submitLead({
+        companyId: companyData.id,
+        companyName: companyData.name,
+        name: contactInfo.name || undefined,
+        email: contactInfo.email || undefined,
+        phone: contactInfo.phone || undefined,
+        conversationContext: contextMessages || undefined,
+        sessionId: 'qurius-ai-session',
+        userQuestion: content,
+        type: collectionMode || 'lead'
+      })
+
+      // Generate appropriate confirmation message
+      let confirmationContent: string
+      if (collectionMode === 'support_request') {
+        confirmationContent = contactInfo.email
+          ? `Thanks! A member of our team will reach out to you at **${contactInfo.email}** shortly. Is there anything else I can help you with in the meantime?`
+          : `Thanks for reaching out! Our team will get back to you as soon as possible. Is there anything else I can help you with?`
+      } else {
+        confirmationContent = `Thanks for sharing your details! We'll follow up with you soon. Is there anything else I can help you with?`
+      }
+
+      const confirmationId = `msg-${Date.now() + 1}`
+      const confirmationMessage: Message = {
+        id: confirmationId,
+        content: confirmationContent,
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isStreaming: true,
+        streamingContent: ''
+      }
+      setMessages(prev => [...prev, confirmationMessage])
+      simulateStreaming(confirmationId, confirmationContent)
+    } catch (error) {
+      console.error('Error submitting contact info:', error)
+      const errId = `msg-${Date.now() + 1}`
+      const errContent = "Thanks! We've noted your message. A team member will be in touch soon."
+      const errMessage: Message = {
+        id: errId,
+        content: errContent,
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isStreaming: true,
+        streamingContent: ''
+      }
+      setMessages(prev => [...prev, errMessage])
+      simulateStreaming(errId, errContent)
+    } finally {
+      setIsTyping(false)
+      setCollectionMode(null)
+    }
+  }
+
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isTyping) return
+
+    // Intercept when a collection mode is active
+    if (collectionMode) {
+      await handleCollectionSubmit(content)
+      return
+    }
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -332,7 +450,8 @@ export function ChatMainArea({
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           isStreaming: true,
           streamingContent: '', // Start with empty content for streaming
-          shouldOfferBooking: response.shouldOfferBooking && !!companyData.booking_url
+          shouldOfferBooking: response.shouldOfferBooking && !!companyData.booking_url,
+          shouldOfferHuman: response.shouldOfferHuman && !!companyData.contact_email && collectionMode === null
         }
 
         // Add message with empty streaming content
@@ -340,6 +459,14 @@ export function ChatMainArea({
         
         // Start streaming animation
         simulateStreaming(messageId, translatedAnswer)
+
+        // Queue lead collection mode to activate after streaming ends
+        // Only available on growth/pro plans — backend also enforces this,
+        // but we guard here too for belt-and-suspenders
+        const isPaidPlan = companyData.plan === 'growth' || companyData.plan === 'pro'
+        if (response.shouldRequestLead && collectionMode === null && isPaidPlan) {
+          setPendingCollectionMode('lead')
+        }
 
         // Track message received
         if (companyData.name) {
@@ -686,9 +813,51 @@ export function ChatMainArea({
           onRatingChange={handleRatingChange}
           primaryColor={primaryColor}
           bookingUrl={companyData.booking_url}
+          onTalkToHuman={companyData.contact_email ? handleTalkToHuman : undefined}
         />
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Collection mode banner — shown when actively collecting lead or support info */}
+      {collectionMode && (
+        <div className={`mx-3 sm:mx-5 mb-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm flex items-center justify-between gap-2 ${
+          isDark
+            ? 'bg-indigo-900/30 border border-indigo-800/60 text-indigo-300'
+            : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
+        }`}>
+          <div className="flex items-center gap-1.5">
+            <UserRound className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              {collectionMode === 'support_request'
+                ? 'Enter your email and our team will reach out to you.'
+                : 'Please share your name, email, or phone number.'}
+            </span>
+          </div>
+          <button
+            onClick={() => setCollectionMode(null)}
+            className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+            aria-label="Cancel"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* "Prefer to talk to a person?" footer link — always visible when not in collection mode */}
+      {!collectionMode && companyData.contact_email && (
+        <div className={`px-4 sm:px-6 pt-1.5 flex items-center justify-center text-[10px] sm:text-[11px] ${
+          isDark ? 'text-slate-600' : 'text-gray-400'
+        }`}>
+          <span>Prefer to talk to a person?&nbsp;</span>
+          <button
+            onClick={handleTalkToHuman}
+            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+            style={{ color: primaryColor }}
+          >
+            Connect with our team
+          </button>
+        </div>
+      )}
 
       {/* Input + plan-based attribution (inside ChatInput so it sits directly under the text area) */}
       <ChatInput
@@ -696,6 +865,13 @@ export function ChatMainArea({
         disabled={isTyping}
         primaryColor={primaryColor}
         showAttribution={companyData.plan === 'free' || companyData.plan === 'starter'}
+        placeholder={
+          collectionMode === 'support_request'
+            ? 'Enter your email address...'
+            : collectionMode === 'lead'
+              ? 'Share your name, email, or phone...'
+              : undefined
+        }
       />
     </section>
   )

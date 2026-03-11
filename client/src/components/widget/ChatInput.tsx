@@ -7,9 +7,10 @@ interface ChatInputProps {
   disabled?: boolean
   primaryColor: string
   showAttribution?: boolean
+  placeholder?: string
 }
 
-export function ChatInput({ onSendMessage, disabled, primaryColor, showAttribution }: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled, primaryColor, showAttribution, placeholder }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -67,7 +68,7 @@ export function ChatInput({ onSendMessage, disabled, primaryColor, showAttributi
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="Ask anything..."
+            placeholder={placeholder || "Ask anything..."}
             disabled={disabled}
             rows={1}
             className={`flex-1 resize-none bg-transparent border-none outline-none px-1 sm:px-1.5 py-0.5 sm:py-1 text-xs sm:text-sm max-h-[72px] overflow-y-auto min-h-[20px] ${
