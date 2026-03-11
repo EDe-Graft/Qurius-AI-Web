@@ -285,7 +285,7 @@ export function ChatMainArea({
   const handleTalkToHuman = () => {
     if (collectionMode === 'support_request') return // already in mode
     const aiMessageId = `msg-${Date.now()}`
-    const content = "I'll connect you with a team member! Please share your email address and we'll have someone reach out to you as soon as possible. 🙋"
+    const content = "I'll connect you with a team member! Please share your **email address or phone number** (or both) and someone will reach out to you as soon as possible. 🙋"
     const aiMessage: Message = {
       id: aiMessageId,
       content,
@@ -338,8 +338,9 @@ export function ChatMainArea({
       // Generate appropriate confirmation message
       let confirmationContent: string
       if (collectionMode === 'support_request') {
-        confirmationContent = contactInfo.email
-          ? `Thanks! A member of our team will reach out to you at **${contactInfo.email}** shortly. Is there anything else I can help you with in the meantime?`
+        const contactDetail = contactInfo.email || contactInfo.phone
+        confirmationContent = contactDetail
+          ? `Thanks! A member of our team will reach out to you at **${contactDetail}** shortly. Is there anything else I can help you with in the meantime?`
           : `Thanks for reaching out! Our team will get back to you as soon as possible. Is there anything else I can help you with?`
       } else {
         confirmationContent = `Thanks for sharing your details! We'll follow up with you soon. Is there anything else I can help you with?`
@@ -867,7 +868,7 @@ export function ChatMainArea({
         showAttribution={companyData.plan === 'free' || companyData.plan === 'starter'}
         placeholder={
           collectionMode === 'support_request'
-            ? 'Enter your email address...'
+            ? 'Email address or phone number...'
             : collectionMode === 'lead'
               ? 'Share your name, email, or phone...'
               : undefined
