@@ -11,6 +11,22 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL, process.env.SUPA
 const changeDetectionService = new ChangeDetectionService()
 
 // ========================================
+// PLAN-BASED CRAWL CONFIGURATION
+// ========================================
+
+/**
+ * Default crawl settings per plan tier.
+ * Growth → monthly (1st of every month)
+ * Pro    → biweekly (1st and 15th of every month)
+ */
+const PLAN_CRAWL_DEFAULTS = {
+  growth: { frequency: 'monthly', max_pages: 25, max_depth: 1 },
+  pro:    { frequency: 'biweekly', max_pages: 50, max_depth: 2 }
+}
+
+const VALID_FREQUENCIES = ['daily', 'weekly', 'biweekly', 'monthly']
+
+// ========================================
 // SCHEDULE MANAGEMENT ENDPOINTS
 // ========================================
 
@@ -37,9 +53,9 @@ router.post('/schedules', async (req, res) => {
       })
     }
 
-    if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
+    if (!VALID_FREQUENCIES.includes(frequency)) {
       return res.status(400).json({
-        error: 'Invalid frequency. Must be daily, weekly, or monthly'
+        error: `Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`
       })
     }
 
@@ -193,9 +209,9 @@ router.put('/schedules/:id', async (req, res) => {
     // Prepare update data
     const updateData = {}
     if (frequency) {
-      if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
+      if (!VALID_FREQUENCIES.includes(frequency)) {
         return res.status(400).json({
-          error: 'Invalid frequency. Must be daily, weekly, or monthly'
+          error: `Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`
         })
       }
       updateData.frequency = frequency
@@ -720,20 +736,138 @@ router.get('/dashboard', async (req, res) => {
 // ========================================
 
 /**
- * Calculate next crawl date based on frequency
+ * Calculate next crawl date based on frequency.
+ * 
+ * biweekly → next upcoming anchor: 1st or 15th of the month
+ * monthly  → 1st of the next calendar month
+ * daily/weekly → rolling intervals (not anchor-based)
  */
 function calculateNextCrawlDate(frequency) {
   const now = new Date()
-  
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const day = now.getDate()
+
   switch (frequency) {
     case 'daily':
       return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
     case 'weekly':
       return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    case 'biweekly': {
+      // Fixed anchors: 1st and 15th of each month
+      // If before the 15th → schedule for 15th of this month
+      // If on/after the 15th → schedule for 1st of next month
+      if (day < 15) {
+        return new Date(year, month, 15, 0, 0, 0).toISOString()
+      } else {
+        return new Date(year, month + 1, 1, 0, 0, 0).toISOString()
+      }
+    }
     case 'monthly':
-      return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      // Fixed anchor: always the 1st of the next calendar month
+      return new Date(year, month + 1, 1, 0, 0, 0).toISOString()
     default:
       return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  }
+}
+
+// ========================================
+// EXPORTED HELPERS (used by server.js)
+// ========================================
+
+/**
+ * Auto-provisions or updates a crawl schedule for a company based on their plan.
+ * - Growth → monthly  (1st of every month, max 25 pages, depth 1)
+ * - Pro    → biweekly (1st and 15th, max 50 pages, depth 2)
+ * - Other plans → no schedule provisioned
+ *
+ * If a schedule already exists, it is overwritten to match the new plan's defaults.
+ * This ensures plan upgrades/downgrades always reflect the correct cadence.
+ */
+export async function provisionCrawlScheduleForPlan(companyId, plan, websiteUrl, companyName) {
+  const config = PLAN_CRAWL_DEFAULTS[plan]
+
+  if (!config) {
+    console.log(`ℹ️ No crawl schedule provisioned for plan "${plan}" (${companyName})`)
+    return null
+  }
+
+  if (!websiteUrl) {
+    console.warn(`⚠️ Cannot provision crawl schedule for ${companyName} — no website URL on record`)
+    return null
+  }
+
+  const nextCrawl = calculateNextCrawlDate(config.frequency)
+
+  // Check if a schedule already exists for this company
+  const { data: existing } = await supabase
+    .from('crawl_schedules')
+    .select('id, frequency')
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  if (existing) {
+    // Update existing schedule to match the new plan's defaults
+    const { error } = await supabase
+      .from('crawl_schedules')
+      .update({
+        frequency: config.frequency,
+        max_pages: config.max_pages,
+        max_depth: config.max_depth,
+        next_crawl: nextCrawl,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existing.id)
+
+    if (error) {
+      console.error(`❌ Failed to update crawl schedule for ${companyName}:`, error)
+    } else {
+      console.log(`✅ Updated crawl schedule for ${companyName} → ${config.frequency} (plan: ${plan})`)
+    }
+    return existing.id
+  } else {
+    // Create a new schedule
+    const { data: schedule, error } = await supabase
+      .from('crawl_schedules')
+      .insert({
+        company_id: companyId,
+        company_name: companyName,
+        base_url: websiteUrl,
+        frequency: config.frequency,
+        max_pages: config.max_pages,
+        max_depth: config.max_depth,
+        delay_ms: 1000,
+        change_threshold: 0.1,
+        is_active: true,
+        next_crawl: nextCrawl
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error(`❌ Failed to create crawl schedule for ${companyName}:`, error)
+    } else {
+      console.log(`✅ Created crawl schedule for ${companyName} → ${config.frequency} (plan: ${plan})`)
+    }
+    return schedule?.id || null
+  }
+}
+
+/**
+ * Deactivates a company's crawl schedule when they downgrade to a non-crawl plan.
+ * The record is kept (not deleted) so the super-admin can re-activate if needed.
+ */
+export async function deactivateCrawlSchedule(companyId, companyName) {
+  const { error } = await supabase
+    .from('crawl_schedules')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('company_id', companyId)
+
+  if (error) {
+    console.error(`❌ Failed to deactivate crawl schedule for ${companyName}:`, error)
+  } else {
+    console.log(`✅ Deactivated crawl schedule for ${companyName} (plan downgraded)`)
   }
 }
 

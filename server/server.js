@@ -15,7 +15,7 @@ import { PRICING_PLANS } from './constants.js';
 import { SupportEmailTemplate, LeadCapturedEmailTemplate, SupportRequestEmailTemplate } from './emailTemplates.js';
 import { sendEmail } from './config/resend.js';
 import crawlerRoutes from './crawler/crawler-api.js';
-import automationRoutes from './crawler/automation-api.js';
+import automationRoutes, { provisionCrawlScheduleForPlan, deactivateCrawlSchedule } from './crawler/automation-api.js';
 import scheduler from './services/schedulerService.js';
 import { storeLead, shouldRequestLeadInfo, checkExistingLead, generateLeadCollectionPrompt, extractContactInfoFromResponse } from './services/leadService.js';
 
@@ -308,6 +308,27 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
               }
             }
           );
+
+          // Auto-provision or deactivate crawl schedule based on new plan
+          if (planFromPrice && planFromPrice !== company.plan) {
+            try {
+              const crawlPlans = ['growth', 'pro']
+              if (crawlPlans.includes(planFromPrice)) {
+                // Upgraded to (or switched between) a crawl-eligible plan
+                await provisionCrawlScheduleForPlan(
+                  company.id,
+                  planFromPrice,
+                  company.website || null,
+                  company.name
+                )
+              } else {
+                // Downgraded to free/starter — deactivate any existing schedule
+                await deactivateCrawlSchedule(company.id, company.name)
+              }
+            } catch (scheduleErr) {
+              console.warn('⚠️ Failed to update crawl schedule on plan change:', scheduleErr.message)
+            }
+          }
         }
         break;
 
@@ -349,6 +370,13 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
               }
             }
           );
+
+          // Deactivate crawl schedule on subscription cancellation
+          try {
+            await deactivateCrawlSchedule(company.id, company.name)
+          } catch (scheduleErr) {
+            console.warn('⚠️ Failed to deactivate crawl schedule on cancellation:', scheduleErr.message)
+          }
         }
         break;
 
@@ -882,6 +910,16 @@ app.post('/api/companies', async (req, res) => {
     console.log('📧 Sending admin notification email...');
     await sendAdminCompanyNotification(companyData);
     console.log('✅ Admin notification email sent');
+
+    // Auto-provision crawl schedule for growth/pro plans
+    if (companyId && (plan === 'growth' || plan === 'pro') && companyData.website) {
+      try {
+        await provisionCrawlScheduleForPlan(companyId, plan, companyData.website, companyName)
+      } catch (scheduleErr) {
+        // Non-fatal — log but don't block the response
+        console.warn('⚠️ Failed to auto-provision crawl schedule:', scheduleErr.message)
+      }
+    }
 
     res.json({
       success: true,

@@ -23,7 +23,7 @@ class CrawlScheduler {
     this.scheduler = null
     this.changeDetectionService = new ChangeDetectionService()
     this.batchSize = 10 // Process 10 companies at a time
-    this.checkIntervalMinutes = 5 // Check every 5 minutes
+    this.checkIntervalMinutes = 60 // Check every 60 minutes (hourly)
     this.maxConcurrentCrawls = 3 // Maximum concurrent crawls
     this.activeCrawls = new Set()
   }

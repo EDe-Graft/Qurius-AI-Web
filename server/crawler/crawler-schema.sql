@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS crawl_schedules (
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
   company_name TEXT NOT NULL,
   base_url TEXT NOT NULL,
-  frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly')),
+  frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly')),
   next_crawl TIMESTAMP WITH TIME ZONE NOT NULL,
   is_active BOOLEAN DEFAULT true,
   content_change_threshold REAL DEFAULT 0.1, -- 10% change threshold
@@ -239,6 +239,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to update next crawl date
+-- biweekly: fixed anchors on the 1st and 15th of each month
+-- monthly:  fixed anchor on the 1st of the next calendar month
 CREATE OR REPLACE FUNCTION update_next_crawl_date(
     schedule_id UUID,
     frequency TEXT
@@ -248,12 +250,33 @@ BEGIN
     UPDATE public.crawl_schedules 
     SET 
         next_crawl = CASE 
-            WHEN frequency = 'daily' THEN NOW() + INTERVAL '1 day'
-            WHEN frequency = 'weekly' THEN NOW() + INTERVAL '1 week'
-            WHEN frequency = 'monthly' THEN NOW() + INTERVAL '1 month'
+            WHEN frequency = 'daily'     THEN NOW() + INTERVAL '1 day'
+            WHEN frequency = 'weekly'    THEN NOW() + INTERVAL '1 week'
+            WHEN frequency = 'biweekly'  THEN
+                -- If before the 15th → schedule for 15th of this month
+                -- If on/after the 15th → schedule for 1st of next month
+                CASE
+                    WHEN EXTRACT(DAY FROM NOW()) < 15
+                        THEN DATE_TRUNC('month', NOW()) + INTERVAL '14 days'
+                    ELSE
+                        DATE_TRUNC('month', NOW()) + INTERVAL '1 month'
+                END
+            WHEN frequency = 'monthly'   THEN
+                -- Always the 1st of the next calendar month
+                DATE_TRUNC('month', NOW()) + INTERVAL '1 month'
             ELSE NOW() + INTERVAL '1 week'
         END,
         updated_at = NOW()
     WHERE id = schedule_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; 
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ================================================================
+-- MIGRATION: Add biweekly to frequency constraint
+-- Run this against your live Supabase database if the table already exists.
+-- ================================================================
+-- ALTER TABLE public.crawl_schedules
+--   DROP CONSTRAINT IF EXISTS crawl_schedules_frequency_check;
+-- ALTER TABLE public.crawl_schedules
+--   ADD CONSTRAINT crawl_schedules_frequency_check
+--   CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly')); 

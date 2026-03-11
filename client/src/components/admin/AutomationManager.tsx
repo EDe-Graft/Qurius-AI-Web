@@ -31,7 +31,7 @@ interface CrawlSchedule {
   id: string
   company_id: string
   base_url: string
-  frequency: 'daily' | 'weekly' | 'monthly'
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly'
   max_pages: number
   max_depth: number
   delay_ms: number
@@ -98,7 +98,7 @@ const AutomationManager: React.FC = () => {
   const [formData, setFormData] = useState({
     company_id: '',
     base_url: '',
-    frequency: 'weekly' as const,
+    frequency: 'weekly' as 'daily' | 'weekly' | 'biweekly' | 'monthly',
     max_pages: 25,
     max_depth: 1,
     delay_ms: 1000,
@@ -236,10 +236,11 @@ const AutomationManager: React.FC = () => {
 
   const getFrequencyColor = (frequency: string) => {
     switch (frequency) {
-      case 'daily': return 'bg-red-100 text-red-800'
-      case 'weekly': return 'bg-blue-100 text-blue-800'
-      case 'monthly': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'daily':    return 'bg-red-100 text-red-800'
+      case 'weekly':   return 'bg-blue-100 text-blue-800'
+      case 'biweekly': return 'bg-purple-100 text-purple-800'
+      case 'monthly':  return 'bg-green-100 text-green-800'
+      default:         return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -569,7 +570,8 @@ const AutomationManager: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="biweekly">Bi-weekly (1st &amp; 15th)</SelectItem>
+                    <SelectItem value="monthly">Monthly (1st)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
