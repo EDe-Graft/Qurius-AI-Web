@@ -1062,7 +1062,15 @@ app.post('/api/faqs/search', async (req, res) => {
     // Detect demo booking intent
     const bookingKeywords = ['demo', 'book', 'schedule', 'appointment', 'call', 'meeting', 'trial', 'see it in action', 'how does it work', 'can i try', 'show me', 'walkthrough', 'tour', 'get started', 'sign up'];
     const hasBookingIntent = bookingKeywords.some(kw => question.toLowerCase().includes(kw));
-    const shouldOfferBooking = hasBookingIntent && !!booking_url;
+
+    // Also catch affirmative replies to a booking proposal the AI made in its previous message
+    // e.g. AI said "Would you like to book a demo?" → user replies "yes" / "sure" / "sounds good"
+    const affirmativeWords = ['yes', 'sure', 'ok', 'okay', 'sounds good', 'great', 'absolutely', 'definitely', 'please', 'yeah', 'yep', 'yup', 'of course', "i'd like", 'love to', "that'd be great", "let's do it", "let's go", 'why not', 'go ahead'];
+    const userIsAffirming = affirmativeWords.some(w => question.toLowerCase().trim().includes(w));
+    const lastAiMessage = messages && [...messages].reverse().find(m => m.role === 'assistant');
+    const aiPreviouslyProposedBooking = !!lastAiMessage && bookingKeywords.some(kw => lastAiMessage.content.toLowerCase().includes(kw));
+
+    const shouldOfferBooking = !!booking_url && (hasBookingIntent || (userIsAffirming && aiPreviouslyProposedBooking));
     let sessionId = 'qurius-ai-session';
     
     // Calculate message count for lead generation (excluding welcome message)
@@ -1125,7 +1133,9 @@ app.post('/api/faqs/search', async (req, res) => {
               customerSupportEmail: contact_email, 
               messageHistory: messages,
               retrievedContext: searchResults,
-              shouldRequestLead: shouldRequestLead
+              shouldRequestLead: shouldRequestLead,
+              shouldOfferBooking: shouldOfferBooking,
+              bookingUrl: booking_url || null
             });
             
             responseSource = 'ai_with_faq_context';
@@ -1161,7 +1171,9 @@ app.post('/api/faqs/search', async (req, res) => {
               customerSupportEmail: contact_email, 
               messageHistory: messages,
               retrievedContext: searchResults,
-              shouldRequestLead: shouldRequestLead
+              shouldRequestLead: shouldRequestLead,
+              shouldOfferBooking: shouldOfferBooking,
+              bookingUrl: booking_url || null
             });
             
             responseSource = 'ai_with_context';
@@ -1200,7 +1212,9 @@ app.post('/api/faqs/search', async (req, res) => {
             customerSupportEmail: contact_email, 
             messageHistory: messages,
             retrievedContext: searchResults, // Top 5 relevant chunks
-            shouldRequestLead: shouldRequestLead
+            shouldRequestLead: shouldRequestLead,
+            shouldOfferBooking: shouldOfferBooking,
+            bookingUrl: booking_url || null
           });
           console.log('AI Response with RAG context:', aiResponse);
 
@@ -1234,7 +1248,9 @@ app.post('/api/faqs/search', async (req, res) => {
           companyWebsite: website, 
           customerSupportEmail: contact_email, 
           messageHistory: messages,
-          shouldRequestLead: shouldRequestLead
+          shouldRequestLead: shouldRequestLead,
+          shouldOfferBooking: shouldOfferBooking,
+          bookingUrl: booking_url || null
         });
         console.log('AI Response:', aiResponse);
 
@@ -1267,7 +1283,9 @@ app.post('/api/faqs/search', async (req, res) => {
         companyWebsite: website, 
         customerSupportEmail: contact_email, 
         messageHistory: messages,
-        shouldRequestLead: shouldRequestLead
+        shouldRequestLead: shouldRequestLead,
+        shouldOfferBooking: shouldOfferBooking,
+        bookingUrl: booking_url || null
       });
       console.log('AI Response:', aiResponse);
       

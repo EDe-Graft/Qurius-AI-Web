@@ -397,7 +397,7 @@ function enhanceResponseWithLinks(response, retrievedContext) {
 
 
 // Get AI response using OpenAI
-export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = [], shouldRequestLead = false}) {
+export async function getAIResponse({companyName, companyWebsite, customerSupportEmail, messageHistory, retrievedContext = [], shouldRequestLead = false, shouldOfferBooking = false, bookingUrl = null}) {
   const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   const API_KEY = process.env.OPEN_ROUTER_API_KEY;
   const model = 'openai/gpt-4o-mini';
@@ -527,6 +527,20 @@ If you prefer not to share contact information, I can still continue helping you
 - Include specific calls-to-action when relevant
 `}
 
+DEMO BOOKING FEATURE:
+${shouldOfferBooking && bookingUrl ? `
+- IMPORTANT: A "Book a Demo" button will automatically appear directly below your response in the chat UI
+- Acknowledge this naturally and briefly in your response — one sentence is enough
+- Example: "I've also added a Book a Demo button below — feel free to use it to schedule a session with our team."
+- Do NOT include the raw booking URL or a markdown link to the booking page — the button already handles this
+- Keep the acknowledgment warm and natural, not mechanical
+` : bookingUrl ? `
+- This company offers demo bookings. If it feels natural given the conversation, you may briefly mention: "You can also book a demo directly from this chat."
+- Do NOT include the booking URL in your response — the UI will surface it when relevant
+` : `
+- This company has not set up demo booking yet — do not mention booking or scheduling a demo call
+`}
+
 RESPONSE STRUCTURE:
 1. Answer the customer's question clearly and concisely
 2. Provide relevant links and information with proper formatting
@@ -542,7 +556,7 @@ EXAMPLES OF GOOD FOLLOW-UPS:
 - "Have you seen our [specific product/service] that might interest you?"
 - "Would you like me to send you more information about [relevant topic]?"
 - "Are you interested in learning about our pricing options?"
-- "Would you like to book a demo to see how this works?"
+${!bookingUrl ? `- "Would you like to book a demo to see how this works?"` : `- "Is there anything specific you'd like to see in a demo?"`}
 - "Have you considered our [upgrade/premium] options?"
 - "What specific aspect of [topic] would you like to explore further?"
 - "Are you looking to get started with [service] right away?"
