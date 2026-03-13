@@ -205,15 +205,27 @@ CREATE TABLE IF NOT EXISTS public.widget_analytics (
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_id ON public.widget_analytics(company_id);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_event_type ON public.widget_analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_timestamp ON public.widget_analytics(timestamp);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_session_id ON public.widget_analytics(session_id);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_rating ON public.widget_analytics(rating);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_response_source ON public.widget_analytics(response_source);
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_language ON public.widget_analytics(language);
-CREATE INDEX IF NOT EXISTS idx_widget_analytics_theme_mode ON public.widget_analytics(theme_mode);
--- Index for analytics by company and timestamp (for efficient time-based queries)
+-- Composite: company + timestamp — primary index for all date-range analytics queries
 CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_timestamp ON public.widget_analytics(company_id, timestamp);
+-- Composite: company + event_type + timestamp — used by get_analytics_summary CASE WHENs
+-- and any query filtering events by type within a company (replaces low-cardinality
+-- standalone event_type, rating, response_source, theme_mode single-column indexes)
+CREATE INDEX IF NOT EXISTS idx_widget_analytics_company_event ON public.widget_analytics(company_id, event_type, timestamp);
+-- NOTE: The following low-cardinality standalone indexes were removed because the
+-- PostgreSQL query planner never selects them (too few distinct values to be useful)
+-- and they add write overhead on every INSERT:
+--   idx_widget_analytics_event_type    (replaced by idx_widget_analytics_company_event)
+--   idx_widget_analytics_rating        (3 values: -1, 0, 1)
+--   idx_widget_analytics_response_source (3-4 values)
+--   idx_widget_analytics_theme_mode    (2 values: 'light', 'dark')
+-- Migration: run these in Supabase SQL editor to remove the old indexes:
+--   DROP INDEX IF EXISTS public.idx_widget_analytics_event_type;
+--   DROP INDEX IF EXISTS public.idx_widget_analytics_rating;
+--   DROP INDEX IF EXISTS public.idx_widget_analytics_response_source;
+--   DROP INDEX IF EXISTS public.idx_widget_analytics_theme_mode;
 
 -- Enable RLS
 ALTER TABLE public.widget_analytics ENABLE ROW LEVEL SECURITY;
@@ -387,6 +399,9 @@ CREATE INDEX IF NOT EXISTS idx_leads_status ON public.leads(lead_status);
 CREATE INDEX IF NOT EXISTS idx_leads_email ON public.leads(email);
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON public.leads(phone);
 CREATE INDEX IF NOT EXISTS idx_leads_type ON public.leads(type);
+-- Composite: covers the admin dashboard query that filters by company + type
+-- and orders by created_at — replaces three separate index lookups with one
+CREATE INDEX IF NOT EXISTS idx_leads_company_type_date ON public.leads(company_id, type, created_at DESC);
 
 -- Enable RLS
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
@@ -432,6 +447,8 @@ BEGIN
         (1 - (f.question_embedding <=> p_query_embedding))::REAL AS similarity
     FROM public.faqs f
     WHERE f.company_id = p_company_id
+    -- Guard: skip rows with no embedding to prevent cosine-distance errors
+    AND f.question_embedding IS NOT NULL
     ORDER BY similarity DESC
     LIMIT p_top_k;
 END;
@@ -472,6 +489,8 @@ BEGIN
         ccc.anchor_link::VARCHAR(500)
     FROM public.company_content_chunks ccc
     WHERE ccc.company_id = p_company_id
+    -- Guard: skip rows with no embedding to prevent cosine-distance errors
+    AND ccc.embedding IS NOT NULL
     AND (p_priority IS NULL OR ccc.priority = p_priority)
     ORDER BY similarity DESC
     LIMIT p_top_k;
@@ -771,25 +790,38 @@ RETURNS TABLE(
     usage_by_day JSON
 ) AS $$
 BEGIN
+    -- Note: usage_by_day is computed via a correlated subquery to avoid nesting
+    -- aggregates (which PostgreSQL forbids). The daily breakdown only counts
+    -- billable messages ('faq' and 'ai'), not 'limit_reached' events.
     RETURN QUERY
     SELECT
         COUNT(*)::INTEGER as total_messages,
         COUNT(CASE WHEN message_type = 'faq' THEN 1 END)::INTEGER as faq_messages,
         COUNT(CASE WHEN message_type = 'ai' THEN 1 END)::INTEGER as ai_messages,
         COUNT(CASE WHEN message_type = 'limit_reached' THEN 1 END)::INTEGER as limit_reached_count,
-        AVG(confidence_score) as avg_confidence,
+        AVG(confidence_score)::REAL as avg_confidence,
         MODE() WITHIN GROUP (ORDER BY fallback_reason) as most_common_fallback,
-        json_agg(
-            json_build_object(
-                'date', DATE(used_at),
-                'count', COUNT(*)
+        (
+            SELECT json_agg(
+                json_build_object('date', day_date, 'count', day_count)
+                ORDER BY day_date
             )
-        ) as usage_by_day
+            FROM (
+                SELECT
+                    DATE(used_at) AS day_date,
+                    COUNT(*)::INTEGER AS day_count
+                FROM public.message_usage
+                WHERE company_id = p_company_id
+                    AND message_type IN ('faq', 'ai')
+                    AND (p_start_date IS NULL OR used_at >= p_start_date)
+                    AND (p_end_date IS NULL OR used_at <= p_end_date)
+                GROUP BY DATE(used_at)
+            ) daily
+        )::JSON AS usage_by_day
     FROM public.message_usage
     WHERE company_id = p_company_id
     AND (p_start_date IS NULL OR used_at >= p_start_date)
-    AND (p_end_date IS NULL OR used_at <= p_end_date)
-    GROUP BY company_id;
+    AND (p_end_date IS NULL OR used_at <= p_end_date);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1050,11 +1082,19 @@ CREATE INDEX IF NOT EXISTS idx_notifications_read_by_company ON public.notificat
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_crawl_session_id ON public.notifications(crawl_session_id);
 
--- Composite index for efficient queries
+-- Composite indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_notifications_company_read ON public.notifications(company_id, read_status);
 CREATE INDEX IF NOT EXISTS idx_notifications_company_type ON public.notifications(company_id, type);
-CREATE INDEX IF NOT EXISTS idx_notifications_company_read_by_company ON public.notifications(company_id, read_by_company);
-CREATE INDEX IF NOT EXISTS idx_notifications_read_by_super_admin_status ON public.notifications(read_by_super_admin);
+-- Covers company notification list: WHERE company_id = X AND read_by_company = FALSE ORDER BY created_at DESC
+CREATE INDEX IF NOT EXISTS idx_notifications_company_read_by_company ON public.notifications(company_id, read_by_company, created_at DESC);
+-- Partial index for super admin unread count — only indexes the unread rows, stays tiny
+-- Covers: SELECT COUNT(*) WHERE read_by_super_admin = FALSE (runs on every dashboard load)
+CREATE INDEX IF NOT EXISTS idx_notifications_unread_super_admin
+  ON public.notifications(created_at DESC)
+  WHERE read_by_super_admin = FALSE;
+-- NOTE: idx_notifications_read_by_super_admin_status was a duplicate of
+-- idx_notifications_read_by_super_admin and has been removed.
+-- Migration: DROP INDEX IF EXISTS public.idx_notifications_read_by_super_admin_status;
 
 -- Enable Row Level Security
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -1262,7 +1302,7 @@ BEGIN
   RETURN QUERY
   SELECT 
     (SELECT COUNT(*) FROM public.notifications) as total_notifications,
-    (SELECT COUNT(*) FROM public.notifications WHERE read_status = FALSE) as unread_count,
+    (SELECT COUNT(*) FROM public.notifications WHERE read_by_super_admin = FALSE) as unread_count,
     (SELECT jsonb_agg(
       jsonb_build_object(
         'id', n.id,
