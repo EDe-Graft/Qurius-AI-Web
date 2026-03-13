@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Play, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChatInterface } from '@/components/custom/ChatInterface'
+import { WidgetEmbed } from '@/components/widget/WidgetEmbed'
 import { useTheme } from '@/context/useThemeContext'
 
 interface Company {
@@ -29,9 +29,7 @@ interface LiveTestModalProps {
 
 export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }: LiveTestModalProps) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
-  const [resetKey, setResetKey] = useState(0) // Add reset key for chat re-initialization
-  const { defaultTheme, toggleTheme, isThemeChanging } = useTheme()
+  const { defaultTheme, toggleTheme } = useTheme()
 
   useEffect(() => {
     if (isOpen && companies.length > 0) {
@@ -58,8 +56,6 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
   const handleCompanyChange = (companyId: string) => {
     const company = companies.find(c => c.id === companyId)
     setSelectedCompany(company || null)
-    // Increment reset key to force chat re-initialization
-    setResetKey(prev => prev + 1)
   }
 
   if (!isOpen) return null
@@ -125,7 +121,7 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
         {/* Test Notice */}
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-3 py-2">
           <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 text-center font-medium">
-            🧪 Live Test Environment - This is a simulated website for testing AI assistants
+            🧪 Live Test Environment — The chat widget will appear in the bottom-right corner, just as it does on your website.
           </p>
         </div>
 
@@ -146,7 +142,7 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
                   <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-2 sm:mb-3 md:mb-4 leading-relaxed">
                     This is a demonstration of how the chat interface would appear when embedded in a professional company website. 
                     It is shown here with {selectedCompany?.name || 'Sample Company'}. The chat widget is positioned in the bottom-right corner 
-                    and can be minimized when not in use.
+                    and can be opened when not in use.
                   </p>
                   <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-2 sm:mb-3 md:mb-4">
                     Key features include:
@@ -157,7 +153,7 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
                     <li>Responsive design that works on all devices</li>
                     <li>ChatGPT-style message layout with user messages on the right</li>
                     <li>Typing indicators and smooth animations</li>
-                    <li>Minimizable interface to reduce screen clutter</li>
+                    <li>Expandable fullscreen interface</li>
                   </ul>
                 </div>
 
@@ -166,8 +162,8 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
                     Try the Chat Interface
                   </h3>
                   <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 leading-relaxed">
-                    Click the chat button in the bottom-right corner to start a conversation. You can toggle between light and dark themes, 
-                    minimize the chat, and experience the smooth, professional interface.
+                    Click the <strong>✨ Ask AI</strong> button in the bottom-right corner to start a conversation. 
+                    You can toggle between light and dark themes and experience the full widget interface.
                   </p>
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm sm:text-base">
@@ -185,24 +181,22 @@ export function LiveTestModal({ isOpen, onClose, companies, selectedCompanyId }:
           </div>
         </div>
 
-        {/* Chat Interface */}
-        {selectedCompany && (
-          <ChatInterface
-            key={selectedCompany.id || 'default'} // Force re-render when company changes
-            defaultTheme={defaultTheme}
-            toggleTheme={toggleTheme}
-            isMinimized={isChatMinimized}
-            onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+        {/* Widget embed — injects the iframe-based widget into document.body,
+            exactly as it appears on a real customer website. Unmounts and
+            cleans up when the modal closes. */}
+        {selectedCompany?.id && (
+          <WidgetEmbed
+            key={selectedCompany.id}
             companyData={{
-              ...selectedCompany,
+              id: selectedCompany.id,
+              name: selectedCompany.name,
               plan: selectedCompany.plan || 'free',
-              status: selectedCompany.status || 'active'
+              theme: selectedCompany.theme,
             }}
-            isThemeChanging={isThemeChanging}
-            resetKey={resetKey} // Pass resetKey to ChatInterface
+            theme={defaultTheme}
           />
         )}
       </div>
     </div>
   )
-} 
+}

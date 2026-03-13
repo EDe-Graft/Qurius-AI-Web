@@ -32,6 +32,7 @@ export interface Company {
   subscription_status?: string
   subscription_end_date?: string
   booking_url?: string
+  allowed_domains?: string[]
   embedding?: any
   analytics?: {
     totalViews: number

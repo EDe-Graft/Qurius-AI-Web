@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Palette, Save, ArrowLeft, Link } from 'lucide-react';
+import { Palette, Save, ArrowLeft, Link, Shield, Plus, X } from 'lucide-react';
 import { CompanyService } from '@/services/companyService';
 
 interface WidgetTheme {
@@ -20,6 +20,10 @@ export function WidgetSettings() {
   });
   const [bookingUrl, setBookingUrl] = useState('');
   const [bookingUrlError, setBookingUrlError] = useState('');
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+  const [domainInput, setDomainInput] = useState('');
+  const [domainInputError, setDomainInputError] = useState('');
+  const domainInputRef = useRef<HTMLInputElement>(null);
   const [savingTheme, setSavingTheme] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,6 +55,9 @@ export function WidgetSettings() {
         if (company?.booking_url) {
           setBookingUrl(company.booking_url);
         }
+        if (company?.allowed_domains) {
+          setAllowedDomains(company.allowed_domains);
+        }
       } catch (error) {
         console.error('Error loading company theme:', error);
       } finally {
@@ -60,6 +67,44 @@ export function WidgetSettings() {
 
     loadCompanyTheme();
   }, [companyId, navigate]);
+
+  const normaliseDomain = (raw: string): string | null => {
+    const trimmed = raw.trim().toLowerCase();
+    if (!trimmed) return null;
+    try {
+      const withProto = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+      return new URL(withProto).hostname || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleAddDomain = () => {
+    setDomainInputError('');
+    const normalised = normaliseDomain(domainInput);
+    if (!normalised) {
+      setDomainInputError('Please enter a valid domain (e.g. example.com)');
+      return;
+    }
+    if (allowedDomains.includes(normalised)) {
+      setDomainInputError('This domain is already in the list');
+      return;
+    }
+    setAllowedDomains(prev => [...prev, normalised]);
+    setDomainInput('');
+    domainInputRef.current?.focus();
+  };
+
+  const handleRemoveDomain = (domain: string) => {
+    setAllowedDomains(prev => prev.filter(d => d !== domain));
+  };
+
+  const handleDomainKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddDomain();
+    }
+  };
 
   const validateBookingUrl = (url: string) => {
     if (!url) return true; // Optional field
@@ -85,7 +130,8 @@ export function WidgetSettings() {
       setSavingTheme(true);
       await CompanyService.updateCompany(companyId, {
         theme: widgetTheme,
-        booking_url: bookingUrl || undefined
+        booking_url: bookingUrl || undefined,
+        allowed_domains: allowedDomains,
       });
       
       alert('Widget settings updated successfully!');
@@ -362,6 +408,79 @@ export function WidgetSettings() {
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Allowed Domains */}
+            <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-2 pt-4">
+                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Allowed Domains
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Restrict your widget to specific domains. Leave empty to allow any website to embed it.
+                  </p>
+                </div>
+              </div>
+
+              {/* Domain input row */}
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1">
+                  <input
+                    ref={domainInputRef}
+                    type="text"
+                    value={domainInput}
+                    onChange={(e) => { setDomainInput(e.target.value); setDomainInputError(''); }}
+                    onKeyDown={handleDomainKeyDown}
+                    placeholder="example.com"
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      domainInputError
+                        ? 'border-red-400 dark:border-red-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                  />
+                  {domainInputError && (
+                    <p className="text-xs text-red-500 dark:text-red-400">{domainInputError}</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleAddDomain}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-3 self-start mt-0"
+                  title="Add domain"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Domain list */}
+              {allowedDomains.length > 0 ? (
+                <ul className="space-y-2">
+                  {allowedDomains.map((domain) => (
+                    <li
+                      key={domain}
+                      className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 text-sm"
+                    >
+                      <span className="text-gray-800 dark:text-gray-200 font-mono truncate">{domain}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDomain(domain)}
+                        className="ml-3 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                        title="Remove domain"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+                  ⚠️ No domains added — widget can be embedded on any website.
+                </p>
+              )}
             </div>
 
             {/* Action Buttons */}

@@ -959,6 +959,7 @@ app.patch('/api/companies/:id', async (req, res) => {
       admin_email,
       status,
       booking_url,
+      allowed_domains,
     } = req.body;
     
     console.log('Updating company:', id);
@@ -968,6 +969,25 @@ app.patch('/api/companies/:id', async (req, res) => {
     
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Normalise allowed_domains: strip protocol/path, lowercase, dedupe, drop empty strings
+    let normalisedDomains = undefined;
+    if (Array.isArray(allowed_domains)) {
+      normalisedDomains = [...new Set(
+        allowed_domains
+          .map((d) => {
+            try {
+              const raw = d.trim();
+              if (!raw) return '';
+              const withProto = raw.startsWith('http') ? raw : `https://${raw}`;
+              return new URL(withProto).hostname.toLowerCase();
+            } catch (_) {
+              return '';
+            }
+          })
+          .filter(Boolean)
+      )];
     }
 
     // Prepare company data
@@ -984,6 +1004,7 @@ app.patch('/api/companies/:id', async (req, res) => {
       logo_url: logo_url || '',
       status: status || 'active',
       booking_url: booking_url || null,
+      ...(normalisedDomains !== undefined && { allowed_domains: normalisedDomains }),
       // updated_at: formatReadableDateTime(new Date())
     };
 
@@ -2478,9 +2499,9 @@ app.get('/api/validate-key', async (req, res) => {
       return res.status(500).json({ valid: false, error: 'Server configuration missing' });
     }
 
-    // Get company with widget key
+    // Get company with widget key (include allowed_domains for origin check)
     const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?id=eq.${encodeURIComponent(companyId)}&select=id,name,widget_key_hash,plan,status`,
+      `${supabaseUrl}/rest/v1/companies?id=eq.${encodeURIComponent(companyId)}&select=id,name,widget_key_hash,plan,status,allowed_domains`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -2506,6 +2527,41 @@ app.get('/api/validate-key', async (req, res) => {
     if (!companyData.widget_key_hash) {
       return res.json({ valid: false, error: 'No widget key found for company' });
     }
+
+    // --- Domain allowlist check ---
+    const allowedDomains = companyData.allowed_domains || [];
+    if (allowedDomains.length > 0) {
+      // Parse the requesting origin from the Origin or Referer header
+      const originHeader = req.headers['origin'] || req.headers['referer'] || '';
+      let requestHostname = '';
+      try {
+        if (originHeader) {
+          requestHostname = new URL(originHeader).hostname.toLowerCase();
+        }
+      } catch (_) {
+        requestHostname = '';
+      }
+
+      // Always allow Qurius's own domains and localhost
+      const internalHostnames = [
+        'localhost',
+        '127.0.0.1',
+        'qurius.app',
+        'www.qurius.app',
+        'qurius-ai.vercel.app',
+      ];
+
+      const isInternalOrigin = !requestHostname || internalHostnames.includes(requestHostname);
+      const isAllowedDomain = isInternalOrigin || allowedDomains.some(
+        (d) => d.toLowerCase() === requestHostname || requestHostname.endsWith(`.${d.toLowerCase()}`)
+      );
+
+      if (!isAllowedDomain) {
+        console.warn(`🚫 Domain not allowed: "${requestHostname}" not in allowlist for company ${companyId}`);
+        return res.json({ valid: false, error: 'Domain not authorized for this widget' });
+      }
+    }
+    // --- End domain check ---
 
     // Validate the key
     const isValid = await validateWidgetKey(key, companyData.widget_key_hash);

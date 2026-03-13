@@ -10,6 +10,7 @@ CREATE TABLE companies (
     contact_email TEXT UNIQUE,
     admin_email TEXT UNIQUE, -- Email of the company admin
     booking_url TEXT,
+    allowed_domains TEXT[] DEFAULT '{}', -- Domain allowlist for widget embedding (empty = allow all)
     logo_url TEXT,
     status TEXT DEFAULT 'active',
     plan TEXT DEFAULT 'free', -- Subscription plan: 'free', 'starter', 'pro'
@@ -1423,3 +1424,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- ============================================================
+-- MIGRATION: Add allowed_domains column to companies table
+-- Run once in Supabase SQL Editor
+-- ============================================================
+-- ALTER TABLE public.companies
+--   ADD COLUMN IF NOT EXISTS allowed_domains TEXT[] DEFAULT '{}';
+-- ============================================================
