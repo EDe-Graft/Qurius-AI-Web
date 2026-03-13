@@ -519,9 +519,24 @@ router.post('/upload-documents', upload.array('documents', 5), async (req, res) 
 
     console.log(`📄 Processing ${req.files.length} uploaded documents for company ${companyId}`)
 
-    // Process uploaded documents
-    const result = await crawler.processUploadedDocuments(companyId, req.files)
-    
+    let result
+    try {
+      // Process uploaded documents
+      result = await crawler.processUploadedDocuments(companyId, req.files)
+    } finally {
+      // Always delete temp files from disk regardless of success or failure
+      for (const file of req.files) {
+        try {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path)
+            console.log(`🗑️ Deleted temp file: ${file.originalname}`)
+          }
+        } catch (cleanupError) {
+          console.warn(`⚠️ Failed to delete temp file ${file.path}:`, cleanupError.message)
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: `Successfully processed ${req.files.length} documents`,
