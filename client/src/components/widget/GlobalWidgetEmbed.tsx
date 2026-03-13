@@ -7,7 +7,8 @@ import { WidgetEmbed } from './WidgetEmbed'
  * Global widget embed that persists across navigation
  * Only shows on public pages (not admin/widget-iframe routes)
  */
-export function GlobalWidgetEmbed() {
+export function 
+GlobalWidgetEmbed() {
   const { quriusData } = useCompanyData()
   const { defaultTheme } = useTheme()
   const location = useLocation()

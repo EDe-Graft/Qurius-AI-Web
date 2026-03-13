@@ -13,11 +13,22 @@ interface WidgetEmbedProps {
   theme?: 'light' | 'dark'
 }
 
-const BACKEND_URL = import.meta.env.NODE_ENV === 'development' ? 'http://localhost:3000' : import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+// Use import.meta.env.DEV (Vite's built-in boolean) for reliable local detection.
+// import.meta.env.NODE_ENV is undefined in Vite — do not use it.
+const BACKEND_URL = import.meta.env.DEV
+  ? 'http://localhost:3000'
+  : import.meta.env.VITE_BACKEND_URL || 'https://qurius-ai.onrender.com'
+
+// localStorage key prefix for caching widget keys per company
+const WIDGET_KEY_CACHE_PREFIX = 'qurius_wk_'
 
 export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
   const scriptRef = useRef<HTMLScriptElement | null>(null)
   const widgetKeyRef = useRef<string | null>(null)
+  // Guard against React StrictMode double-invocation: track whether a key
+  // request is already in-flight so we never call regenerate-widget-key twice
+  // in the same render cycle.
+  const isLoadingRef = useRef(false)
 
   useEffect(() => {
     if (!companyData?.id) return
@@ -25,24 +36,38 @@ export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
     const companyId = companyData.id // Type guard: we know id exists here
 
     const loadWidget = async () => {
+      // Prevent concurrent calls (React StrictMode fires effects twice in dev)
+      if (isLoadingRef.current) return
+      isLoadingRef.current = true
+
       try {
-        // Get or generate widget key
-        let widgetKey = widgetKeyRef.current
-        
+        // 1. Check in-memory ref (fastest — same component lifecycle)
+        // 2. Check localStorage  (survives StrictMode remounts within same session)
+        // 3. Only then call the backend — which generates a *new* key and overwrites
+        //    the DB hash, so we must avoid calling it more than once per session.
+        const cacheKey = `${WIDGET_KEY_CACHE_PREFIX}${companyId}`
+        let widgetKey: string | null =
+          widgetKeyRef.current || localStorage.getItem(cacheKey)
+
         if (!widgetKey) {
-          // Try to get existing widget key by regenerating (this will return existing if present)
           const response = await axios.post(
             `${BACKEND_URL}/api/companies/${companyId}/regenerate-widget-key`,
             { planType: companyData.plan || 'free' }
           )
-          
+
           if (response.data?.widgetKey) {
-            widgetKey = response.data.widgetKey
+            widgetKey = response.data.widgetKey as string
             widgetKeyRef.current = widgetKey
+            // Persist so the next mount (StrictMode remount, page nav, etc.)
+            // reuses the same key instead of invalidating the DB hash.
+            localStorage.setItem(cacheKey, widgetKey)
           } else {
             console.error('Failed to get widget key')
             return
           }
+        } else {
+          // Sync back into the ref so the cleanup path can clear it if needed
+          widgetKeyRef.current = widgetKey
         }
 
         if (!widgetKey) {
@@ -108,8 +133,12 @@ export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
 
     // Cleanup on unmount
     return () => {
+      // Reset the in-flight guard so a legitimate future mount can proceed
+      isLoadingRef.current = false
+
       if (scriptRef.current) {
         scriptRef.current.remove()
+        scriptRef.current = null
       }
       const container = document.getElementById('qurius-widget-iframe-container')
       if (container) {

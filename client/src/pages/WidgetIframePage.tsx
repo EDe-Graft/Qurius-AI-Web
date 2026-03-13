@@ -84,7 +84,13 @@ export function WidgetIframePage() {
     return true
   })
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL === 'development' ? 'http://localhost:3000' : 'https://qurius-ai.onrender.com'
+  // import.meta.env.DEV is Vite's built-in boolean — true locally, false in prod.
+  // The previous check (VITE_BACKEND_URL === 'development') was always false unless
+  // someone literally set VITE_BACKEND_URL=development in their .env, causing the
+  // iframe to call the production backend even during local development.
+  const BACKEND_URL = import.meta.env.DEV
+    ? 'http://localhost:3000'
+    : 'https://qurius-ai.onrender.com'
 
   // Validate widget key and fetch company data
   useEffect(() => {
