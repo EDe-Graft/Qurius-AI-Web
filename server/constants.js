@@ -26,7 +26,7 @@ export const PRICING_PLANS = {
       price: 0,
       stripe_price_id: null,
       features: [
-        '500 messages/month',
+        '50 messages/month',
         'Basic customization',
         'Email support',
         'Standard FAQ templates'

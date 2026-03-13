@@ -377,7 +377,7 @@ export function Landing() {
                 plan="free"
                 price="$0"
                 features={[
-                  '500 messages/month',
+                  '50 messages/month',
                   t('plans.basicCustomization'),
                   t('plans.emailSupport'),
                   t('plans.standardFaqTemplates'),

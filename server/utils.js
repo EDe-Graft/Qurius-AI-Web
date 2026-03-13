@@ -1923,31 +1923,11 @@ export async function checkAndUpdateMessageLimit(companyId) {
       throw new Error('Supabase configuration missing');
     }
 
-    // Use the new check_message_limit RPC function
-    const limitCheckResponse = await axios.post(
-      `${supabaseUrl}/rest/v1/rpc/check_message_limit`,
-      {
-        p_company_id: companyId
-      },
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (!limitCheckResponse.data || limitCheckResponse.data.length === 0) {
-      throw new Error('Failed to check message limit');
-    }
-
-    const limitData = limitCheckResponse.data[0];
-    console.log('📊 Message limit check:', limitData);
-
-    // Get company details for email notifications
-    const companyResponse = await axios.get(
-      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=plan,contact_email,name`,
+    // Single RPC call — returns company details + limit data in one round-trip,
+    // replacing the previous pattern of 2 separate HTTP requests.
+    const usageResponse = await axios.post(
+      `${supabaseUrl}/rest/v1/rpc/get_company_message_usage`,
+      { p_company_id: companyId },
       {
         headers: {
           'apikey': supabaseKey,
@@ -1957,17 +1937,31 @@ export async function checkAndUpdateMessageLimit(companyId) {
       }
     );
 
-    if (!companyResponse.data || companyResponse.data.length === 0) {
-      throw new Error('Company not found');
+    if (!usageResponse.data || usageResponse.data.length === 0) {
+      throw new Error('Company not found or usage data unavailable');
     }
 
-    const company = companyResponse.data[0];
-    
+    const data = usageResponse.data[0];
+    console.log('📊 Message limit check:', {
+      company: data.company_name,
+      plan: data.plan,
+      used: data.messages_used,
+      limit: data.messages_limit,
+      remaining: data.messages_remaining,
+      can_send: data.can_send
+    });
+
+    // Shape a company object matching the structure the rest of the codebase expects
+    const company = {
+      name: data.company_name,
+      plan: data.plan,
+      contact_email: data.contact_email
+    };
+
     // Check if messages are available
-    if (!limitData.can_send) {
+    if (!data.can_send) {
       console.log('❌ Message limit reached for company:', company.name);
       
-      // Send email notification if contact email exists
       if (company.contact_email) {
         await sendMessageLimitReachedEmail(company.contact_email, company.name, company.plan);
       }
@@ -1975,25 +1969,23 @@ export async function checkAndUpdateMessageLimit(companyId) {
       return {
         canSend: false,
         message: `Message limit for ${company.name} reached for this month. Please contact customer support with any questions.`,
-        company: company
+        company
       };
     }
 
-    console.log('✅ Message limit check passed for company:', company.name, 'Messages remaining:', limitData.messages_remaining);
+    console.log('✅ Message limit check passed for company:', company.name, 'Messages remaining:', data.messages_remaining);
 
-    // Check if this is the last message (for email notification)
-    const isLastMessage = limitData.messages_remaining === 1;
-    
-    // Send warning email if this was the last message
+    // Send warning email when the very last allowed message is about to be sent
+    const isLastMessage = data.messages_remaining === 1;
     if (isLastMessage && company.contact_email) {
       await sendMessageLimitReachedEmail(company.contact_email, company.name, company.plan);
     }
     
     return {
       canSend: true,
-      messagesLeft: limitData.messages_remaining,
-      isLastMessage: isLastMessage,
-      company: company
+      messagesLeft: data.messages_remaining,
+      isLastMessage,
+      company
     };
   } catch (error) {
     console.error('❌ Message limit check error:', error);

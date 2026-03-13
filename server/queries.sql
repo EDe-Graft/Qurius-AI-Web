@@ -259,8 +259,15 @@ CREATE INDEX idx_message_usage_company_id ON public.message_usage(company_id);
 CREATE INDEX idx_message_usage_used_at ON public.message_usage(used_at);
 CREATE INDEX idx_message_usage_message_type ON public.message_usage(message_type);
 CREATE INDEX idx_message_usage_session_id ON public.message_usage(session_id);
--- Index for message usage by company and date (for efficient monthly queries)
+-- Composite index for efficient monthly queries (company + date range)
 CREATE INDEX IF NOT EXISTS idx_message_usage_company_date ON public.message_usage(company_id, used_at);
+-- Partial composite index for the monthly COUNT query used in check_message_limit /
+-- get_company_message_usage. Pre-filters to only 'faq'/'ai' rows, keeping the index
+-- small and avoiding a heap fetch to evaluate the message_type condition.
+-- This is the primary index that scales with millions of rows.
+CREATE INDEX IF NOT EXISTS idx_message_usage_monthly_count
+  ON public.message_usage(company_id, used_at)
+  WHERE message_type IN ('faq', 'ai');
 
 -- Enable RLS
 ALTER TABLE public.message_usage ENABLE ROW LEVEL SECURITY;
@@ -625,10 +632,11 @@ BEGIN
     
     -- Set message limit based on plan
     CASE company_plan
-        WHEN 'free' THEN message_limit := 500;
+        WHEN 'free' THEN message_limit := 50;
         WHEN 'starter' THEN message_limit := 10000;
+        WHEN 'growth' THEN message_limit := 50000;
         WHEN 'pro' THEN message_limit := 100000;
-        ELSE message_limit := 500; -- Default to free plan limit
+        ELSE message_limit := 50; -- Default to free plan limit
     END CASE;
     
     -- Get current month usage (only count actual messages, not limit_reached)
@@ -813,10 +821,11 @@ BEGIN
     
     -- Set message limit based on plan
     CASE company_record.plan
-        WHEN 'free' THEN message_limit := 500;
+        WHEN 'free' THEN message_limit := 50;
         WHEN 'starter' THEN message_limit := 10000;
+        WHEN 'growth' THEN message_limit := 50000;
         WHEN 'pro' THEN message_limit := 100000;
-        ELSE message_limit := 500; -- Default to free plan limit
+        ELSE message_limit := 50; -- Default to free plan limit
     END CASE;
     
     -- Get current month usage

@@ -63,7 +63,7 @@ export class PaymentService {
         price: 0,
         interval: 'month',
         features: [
-          '1,000 messages/month',
+          '50 messages/month',
           'Basic customization',
           'Email support',
           'Standard FAQ templates'
