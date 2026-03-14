@@ -31,6 +31,17 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+/**
+ * Thrown when the admin cancels a running crawl.
+ * Caught separately from real errors so we don't mark the session as 'failed'.
+ */
+class CrawlCancelledError extends Error {
+  constructor() {
+    super('Crawl cancelled by admin')
+    this.name = 'CrawlCancelledError'
+  }
+}
+
 class QuriusCrawler {
   constructor(options = {}) {
     this.visitedUrls = new Set()
@@ -51,6 +62,133 @@ class QuriusCrawler {
     // Debug settings
     this.debugMode = options.debugMode || false // Enable debug mode
     this.disableHTMLCleaning = options.disableHTMLCleaning || false // Disable HTML cleaning for debugging
+
+    // SPA / Puppeteer management
+    // A single Puppeteer browser is opened once per crawl and reused for every page,
+    // eliminating the ~2 GB memory spike caused by launching a new Chrome per URL.
+    this.browserInstance = null
+    // Once we confirm the target site is a React/SPA app, skip Axios+Cheerio for
+    // subsequent pages and go straight to Puppeteer.
+    this.isSPASite = false
+    // Maximum internal links to follow per page (configurable per plan).
+    this.maxLinksPerPage = options.maxLinksPerPage || 10
+  }
+
+  /**
+   * Build the Puppeteer launch arguments (extracted so they are shared between
+   * openBrowser() and the fallback inside extractPageContentSPA).
+   */
+  _getLaunchArgs() {
+    const isProduction = process.env.NODE_ENV === 'production' ||
+                         process.env.RENDER ||
+                         process.env.RENDER_SERVICE_ID
+
+    const args = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-breakpad',
+      '--disable-client-side-phishing-detection',
+      '--disable-default-apps',
+      '--disable-features=TranslateUI',
+      '--disable-hang-monitor',
+      '--disable-ipc-flooding-protection',
+      '--disable-popup-blocking',
+      '--disable-prompt-on-repost',
+      '--disable-renderer-backgrounding',
+      '--disable-sync',
+      '--disable-translate',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-default-browser-check',
+      '--no-pings',
+      '--no-zygote',
+      '--safebrowsing-disable-auto-update',
+      '--enable-automation',
+      '--password-store=basic',
+      '--use-mock-keychain'
+    ]
+
+    if (isProduction) {
+      args.push('--single-process')
+      console.log('🔧 Using single-process mode for production environment')
+    }
+
+    return { args, isProduction }
+  }
+
+  /**
+   * Open one shared Puppeteer browser for the entire crawl session.
+   * All pages in this crawl will open a new tab in this browser rather than
+   * launching a fresh Chrome process, saving ~300-600 MB of RAM per page.
+   */
+  async openBrowser() {
+    if (this.browserInstance) return // Already open
+
+    if (!this.enablePuppeteer) return
+
+    const available = await this.initPuppeteer()
+    if (!available) return
+
+    await this.ensureChromeInstalled()
+
+    const { args } = this._getLaunchArgs()
+
+    console.log('🚀 Opening shared Puppeteer browser for crawl session...')
+    this.browserInstance = await puppeteer.default.launch({
+      headless: true,
+      args,
+      timeout: 60000,
+      ignoreDefaultArgs: ['--disable-extensions']
+    })
+    console.log('✅ Shared browser ready')
+  }
+
+  /**
+   * Close the shared Puppeteer browser and clear the reference.
+   * Safe to call even if the browser was never opened.
+   */
+  async closeBrowser() {
+    if (!this.browserInstance) return
+    try {
+      await this.browserInstance.close()
+      console.log('🔒 Shared browser closed')
+    } catch (err) {
+      console.warn('⚠️ Error closing shared browser:', err.message)
+    } finally {
+      this.browserInstance = null
+    }
+  }
+
+  /**
+   * Check whether this session has been cancelled by the admin.
+   * Throws CrawlCancelledError if the DB status is 'cancelled'.
+   * Safe to call frequently — uses a lightweight SELECT on the primary key.
+   */
+  async checkIfCancelled(sessionId) {
+    if (!sessionId) return
+    try {
+      const { data } = await supabase
+        .from('crawl_sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single()
+      if (data?.status === 'cancelled') {
+        throw new CrawlCancelledError()
+      }
+    } catch (err) {
+      if (err instanceof CrawlCancelledError) throw err
+      // Swallow transient DB errors — don't abort the crawl on a failed status check
+      console.warn('⚠️ Could not check cancellation status:', err.message)
+    }
   }
 
   /**
@@ -112,10 +250,21 @@ class QuriusCrawler {
         }
       }
 
+      // Open ONE shared Puppeteer browser for the whole crawl session.
+      // Individual pages will create tabs inside this browser instead of launching a new Chrome.
+      try {
+        await this.openBrowser()
+      } catch (browserError) {
+        console.warn('⚠️ Could not open shared browser — will fall back to per-page mode:', browserError.message)
+      }
+
       // Start crawling
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 10, 'Crawling website pages...')
       await this.crawlPages(baseUrl, crawlData, 0)
       
+      // Checkpoint: bail out if cancelled during page crawl
+      await this.checkIfCancelled(crawlData.sessionId)
+
       console.log(`📊 Crawling completed summary:`)
       console.log(`  - Total pages crawled: ${crawlData.pages.length}`)
       console.log(`  - Total content items: ${crawlData.content.length}`)
@@ -130,10 +279,16 @@ class QuriusCrawler {
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 30, 'Extracting existing FAQs from website...')
       await this.extractFAQs(crawlData)
       
+      // Checkpoint: bail out if cancelled before heavy embedding work
+      await this.checkIfCancelled(crawlData.sessionId)
+
       // Save raw content chunks first
       await this.updateCrawlStatus(crawlData.sessionId, 'processing_embeddings', 50, 'Generating embeddings for content chunks...')
       await this.saveCrawlResults(crawlData)
       
+      // Checkpoint: bail out if cancelled before AI FAQ generation
+      await this.checkIfCancelled(crawlData.sessionId)
+
       // Generate AI FAQs for admin preview
       await this.updateCrawlStatus(crawlData.sessionId, 'generating_faqs', 80, 'Generating AI FAQs from content...')
       const aiFAQs = await this.generateAIFAQs(crawlData)
@@ -211,6 +366,12 @@ class QuriusCrawler {
       return crawlData
       
     } catch (error) {
+      // Cancellation is intentional — don't mark as failed, status is already 'cancelled'
+      if (error instanceof CrawlCancelledError) {
+        console.log(`🛑 Crawl for ${baseUrl} was cancelled by admin`)
+        return null
+      }
+
       console.error('❌ Crawl failed:', error.message)
       
       // Update session to failed if we have a session ID
@@ -223,6 +384,9 @@ class QuriusCrawler {
       }
       
       throw error
+    } finally {
+      // Always close the shared browser — regardless of success, failure, or cancellation
+      await this.closeBrowser()
     }
   }
 
@@ -238,74 +402,106 @@ class QuriusCrawler {
       return
     }
 
+    // Check for cancellation before each new page fetch
+    await this.checkIfCancelled(crawlData.sessionId)
+
     this.visitedUrls.add(url)
-    
+
+    let discoveredLinks = []
+
     try {
       console.log(`📄 Crawling: ${url} (depth: ${depth})`)
-      
-      // Fetch page content
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': this.userAgent
-        },
-        timeout: this.requestTimeout
-      })
 
-      const $ = cheerio.load(response.data)
-      
-      // Extract page data with Cheerio first
-      const pageData = this.extractPageContent($, url)
-      
-      // Links discovered on this page — populated below depending on extraction path
-      let discoveredLinks = []
-
-      // Check if Cheerio extraction failed (no content extracted)
-      if (pageData.content.length === 0) {
-        console.log(`⚠️ Cheerio extraction failed - no content found, trying Puppeteer...`)
-        
-        // Try Puppeteer as fallback for SPAs
+      // ── SPA fast-path ──────────────────────────────────────────────────────
+      // Once we've confirmed the site is a React/SPA (isSPASite flag), skip the
+      // Axios + Cheerio round-trip. Every route returns the same empty HTML shell
+      // anyway, so Puppeteer is the only renderer that produces real content.
+      if (this.isSPASite) {
+        console.log(`🚀 SPA mode — using Puppeteer directly for ${url}`)
         const spaPageData = await this.extractPageContentSPA(url)
-        
-        if (spaPageData && spaPageData.content.length > 0) {
-          console.log(`✅ Puppeteer extraction successful - found ${spaPageData.content.length} content items`)
-          crawlData.pages.push(spaPageData)
-          crawlData.content.push(...spaPageData.content)
 
-          // Use the links collected from the fully-rendered DOM (SPA-aware)
+        if (spaPageData) {
+          if (spaPageData.content.length > 0) {
+            crawlData.pages.push(spaPageData)
+            crawlData.content.push(...spaPageData.content)
+            console.log(`✅ SPA page extracted: ${spaPageData.content.length} content items`)
+          } else {
+            crawlData.pages.push({ url, title: '', description: '', content: [], timestamp: new Date().toISOString() })
+            console.log(`⚠️ SPA page rendered but no content found for ${url}`)
+          }
+
+          // Always use links — regardless of whether content was found
           if (spaPageData.links && spaPageData.links.length > 0) {
             discoveredLinks = spaPageData.links
-            console.log(`🔗 Puppeteer found ${discoveredLinks.length} internal links on rendered page`)
-          } else {
-            console.log(`⚠️ Puppeteer found no internal links — page may have no navigation`)
+            console.log(`🔗 Found ${discoveredLinks.length} internal links`)
           }
         } else {
-          console.log(`❌ Both Cheerio and Puppeteer extraction failed for ${url}`)
-          crawlData.pages.push(pageData) // Still add the empty page data
+          console.log(`❌ SPA extraction failed for ${url}`)
+          crawlData.pages.push({ url, title: '', description: '', content: [], timestamp: new Date().toISOString() })
         }
-      } else {
-        console.log(`✅ Cheerio extraction successful - found ${pageData.content.length} content items`)
-        crawlData.pages.push(pageData)
-        crawlData.content.push(...pageData.content)
 
-        // Use Cheerio link extraction for server-rendered pages
-        discoveredLinks = this.extractLinks($, url)
+      // ── Standard path: try Cheerio first, fall back to Puppeteer ──────────
+      } else {
+        const response = await axios.get(url, {
+          headers: { 'User-Agent': this.userAgent },
+          timeout: this.requestTimeout
+        })
+
+        const $ = cheerio.load(response.data)
+        const pageData = this.extractPageContent($, url)
+
+        if (pageData.content.length === 0) {
+          // Cheerio found nothing — site is almost certainly a React/SPA
+          console.log(`⚠️ Cheerio extraction failed — trying Puppeteer (SPA detected)...`)
+          const spaPageData = await this.extractPageContentSPA(url)
+
+          if (spaPageData) {
+            // Mark as SPA so all remaining pages skip Cheerio
+            this.isSPASite = true
+            console.log(`🏷️  Site identified as SPA — Puppeteer will be used for all subsequent pages`)
+
+            if (spaPageData.content.length > 0) {
+              crawlData.pages.push(spaPageData)
+              crawlData.content.push(...spaPageData.content)
+              console.log(`✅ Puppeteer extraction successful — ${spaPageData.content.length} content items`)
+            } else {
+              crawlData.pages.push(pageData) // keep empty record
+              console.log(`⚠️ Puppeteer found no content for ${url}`)
+            }
+
+            // Always use links — regardless of whether content was found (critical fix)
+            if (spaPageData.links && spaPageData.links.length > 0) {
+              discoveredLinks = spaPageData.links
+              console.log(`🔗 Puppeteer found ${discoveredLinks.length} internal links`)
+            } else {
+              console.log(`⚠️ Puppeteer found no internal links — page may have no navigation`)
+            }
+          } else {
+            console.log(`❌ Both Cheerio and Puppeteer extraction failed for ${url}`)
+            crawlData.pages.push(pageData)
+          }
+        } else {
+          // Cheerio succeeded (server-rendered page)
+          console.log(`✅ Cheerio extraction successful — ${pageData.content.length} content items`)
+          crawlData.pages.push(pageData)
+          crawlData.content.push(...pageData.content)
+          discoveredLinks = this.extractLinks($, url)
+        }
       }
-      
-      console.log(`📊 Page data summary for ${url}:`)
-      console.log(`  - Page added to crawlData.pages (total: ${crawlData.pages.length})`)
-      console.log(`  - Content items added to crawlData.content (total: ${crawlData.content.length})`)
-      console.log(`  - Page content items: ${pageData.content.length}`)
-      console.log(`  - Links queued for recursion: ${Math.min(discoveredLinks.length, 5)}`)
-      
-      // Add delay to be respectful
-      await this.sleep(1000)
-      
-      // Recursively crawl found links (cap at 5 per page to avoid explosion)
-      for (const link of discoveredLinks.slice(0, 5)) {
+
+      console.log(`📊 Crawl summary for ${url}: pages=${crawlData.pages.length}, content=${crawlData.content.length}, links queued=${Math.min(discoveredLinks.length, this.maxLinksPerPage)}`)
+
+      // Add delay between page fetches
+      await this.sleep(this.isSPASite ? 500 : 1000)
+
+      // Recursively crawl found links up to the per-page cap
+      for (const link of discoveredLinks.slice(0, this.maxLinksPerPage)) {
         await this.crawlPages(link, crawlData, depth + 1)
       }
-      
+
     } catch (error) {
+      // Let cancellation propagate — don't swallow it as a regular page failure
+      if (error instanceof CrawlCancelledError) throw error
       console.warn(`⚠️ Failed to crawl ${url}:`, error.message)
     }
   }
@@ -734,7 +930,7 @@ class QuriusCrawler {
       console.log('⚠️ Puppeteer is disabled in configuration')
       return null
     }
-    
+
     const puppeteerAvailable = await this.initPuppeteer()
     if (!puppeteerAvailable) {
       console.log('❌ Puppeteer not available - cannot extract SPA content')
@@ -742,235 +938,139 @@ class QuriusCrawler {
     }
 
     console.log(`🌐 Extracting SPA content from: ${url}`)
-    
-    let browser = null
-    try {
-      // Detect production environment (Render, etc.)
-      const isProduction = process.env.NODE_ENV === 'production' || 
-                           process.env.RENDER || 
-                           process.env.RENDER_SERVICE_ID
-      
-      // Enhanced launch args for Render/production environments
-      const launchArgs = [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-breakpad',
-        '--disable-client-side-phishing-detection',
-        '--disable-default-apps',
-        '--disable-features=TranslateUI',
-        '--disable-hang-monitor',
-        '--disable-ipc-flooding-protection',
-        '--disable-popup-blocking',
-        '--disable-prompt-on-repost',
-        '--disable-renderer-backgrounding',
-        '--disable-sync',
-        '--disable-translate',
-        '--metrics-recording-only',
-        '--mute-audio',
-        '--no-default-browser-check',
-        '--no-pings',
-        '--no-zygote',
-        '--safebrowsing-disable-auto-update',
-        '--enable-automation',
-        '--password-store=basic',
-        '--use-mock-keychain'
-      ]
-      
-      // Add single-process mode for low-memory environments (Render free tier)
-      if (isProduction) {
-        launchArgs.push('--single-process')
-        console.log('🔧 Using single-process mode for production environment')
-      }
-      
-      // Ensure Chrome is installed before launching (runtime check)
-      await this.ensureChromeInstalled()
-      
-      // Launch browser with error handling
-      const launchOptions = {
-        headless: true,
-        args: launchArgs,
-        timeout: 60000, // 60 second timeout for launch
-        // Ignore default args that might cause issues
-        ignoreDefaultArgs: ['--disable-extensions']
-      }
-      
-      // Set cache directory if in Render environment
-      if (process.env.RENDER && process.env.PUPPETEER_CACHE_DIR) {
-        console.log('📁 Using Puppeteer cache directory:', process.env.PUPPETEER_CACHE_DIR)
-      }
-      
-      console.log('🚀 Launching browser with options:', {
-        headless: true,
-        argsCount: launchArgs.length,
-        timeout: launchOptions.timeout,
-        isProduction,
-        cacheDir: process.env.PUPPETEER_CACHE_DIR || 'default'
-      })
-      
-      browser = await puppeteer.default.launch(launchOptions)
-      console.log('✅ Browser launched successfully')
 
-      const page = await browser.newPage()
-      
-      // Set user agent
-      await page.setUserAgent(this.userAgent)
-      
-      // Set viewport
-      await page.setViewport({ width: 1280, height: 720 })
-      
-      // Navigate to page
-      console.log(`🌐 Navigating to ${url}...`)
-      await page.goto(url, { 
-        waitUntil: 'networkidle2',
-        timeout: this.puppeteerTimeout 
-      })
-      
-      // Wait for content to load (additional wait for SPAs)
-      console.log(`⏳ Waiting for content to load...`)
-      await new Promise(resolve => setTimeout(resolve, 3000)) // Wait 3 seconds for dynamic content
-      
-      // Check if content has loaded
-      const contentLoaded = await page.evaluate(() => {
-        const bodyText = document.body.textContent.trim()
-        return bodyText.length > 100
-      })
-      
-      if (!contentLoaded) {
-        console.log(`⚠️ Content still not loaded after wait - trying longer wait`)
-        await new Promise(resolve => setTimeout(resolve, 5000)) // Wait another 5 seconds
+    // Use the shared browser if it's already open; otherwise launch a temporary one.
+    // The shared browser is opened once in crawlCompanyWebsite() and reused here
+    // across every page, avoiding repeated Chrome startup overhead.
+    const usingSharedBrowser = !!this.browserInstance
+    let tempBrowser = null
+    let page = null
+
+    try {
+      let browser = this.browserInstance
+
+      if (!browser) {
+        // Shared browser not available — fall back to launching a temporary one
+        console.log('⚠️ No shared browser available — launching temporary browser for this page')
+        await this.ensureChromeInstalled()
+        const { args } = this._getLaunchArgs()
+        tempBrowser = await puppeteer.default.launch({
+          headless: true,
+          args,
+          timeout: 60000,
+          ignoreDefaultArgs: ['--disable-extensions']
+        })
+        browser = tempBrowser
+        console.log('✅ Temporary browser launched')
+      } else {
+        console.log('♻️  Reusing shared browser for this page')
       }
-      
-      // Extract page data
+
+      // Open a new tab inside the (shared or temp) browser
+      page = await browser.newPage()
+
+      await page.setUserAgent(this.userAgent)
+      await page.setViewport({ width: 1280, height: 720 })
+
+      // Navigate — networkidle2 waits until network activity settles, giving React
+      // time to hydrate and complete its initial render before we scrape.
+      console.log(`🌐 Navigating to ${url}...`)
+      await page.goto(url, {
+        waitUntil: 'networkidle2',
+        timeout: this.puppeteerTimeout
+      })
+
+      // Brief extra wait for apps that do post-hydration async data fetches
+      console.log(`⏳ Waiting for dynamic content to settle...`)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // If the body is still basically empty after networkidle2, wait a bit longer
+      const bodyReady = await page.evaluate(() => document.body.textContent.trim().length > 100)
+      if (!bodyReady) {
+        console.log(`⚠️ Body still sparse — waiting an extra 3 s...`)
+        await new Promise(resolve => setTimeout(resolve, 3000))
+      }
+
+      // ── Extract all data in a single page.evaluate call ─────────────────────
       const pageData = await page.evaluate(() => {
         const title = document.title.trim()
         const description = document.querySelector('meta[name="description"]')?.content || ''
 
-        // ── Collect all internal links BEFORE removing nav/header elements ──
+        // Collect ALL internal links BEFORE removing nav/header elements so we
+        // don't lose navigation links that are the primary source of sub-page URLs.
         const currentOrigin = window.location.origin
-        const links = Array.from(document.querySelectorAll('a[href]'))
+        const rawLinks = Array.from(document.querySelectorAll('a[href]'))
           .map(a => {
             try {
               const href = a.getAttribute('href')
-              if (!href) return null
+              if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return null
               const resolved = new URL(href, window.location.href)
-              if (resolved.origin === currentOrigin && resolved.pathname !== '#') {
-                resolved.hash = ''
-                return resolved.href
-              }
-              return null
+              if (resolved.origin !== currentOrigin) return null
+              resolved.hash = '' // strip fragment anchors
+              return resolved.href
             } catch {
               return null
             }
           })
           .filter(Boolean)
-        const uniqueLinks = [...new Set(links)]
-        
-        // Remove unwanted elements (AFTER link collection so nav links aren't lost)
-        const unwantedSelectors = 'script, style, nav, footer, header, .nav, .header, .footer, .sidebar'
-        const unwantedElements = document.querySelectorAll(unwantedSelectors)
-        unwantedElements.forEach(el => el.remove())
-        
+        const uniqueLinks = [...new Set(rawLinks)]
+
+        // Remove chrome noise AFTER link collection
+        document.querySelectorAll('script, style, nav, footer, header, .nav, .header, .footer, .sidebar').forEach(el => el.remove())
+
         const content = []
-        
-        // Extract main content areas
+
+        // Main content areas (highest priority)
         document.querySelectorAll('main, article, .content, .main, #content, #main').forEach(el => {
           const text = el.textContent.trim()
-          if (text.length > 100) {
-            content.push({
-              type: 'main_content',
-              text: text,
-              source: window.location.href,
-              priority: 'high'
-            })
-          }
+          if (text.length > 100) content.push({ type: 'main_content', text, source: window.location.href, priority: 'high' })
         })
-        
-        // Extract sections and divs
-        document.querySelectorAll('section, div').forEach(el => {
+
+        // Sections (medium priority — skip if already inside a main area)
+        document.querySelectorAll('section').forEach(el => {
+          if (el.closest('main, article, .content, .main, #content, #main')) return
           const text = el.textContent.trim()
-          if (text.length > 150 && text.length < 2000) {
-            content.push({
-              type: 'section',
-              text: text,
-              source: window.location.href,
-              priority: 'medium'
-            })
-          }
+          if (text.length > 150 && text.length < 3000) content.push({ type: 'section', text, source: window.location.href, priority: 'medium' })
         })
-        
-        // Extract paragraphs
+
+        // Paragraphs
         document.querySelectorAll('p').forEach(el => {
+          if (el.closest('main, article, .content, .main, #content, #main, section')) return
           const text = el.textContent.trim()
-          if (text.length > 50) {
-            content.push({
-              type: 'paragraph',
-              text: text,
-              source: window.location.href,
-              priority: 'medium'
-            })
-          }
+          if (text.length > 50) content.push({ type: 'paragraph', text, source: window.location.href, priority: 'medium' })
         })
-        
-        // Extract headings with context
+
+        // Headings with context
         document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+          if (el.closest('main, article, .content, .main, #content, #main, section')) return
           const heading = el.textContent.trim()
           if (heading.length > 5) {
-            const nextContent = el.nextElementSibling?.textContent.trim() || ''
-            const combinedText = nextContent.length > 20 ? 
-              `${heading}: ${nextContent}` : heading
-            
-            content.push({
-              type: 'heading_with_context',
-              text: combinedText,
-              source: window.location.href,
-              priority: 'high'
-            })
+            const next = el.nextElementSibling?.textContent.trim() || ''
+            const combined = next.length > 20 ? `${heading}: ${next}` : heading
+            content.push({ type: 'heading_with_context', text: combined, source: window.location.href, priority: 'high' })
           }
         })
-        
-        // Extract list items
+
+        // List items
         document.querySelectorAll('ul li, ol li').forEach(el => {
+          if (el.closest('main, article, .content, .main, #content, #main, section')) return
           const text = el.textContent.trim()
-          if (text.length > 30) {
-            content.push({
-              type: 'list_item',
-              text: text,
-              source: window.location.href,
-              priority: 'medium'
-            })
-          }
+          if (text.length > 30) content.push({ type: 'list_item', text, source: window.location.href, priority: 'medium' })
         })
-        
-        // Fallback: If no content extracted, get any meaningful text
+
+        // Fallback: grab any meaningful body text if nothing matched above
         if (content.length === 0) {
           const allText = document.body.textContent.trim()
           if (allText.length > 100) {
-            const textChunks = allText
+            allText
               .split(/\n{2,}|\.{2,}|!{2,}|\?{2,}/)
-              .map(chunk => chunk.trim())
-              .filter(chunk => chunk.length > 50 && chunk.length < 2000)
+              .map(c => c.trim())
+              .filter(c => c.length > 50 && c.length < 2000)
               .slice(0, 10)
-            
-            textChunks.forEach(chunk => {
-              content.push({
-                type: 'fallback_text',
-                text: chunk,
-                source: window.location.href,
-                priority: 'medium'
-              })
-            })
+              .forEach(chunk => content.push({ type: 'fallback_text', text: chunk, source: window.location.href, priority: 'medium' }))
           }
         }
-        
+
         return {
           title,
           description,
@@ -979,65 +1079,53 @@ class QuriusCrawler {
           bodyTextLength: document.body.textContent.trim().length
         }
       })
-      
-      console.log(`📄 SPA Page title: ${pageData.title}`)
-      console.log(`📝 SPA Page description: ${pageData.description}`)
-      console.log(`📊 SPA Content extraction summary:`)
-      console.log(`  - Body text length: ${pageData.bodyTextLength} chars`)
-      console.log(`  - Total content items extracted: ${pageData.content.length}`)
-      console.log(`  - Content types:`, pageData.content.map(c => c.type))
-      console.log(`  - Total text length: ${pageData.content.reduce((sum, c) => sum + c.text.length, 0)} chars`)
-      
+
+      console.log(`📄 SPA: ${pageData.title} | body=${pageData.bodyTextLength} chars | content=${pageData.content.length} items | links=${pageData.links.length}`)
+
       return {
         url,
         title: pageData.title,
         description: pageData.description,
         content: pageData.content,
+        links: pageData.links,   // ← returned so crawlPages can queue sub-pages
         timestamp: new Date().toISOString()
       }
-      
+
     } catch (error) {
       console.error(`❌ SPA content extraction failed for ${url}:`, error.message)
-      
-      // Check if it's a Chrome not found error
-      if (error.message.includes('Could not find Chrome') || 
-          error.message.includes('Executable doesn\'t exist') ||
+
+      if (error.message.includes('Could not find Chrome') ||
+          error.message.includes("Executable doesn't exist") ||
           error.message.includes('Cannot find Chrome')) {
-        console.error('💡 Chrome installation issue detected. Solutions:')
-        console.error('   1. Ensure "postinstall": "npx puppeteer browsers install chrome" is in package.json')
-        console.error('   2. Or set PUPPETEER_CACHE_DIR environment variable in Render')
-        console.error('   3. Or update Render build command to: npm install && npx puppeteer browsers install chrome')
-        console.error('   4. Current cache path:', error.message.match(/which is: (.+)\)/)?.[1] || 'unknown')
+        console.error('💡 Chrome not found. Ensure the build command includes: npx puppeteer browsers install chrome')
       }
-      
-      // Log additional error details for debugging
+
       console.error('Error details:', {
         name: error.name,
-        message: error.message,
         isProduction: process.env.NODE_ENV === 'production',
-        renderEnv: process.env.RENDER,
+        renderEnv: !!process.env.RENDER,
         memoryUsage: process.memoryUsage()
       })
-      
-      // If browser was partially created, try to close it
-      if (browser) {
-        try {
-          await browser.close()
-        } catch (closeError) {
-          console.error('Failed to close browser:', closeError.message)
-        }
+
+      // If the shared browser caused the error, close it so subsequent pages
+      // fall back to launching a temporary browser rather than repeatedly failing.
+      if (usingSharedBrowser && this.browserInstance) {
+        console.warn('⚠️ Shared browser error detected — closing it to prevent cascading failures')
+        await this.closeBrowser()
       }
-      
+
       return null
+
     } finally {
-      // Ensure browser is always closed
-      if (browser) {
-        try {
-          await browser.close()
-        } catch (error) {
-          console.error('Error closing browser:', error.message)
-        }
+      // Always close the tab we opened
+      if (page) {
+        await page.close().catch(e => console.warn('Could not close page:', e.message))
       }
+      // Only close the browser if WE launched a temporary one
+      if (tempBrowser) {
+        await tempBrowser.close().catch(e => console.warn('Could not close temp browser:', e.message))
+      }
+      // Never close the shared browser here — crawlCompanyWebsite() owns its lifecycle
     }
   }
 
@@ -1725,6 +1813,8 @@ class QuriusCrawler {
       // Process each uploaded file
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 20, 'Extracting content from documents...')
       for (const file of files) {
+        // Checkpoint: allow cancellation between each file
+        await this.checkIfCancelled(crawlData.sessionId)
         console.log(`📄 Processing file: ${file.originalname}`)
         const fileContent = await this.extractDocumentContent(file)
         
@@ -1733,6 +1823,9 @@ class QuriusCrawler {
           console.log(`✅ Extracted ${fileContent.length} content items from ${file.originalname}`)
         }
       }
+
+      // Checkpoint: bail out if cancelled after document extraction
+      await this.checkIfCancelled(crawlData.sessionId)
       
       console.log(`📊 Document processing completed summary:`)
       console.log(`  - Total files processed: ${files.length}`)
@@ -1746,10 +1839,16 @@ class QuriusCrawler {
       // Extract existing FAQs from documents (if any)
       await this.updateCrawlStatus(crawlData.sessionId, 'crawling', 40, 'Extracting existing FAQs from documents...')
       await this.extractFAQs(crawlData)
+
+      // Checkpoint: bail out if cancelled before heavy embedding work
+      await this.checkIfCancelled(crawlData.sessionId)
       
       // Save raw content chunks first
       await this.updateCrawlStatus(crawlData.sessionId, 'processing_embeddings', 60, 'Generating embeddings for document content...')
       await this.saveCrawlResults(crawlData)
+
+      // Checkpoint: bail out if cancelled before AI FAQ generation
+      await this.checkIfCancelled(crawlData.sessionId)
       
       // Generate AI FAQs for admin preview
       await this.updateCrawlStatus(crawlData.sessionId, 'generating_faqs', 80, 'Generating AI FAQs from document content...')
@@ -1807,6 +1906,12 @@ class QuriusCrawler {
       return crawlData
       
     } catch (error) {
+      // Cancellation is intentional — status already set to 'cancelled' in DB
+      if (error instanceof CrawlCancelledError) {
+        console.log(`🛑 Document processing was cancelled by admin`)
+        return null
+      }
+
       console.error('❌ Document processing failed:', error.message)
       
       // Update session to failed if we have a session ID

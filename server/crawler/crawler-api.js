@@ -61,29 +61,35 @@ function createCrawlerForPlan(plan) {
   // Default conservative limits
   let maxPages = 10
   let maxDepth = 1
+  // Maximum internal links to follow from a single page.
+  // Keeping this proportional to the plan avoids page-count explosions while
+  // still discovering the full site navigation on higher-tier plans.
+  let maxLinksPerPage = 5
 
   switch (plan) {
     case 'growth':
       maxPages = 100  // limited but meaningful coverage
       maxDepth = 2
+      maxLinksPerPage = 10
       break
     case 'pro':
       maxPages = 1000 // effectively "unlimited" for most sites
       maxDepth = 3
+      maxLinksPerPage = 20
       break
     // 'free' and 'starter' will be gated before this, but keep defaults safe
     default:
       maxPages = 10
       maxDepth = 1
+      maxLinksPerPage = 5
   }
 
   return new QuriusCrawler({
     enablePuppeteer: true,
     puppeteerTimeout: 30000,
     maxPages,
-    maxDepth
-    // debugMode: false, // Enable debug mode
-    // disableHTMLCleaning: false // Temporarily disable HTML cleaning to debug
+    maxDepth,
+    maxLinksPerPage
   })
 }
 
@@ -132,8 +138,12 @@ router.post('/start', async (req, res) => {
       })
     }
 
-    // Prefer the website stored for the company if present (already validated/normalized)
-    const targetUrl = company.website || normalizedUrl.toString()
+    // Always use the URL the user explicitly typed.
+    // Previously the stored company.website overrode the input, which meant
+    // entering a path like /about was silently ignored and the root domain was
+    // crawled instead. Now the input is canonical; the stored website is only
+    // used as the reachability-check default (handled above).
+    const targetUrl = normalizedUrl.toString()
 
     // Quick reachability check before starting crawl
     try {
@@ -184,6 +194,47 @@ router.post('/start', async (req, res) => {
     res.status(500).json({
       error: 'Internal server error'
     })
+  }
+})
+
+/**
+ * Cancel a running crawl session
+ * POST /api/crawler/cancel/:sessionId
+ */
+router.post('/cancel/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params
+
+    // Only cancel sessions that are still actively running
+    const { data, error } = await supabase
+      .from('crawl_sessions')
+      .update({
+        status: 'cancelled',
+        status_details: 'Cancelled by admin',
+        completed_date: new Date().toISOString()
+      })
+      .eq('id', sessionId)
+      .in('status', ['crawling', 'processing_embeddings', 'generating_faqs'])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('❌ Failed to cancel crawl session:', error)
+      return res.status(500).json({ success: false, error: 'Failed to cancel crawl session' })
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or is not in a cancellable state'
+      })
+    }
+
+    console.log(`🛑 Crawl session ${sessionId} marked as cancelled`)
+    res.json({ success: true, message: 'Crawl cancellation requested. The job will stop at the next checkpoint.' })
+  } catch (error) {
+    console.error('❌ Error cancelling crawl session:', error)
+    res.status(500).json({ success: false, error: 'Internal server error' })
   }
 })
 
@@ -465,7 +516,10 @@ router.post('/save-faqs', async (req, res) => {
     // Safely determine how many FAQs were actually saved
     const savedCount = Array.isArray(savedFAQs) ? savedFAQs.length : 0
 
-    // Update crawl session to mark as completed
+    // Update crawl session to mark as completed.
+    // Clearing ai_generated_faqs is intentional: once the admin has reviewed and
+    // saved their selections, there is nothing left to review. If we leave the
+    // column populated, every manual "Refresh" would re-open the approval modal.
     const { error: updateError } = await supabase
       .from('crawl_sessions')
       .update({
@@ -473,7 +527,8 @@ router.post('/save-faqs', async (req, res) => {
         faqs_generated: savedCount,
         completed_date: new Date().toISOString(),
         progress_percentage: 100,
-        status_details: `Successfully saved ${savedCount} approved FAQs`
+        status_details: `Successfully saved ${savedCount} approved FAQs`,
+        ai_generated_faqs: null   // clear so the approval modal never re-opens
       })
       .eq('id', sessionId)
 

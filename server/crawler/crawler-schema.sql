@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS crawl_sessions (
   pages_crawled INTEGER DEFAULT 0,
   content_extracted INTEGER DEFAULT 0,
   faqs_generated INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'running' CHECK (status IN ('crawling', 'processing_embeddings', 'generating_faqs', 'ready_for_review', 'completed', 'failed')),
+  status TEXT DEFAULT 'running' CHECK (status IN ('crawling', 'processing_embeddings', 'generating_faqs', 'ready_for_review', 'completed', 'failed', 'cancelled')),
   progress_percentage INTEGER DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
   status_details TEXT,
   error_message TEXT,
@@ -279,4 +279,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 --   DROP CONSTRAINT IF EXISTS crawl_schedules_frequency_check;
 -- ALTER TABLE public.crawl_schedules
 --   ADD CONSTRAINT crawl_schedules_frequency_check
---   CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly')); 
+--   CHECK (frequency IN ('daily', 'weekly', 'biweekly', 'monthly'));
+
+-- ================================================================
+-- MIGRATION: Add 'cancelled' status to crawl_sessions
+-- Run this against your live Supabase database if the table already exists.
+-- ================================================================
+-- ALTER TABLE public.crawl_sessions
+--   DROP CONSTRAINT IF EXISTS crawl_sessions_status_check;
+-- ALTER TABLE public.crawl_sessions
+--   ADD CONSTRAINT crawl_sessions_status_check
+--   CHECK (status IN ('crawling', 'processing_embeddings', 'generating_faqs', 'ready_for_review', 'completed', 'failed', 'cancelled'));

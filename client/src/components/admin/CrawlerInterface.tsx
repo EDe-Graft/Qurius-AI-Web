@@ -14,7 +14,8 @@ import {
   RefreshCw,
   Upload,
   File,
-  X
+  X,
+  StopCircle
 } from 'lucide-react'
 import axios from 'axios'
 import { FAQPreviewModal } from './FAQPreviewModal'
@@ -33,7 +34,7 @@ interface CrawlSession {
   pages_crawled: number
   content_extracted: number
   faqs_generated: number
-  status: 'running' | 'crawling' | 'processing_embeddings' | 'generating_faqs' | 'ready_for_review' | 'completed' | 'failed'
+  status: 'running' | 'crawling' | 'processing_embeddings' | 'generating_faqs' | 'ready_for_review' | 'completed' | 'failed' | 'cancelled'
   crawl_date: string
   completed_date?: string
   error_message?: string
@@ -63,6 +64,8 @@ interface UploadedFile {
 export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterfaceProps) {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [isCrawling, setIsCrawling] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [crawlSessions, setCrawlSessions] = useState<CrawlSession[]>([])
   const [crawledFAQs, setCrawledFAQs] = useState<CrawledFAQ[]>([])
   const [loading, setLoading] = useState(false)
@@ -445,6 +448,10 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
       })
 
       if (response.data.success) {
+        // Capture the session ID so we can cancel it later
+        if (response.data.sessionId) {
+          setActiveSessionId(response.data.sessionId)
+        }
         // Start polling for status updates
         pollCrawlStatus()
         // Don't set isCrawling to false here - let polling handle it
@@ -467,6 +474,37 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
     }
   }
 
+  const handleCancelCrawl = async () => {
+    // Try to derive the session ID from the most recent active session if not already cached
+    const sessionId = activeSessionId ?? crawlSessions.find(s =>
+      ['crawling', 'processing_embeddings', 'generating_faqs'].includes(s.status)
+    )?.id
+
+    if (!sessionId) {
+      setError('No active crawl session found to cancel.')
+      return
+    }
+
+    try {
+      setIsCancelling(true)
+      const response = await axios.post(`${BACKEND_URL}/api/crawler/cancel/${sessionId}`)
+      if (response.data.success) {
+        setIsCrawling(false)
+        setActiveSessionId(null)
+        // Optimistically update the session status in the UI
+        setCrawlSessions(prev => prev.map(s =>
+          s.id === sessionId ? { ...s, status: 'cancelled', status_details: 'Cancelled by admin' } : s
+        ))
+      } else {
+        setError(response.data.error || 'Failed to cancel crawl')
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to cancel crawl')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   const refreshCrawlStatus = async () => {
     try {
       console.log('🔄 Manually refreshing crawl status...')
@@ -483,9 +521,15 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
         setCrawlSessions([session])
         
         // If status is ready_for_review or completed, stop crawling state
-        if (['ready_for_review', 'completed', 'failed'].includes(session.status)) {
+        if (['ready_for_review', 'completed', 'failed', 'cancelled'].includes(session.status)) {
           setIsCrawling(false)
-          await checkForGeneratedFAQs(session)
+          setActiveSessionId(null)
+          // Only open the approval modal for sessions that are genuinely pending
+          // review. 'completed' means FAQs were already reviewed and saved, so
+          // calling checkForGeneratedFAQs would re-open the modal unnecessarily.
+          if (session.status === 'ready_for_review') {
+            await checkForGeneratedFAQs(session)
+          }
           loadCrawledFAQs()
         } else {
           // If still in progress, ensure polling is active
@@ -534,16 +578,20 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
             console.log('✅ Status is completed - stopping polling')
             clearInterval(interval)
             setIsCrawling(false)
-            
-            // Pass the session data we already have
-            await checkForGeneratedFAQs(session)
-            
-            // Reload existing FAQs
+            // 'completed' means the admin already reviewed and saved the FAQs,
+            // so we do NOT call checkForGeneratedFAQs here to avoid re-opening
+            // the approval modal.
             loadCrawledFAQs()
           } else if (session.status === 'failed') {
             console.log('❌ Status is failed - stopping polling')
             clearInterval(interval)
             setIsCrawling(false)
+            loadCrawledFAQs()
+          } else if (session.status === 'cancelled') {
+            console.log('🛑 Status is cancelled - stopping polling')
+            clearInterval(interval)
+            setIsCrawling(false)
+            setActiveSessionId(null)
             loadCrawledFAQs()
           } else {
             // Log intermediate statuses for debugging
@@ -586,6 +634,8 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'failed':
         return <XCircle className="h-4 w-4 text-red-500" />
+      case 'cancelled':
+        return <StopCircle className="h-4 w-4 text-orange-500" />
       default:
         return <Clock className="h-4 w-4 text-gray-500" />
     }
@@ -599,7 +649,8 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
       generating_faqs: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
       ready_for_review: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      cancelled: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
     }
 
     return (
@@ -624,6 +675,8 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
         return 'Processing completed successfully'
       case 'failed':
         return 'Processing failed - please try again'
+      case 'cancelled':
+        return 'Crawl was cancelled by admin'
       default:
         return 'Processing in progress...'
     }
@@ -853,16 +906,35 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
                   </Badge>
                 )}
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refreshCrawlStatus}
-                className="text-xs"
-                title="Refresh crawl status"
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                {isCrawling && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelCrawl}
+                    disabled={isCancelling}
+                    className="text-xs text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20"
+                    title="Stop the running crawl"
+                  >
+                    {isCancelling ? (
+                      <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <StopCircle className="h-3 w-3 mr-1" />
+                    )}
+                    {isCancelling ? 'Stopping...' : 'Stop Crawl'}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshCrawlStatus}
+                  className="text-xs"
+                  title="Refresh crawl status"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Refresh
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -878,7 +950,7 @@ export function CrawlerInterface({ companyId, companyName, plan }: CrawlerInterf
                   </div>
                   
                   {/* Progress Bar */}
-                  {!['completed', 'failed'].includes(session.status) && (
+                  {!['completed', 'failed', 'cancelled'].includes(session.status) && (
                     <div className="mb-3">
                       <div className="flex justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">
                         <span>Progress</span>
