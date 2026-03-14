@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ChatSidebar } from '@/components/widget/ChatSidebar'
 import { ChatMainArea } from '@/components/widget/ChatMainArea'
@@ -76,6 +76,9 @@ export function WidgetIframePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
+  // Guard against React StrictMode's double-invocation of effects in development.
+  // Without this, two validate-key requests fire on every page load.
+  const isInitializingRef = useRef(false)
   // Sidebar open by default on desktop, closed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -95,6 +98,12 @@ export function WidgetIframePage() {
   // Validate widget key and fetch company data
   useEffect(() => {
     const initialize = async () => {
+      // Prevent the double-call that React StrictMode causes in development.
+      // StrictMode mounts → unmounts → remounts every component; without this
+      // guard the effect body runs twice, firing two validate-key requests.
+      if (isInitializingRef.current) return
+      isInitializingRef.current = true
+
       if (!companyId || !key) {
         console.error('Missing companyId or key')
         setIsLoading(false)
@@ -160,6 +169,12 @@ export function WidgetIframePage() {
     }
 
     initialize()
+
+    // Reset the in-flight guard on cleanup so that a genuine dependency change
+    // (e.g. companyId changes) is allowed to re-run the effect.
+    return () => {
+      isInitializingRef.current = false
+    }
   }, [companyId, key, plan])
 
   const handleNewConversation = () => {
