@@ -19,80 +19,55 @@ const BACKEND_URL = import.meta.env.DEV
   ? 'http://localhost:3000'
   : import.meta.env.VITE_BACKEND_URL || 'https://qurius-ai.onrender.com'
 
-// localStorage key prefix for caching widget keys per company
-const WIDGET_KEY_CACHE_PREFIX = 'qurius_wk_'
-
 export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
   const scriptRef = useRef<HTMLScriptElement | null>(null)
-  const widgetKeyRef = useRef<string | null>(null)
-  // Guard against React StrictMode double-invocation: track whether a key
-  // request is already in-flight so we never call regenerate-widget-key twice
-  // in the same render cycle.
+  // Guard against React StrictMode's double-invocation of effects in dev:
+  // StrictMode mounts → unmounts → remounts, firing useEffect twice.
+  // Without this guard two GET /widget-key requests fire simultaneously.
   const isLoadingRef = useRef(false)
 
   useEffect(() => {
     if (!companyData?.id) return
 
-    const companyId = companyData.id // Type guard: we know id exists here
+    const companyId = companyData.id
 
     const loadWidget = async () => {
-      // Prevent concurrent calls (React StrictMode fires effects twice in dev)
       if (isLoadingRef.current) return
       isLoadingRef.current = true
 
       try {
-        // 1. Check in-memory ref (fastest — same component lifecycle)
-        // 2. Check localStorage  (survives StrictMode remounts within same session)
-        // 3. Only then call the backend — which generates a *new* key and overwrites
-        //    the DB hash, so we must avoid calling it more than once per session.
-        const cacheKey = `${WIDGET_KEY_CACHE_PREFIX}${companyId}`
-        let widgetKey: string | null =
-          widgetKeyRef.current || localStorage.getItem(cacheKey)
+        // Fetch the existing widget key — does NOT regenerate it.
+        // Using regenerate-widget-key here would overwrite the DB hash and
+        // immediately invalidate the key already embedded in the customer's
+        // website script tag. The read-only endpoint avoids that entirely.
+        const response = await axios.get(
+          `${BACKEND_URL}/api/companies/${companyId}/widget-key`
+        )
 
+        const widgetKey = response.data?.widgetKey as string | undefined
         if (!widgetKey) {
-          const response = await axios.post(
-            `${BACKEND_URL}/api/companies/${companyId}/regenerate-widget-key`,
-            { planType: companyData.plan || 'free' }
-          )
-
-          if (response.data?.widgetKey) {
-            widgetKey = response.data.widgetKey as string
-            widgetKeyRef.current = widgetKey
-            // Persist so the next mount (StrictMode remount, page nav, etc.)
-            // reuses the same key instead of invalidating the DB hash.
-            localStorage.setItem(cacheKey, widgetKey)
-          } else {
-            console.error('Failed to get widget key')
-            return
-          }
-        } else {
-          // Sync back into the ref so the cleanup path can clear it if needed
-          widgetKeyRef.current = widgetKey
-        }
-
-        if (!widgetKey) {
-          console.error('Widget key is required')
+          console.error('Failed to get widget key')
           return
         }
 
         // Extract primary color from theme
         let primaryColor = '#6366f1' // Default indigo
         if (companyData?.theme) {
-          const themeData = typeof companyData.theme === 'string' 
-            ? JSON.parse(companyData.theme) 
+          const themeData = typeof companyData.theme === 'string'
+            ? JSON.parse(companyData.theme)
             : companyData.theme
           primaryColor = themeData?.primaryColor || '#6366f1'
         }
 
-        // Remove existing script if present
+        // Remove existing script if present (e.g. hot-reload or company switch)
         const existingScript = document.querySelector('script[data-qurius-widget-embed]')
         if (existingScript) {
           existingScript.remove()
         }
 
-        // Create and inject script tag
+        // Create and inject script tag exactly as a customer would
         const script = document.createElement('script')
-        script.src = import.meta.env.DEV 
+        script.src = import.meta.env.DEV
           ? 'http://localhost:5173/widget-iframe-embed.js'
           : 'https://qurius.app/widget-iframe-embed.js'
         script.setAttribute('data-id', companyId)
@@ -105,25 +80,6 @@ export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
 
         document.body.appendChild(script)
         scriptRef.current = script
-
-        return () => {
-          // Cleanup: remove script and widget container
-          if (scriptRef.current) {
-            scriptRef.current.remove()
-            scriptRef.current = null
-          }
-          
-          // Remove widget container if it exists
-          const container = document.getElementById('qurius-widget-iframe-container')
-          if (container) {
-            container.remove()
-          }
-          
-          const launcher = document.getElementById('qurius-widget-launcher')
-          if (launcher) {
-            launcher.remove()
-          }
-        }
       } catch (error) {
         console.error('Failed to load widget:', error)
       }
@@ -131,26 +87,23 @@ export function WidgetEmbed({ companyData, theme = 'dark' }: WidgetEmbedProps) {
 
     loadWidget()
 
-    // Cleanup on unmount
+    // Cleanup on unmount — remove the injected script and widget DOM nodes so
+    // the next mount starts cleanly (important for LiveTestModal open/close).
     return () => {
-      // Reset the in-flight guard so a legitimate future mount can proceed
-      isLoadingRef.current = false
+      isLoadingRef.current = false // reset guard so future mounts can proceed
 
       if (scriptRef.current) {
         scriptRef.current.remove()
         scriptRef.current = null
       }
       const container = document.getElementById('qurius-widget-iframe-container')
-      if (container) {
-        container.remove()
-      }
+      if (container) container.remove()
+
       const launcher = document.getElementById('qurius-widget-launcher')
-      if (launcher) {
-        launcher.remove()
-      }
+      if (launcher) launcher.remove()
     }
   }, [companyData?.id, companyData?.plan, theme])
 
-  // This component doesn't render anything - it just injects the script
+  // This component renders nothing — it only injects the embed script.
   return null
 }

@@ -1579,7 +1579,8 @@ export async function createCompany(companyData, userId = null) {
       logo_url: logo_url || '',
       status: status || 'active',
       plan: plan || 'free', // Default to free plan
-      widget_key_hash: hashedKey, // Store hashed widget key
+      widget_key: newKey,          // Plain-text key for retrieval by WidgetEmbed
+      widget_key_hash: hashedKey,  // Bcrypt hash for validation
       // Stripe fields
       stripe_customer_id: companyData.stripe_customer_id || null,
       stripe_subscription_id: companyData.stripe_subscription_id || null,

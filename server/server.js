@@ -3201,10 +3201,13 @@ app.post('/api/companies/:companyId/regenerate-widget-key', async (req, res) => 
     // Generate new widget key
     const { newKey, hashedKey } = await generateWidgetKeyForCompany();
     
-    // Update company with new widget key
+    // Update company with new widget key.
+    // widget_key stores the plain text so WidgetEmbed / LiveTestModal can read
+    // it without regenerating (which would invalidate the production key).
     await axios.patch(
       `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
       {
+        widget_key: newKey,
         widget_key_hash: hashedKey,
         plan: planType
       },
@@ -3226,6 +3229,65 @@ app.post('/api/companies/:companyId/regenerate-widget-key', async (req, res) => 
   } catch (error) {
     console.error('❌ Widget key regeneration error:', error);
     res.status(500).json({ error: 'Failed to regenerate widget key' });
+  }
+});
+
+/**
+ * GET /api/companies/:companyId/widget-key
+ * Returns the existing plain-text widget key WITHOUT regenerating it.
+ * Used by WidgetEmbed and LiveTestModal so they can load the widget
+ * without invalidating the key that is already embedded in the
+ * customer's website script tag.
+ */
+app.get('/api/companies/:companyId/widget-key', async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    const companyResponse = await axios.get(
+      `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}&select=id,name,plan,widget_key`,
+      {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!companyResponse.data || companyResponse.data.length === 0) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const company = companyResponse.data[0];
+
+    if (!company.widget_key) {
+      // Key has never been generated yet (pre-existing company or onboarding
+      // incomplete). Generate one now so the caller can proceed.
+      const { newKey, hashedKey } = await generateWidgetKeyForCompany();
+      await axios.patch(
+        `${supabaseUrl}/rest/v1/companies?id=eq.${companyId}`,
+        { widget_key: newKey, widget_key_hash: hashedKey },
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return res.json({ success: true, widgetKey: newKey, plan: company.plan });
+    }
+
+    res.json({ success: true, widgetKey: company.widget_key, plan: company.plan });
+  } catch (error) {
+    console.error('❌ Widget key fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch widget key' });
   }
 });
 

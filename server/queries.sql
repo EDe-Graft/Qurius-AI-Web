@@ -15,7 +15,8 @@ CREATE TABLE companies (
     status TEXT DEFAULT 'active',
     plan TEXT DEFAULT 'free', -- Subscription plan: 'free', 'starter', 'pro'
     theme JSONB NOT NULL DEFAULT '{"primaryColor": "#58c4dc", "backgroundColor": "#F3F4F6", "textColor": "#000000"}',
-    widget_key_hash TEXT, -- Bcrypt hashed widget key
+    widget_key TEXT,      -- Plain-text widget key (for retrieval by WidgetEmbed / admin preview)
+    widget_key_hash TEXT, -- Bcrypt hash of the widget key (for validation)
     stripe_customer_id TEXT, -- Stripe customer ID
     stripe_subscription_id TEXT, -- Stripe subscription ID
     subscription_status TEXT DEFAULT 'active', -- 'active', 'canceled', 'past_due', 'unpaid'
@@ -842,11 +843,13 @@ DECLARE
     company_record RECORD;
     current_usage INTEGER;
     message_limit INTEGER;
+    v_last_message_date TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- Get company details
-    SELECT name, plan, contact_email INTO company_record
-    FROM public.companies
-    WHERE id = p_company_id;
+    -- Table alias 'c.' required: 'plan' is also an output variable in RETURNS TABLE,
+    -- so qualifying with 'c.' resolves the ambiguity (PostgreSQL error 42702).
+    SELECT c.name, c.plan, c.contact_email INTO company_record
+    FROM public.companies c
+    WHERE c.id = p_company_id;
     
     IF NOT FOUND THEN
         RETURN; -- Return empty result if company not found
@@ -864,8 +867,9 @@ BEGIN
     -- Get current month usage
     SELECT get_current_month_messages(p_company_id) INTO current_usage;
     
-    -- Get last message date
-    SELECT MAX(used_at) INTO company_record.last_message_date
+    -- Use a dedicated variable for last_message_date: RECORD fields are fixed
+    -- at the time of the SELECT INTO, so dynamic field assignment fails (error 42703).
+    SELECT MAX(used_at) INTO v_last_message_date
     FROM public.message_usage
     WHERE company_id = p_company_id
     AND message_type IN ('faq', 'ai');
@@ -878,7 +882,7 @@ BEGIN
         message_limit as messages_limit,
         GREATEST(0, message_limit - current_usage) as messages_remaining,
         current_usage < message_limit as can_send,
-        company_record.last_message_date as last_message_date,
+        v_last_message_date as last_message_date,
         company_record.contact_email as contact_email;
 END;
 $$ LANGUAGE plpgsql;
@@ -1430,4 +1434,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================
 -- ALTER TABLE public.companies
 --   ADD COLUMN IF NOT EXISTS allowed_domains TEXT[] DEFAULT '{}';
+-- ============================================================
+
+-- ============================================================
+-- MIGRATION: Add widget_key (plain-text) column to companies
+-- Run once in Supabase SQL Editor
+-- ============================================================
+-- ALTER TABLE public.companies
+--   ADD COLUMN IF NOT EXISTS widget_key TEXT;
+--
+-- Optionally back-fill existing rows so that WidgetEmbed can
+-- immediately read a key (the next call to regenerate-widget-key
+-- will populate both columns properly):
+--   UPDATE public.companies SET widget_key = NULL WHERE widget_key IS NULL;
 -- ============================================================
